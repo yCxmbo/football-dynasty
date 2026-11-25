@@ -46,12 +46,12 @@ describe('finances', () => {
     season(s);
     const L = s.ledger;
     expect(L.income.gate).toBeGreaterThan(0);
-    expect(L.income.tv).toBe(22_000_000);
+    expect(L.income.tv).toBeGreaterThanOrEqual(22_000_000);
     expect(L.expenses.wages).toBeGreaterThan(0);
     expect(L.balanceHistory.length).toBe(23);
     const before = s.clubs.ash.balance;
     startNewSeason(s);
-    expect(s.lastLedger!.income.prize).toBeGreaterThanOrEqual(prizeMoney(12, 12));
+    expect(s.lastLedger!.income.prize).toBeGreaterThanOrEqual(prizeMoney(12, 12, 1));
     expect(s.clubs.ash.balance).toBeGreaterThan(before);
     expect(Math.abs(before - start)).toBeLessThan(60_000_000);
   });

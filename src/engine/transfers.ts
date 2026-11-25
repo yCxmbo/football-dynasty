@@ -1,5 +1,6 @@
 /* Transfers, scouting and contracts. Pure functions over GameState (mutating the draft). */
 import { clamp } from './ratings';
+import { currentWeek } from './competitions';
 import { createRng } from './rng';
 import { FREE_AGENT, type Bid, type GameState, type OfferResponse, type Player } from './types';
 import { seasonLabel } from './types';
@@ -15,16 +16,18 @@ export type SquadRole = (typeof SQUAD_ROLES)[number];
 export const WINDOWS = { summerUntil: 4, januaryFrom: 11, januaryTo: 13 };
 
 /** Summer window: pre-season (season finished) and matchdays 1–4. January: matchdays 11–13. */
+/** Windows follow league weeks (the calendar also has cup midweeks). */
 export function windowOpen(s: GameState) {
-  const over = s.matchday > Math.max(...s.fixtures.map((f) => f.matchday));
-  return over || s.matchday <= WINDOWS.summerUntil || (s.matchday >= WINDOWS.januaryFrom && s.matchday <= WINDOWS.januaryTo);
+  const w = currentWeek(s);
+  return w === 99 || w <= WINDOWS.summerUntil || (w >= WINDOWS.januaryFrom && w <= WINDOWS.januaryTo);
 }
 export function windowLabel(s: GameState) {
+  const w = currentWeek(s);
   if (windowOpen(s)) {
-    const closes = s.matchday <= WINDOWS.summerUntil ? WINDOWS.summerUntil : s.matchday >= WINDOWS.januaryFrom && s.matchday <= WINDOWS.januaryTo ? WINDOWS.januaryTo : null;
-    return closes ? `Transfer window open until matchday ${closes}` : 'Transfer window open (pre-season)';
+    const closes = w <= WINDOWS.summerUntil ? WINDOWS.summerUntil : w >= WINDOWS.januaryFrom && w <= WINDOWS.januaryTo ? WINDOWS.januaryTo : null;
+    return closes ? `Transfer window open until league matchday ${closes}` : 'Transfer window open (pre-season)';
   }
-  return s.matchday < WINDOWS.januaryFrom ? `Window closed. The January window opens at matchday ${WINDOWS.januaryFrom}.` : 'Window closed. The summer window opens after the season.';
+  return w < WINDOWS.januaryFrom ? `Window closed. The January window opens at league matchday ${WINDOWS.januaryFrom}.` : 'Window closed. The summer window opens after the season.';
 }
 
 /* ---------- helpers ---------- */
@@ -168,7 +171,7 @@ export function completeTransfer(s: GameState, p: Player, o: OfferTerms) {
   if (from !== FREE_AGENT && s.clubs[from]) { s.clubs[from].balance += o.fee; s.clubs[from].transferBudget += Math.round(o.fee * 0.5); }
   const youth = o.contractType === 'youth';
   Object.assign(p, {
-    clubId: s.userClubId, wage: o.wage, contractEnd: s.year + o.years - (s.matchday > Math.max(...s.fixtures.map((f) => f.matchday)) ? 0 : 1),
+    clubId: s.userClubId, wage: o.wage, contractEnd: s.year + o.years - (s.matchday > s.calendar.length ? 0 : 1),
     contractType: youth ? 'youth' : 'full-time', squad: youth ? (p.age >= 18 ? 'U21' : 'U18') : 'First team',
     number: freeNumber(s, s.userClubId), captain: false, releaseClause: o.releaseClause || undefined, joined: s.year,
     morale: 'high', injuredFor: p.injuredFor, suspendedFor: 0,
@@ -233,7 +236,7 @@ export function renewContract(s: GameState, playerId: string, wage: number, year
   const club = s.clubs[s.userClubId];
   if (wage - p.wage > club.wageBudget - wageBill(s)) return 'The board refuses: the raise would take you over the wage budget.';
   if (wage < want * 0.95) return `${p.name} turns it down. He wants about ${Math.round(want / 1000)}k a week.`;
-  const over = s.matchday > Math.max(...s.fixtures.map((f) => f.matchday));
+  const over = s.matchday > s.calendar.length;
   p.wage = wage; p.contractEnd = s.year + years - (over ? 0 : 1);
   if (p.contractType === 'youth' && p.squad === 'First team') p.contractType = 'full-time';
   if (p.morale === 'low') p.morale = 'ok';
@@ -286,8 +289,8 @@ export function scoutingTick(s: GameState) {
 }
 
 export function inbox(s: GameState, m: { category: GameStateMsg['category']; from: string; role?: string; subject: string; body: string[]; bidId?: string; playerId?: string }) {
-  const f = s.fixtures.find((x) => x.matchday === s.matchday) ?? s.fixtures[s.fixtures.length - 1];
-  const date = new Date(f.date + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const slot = s.calendar[Math.min(s.matchday, s.calendar.length) - 1];
+  const date = new Date(slot.date + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
   s.inbox.unshift({ ...m, id: `m${s.nextId++}`, date, unread: true });
   if (s.inbox.length > 80) s.inbox.length = 80;
 }

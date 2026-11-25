@@ -93,3 +93,11 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .fn-row strong { text-align: right; font: 700 16px/20px var(--font-display); }
 .fn-meter { width: 100%; }
 .fn-total { border-bottom: 0; font-weight: 700; }
+
+/* Competitions */
+.cc-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+@media (max-width: 900px) { .cc-groups { grid-template-columns: 1fr; } }
+.cup-ties td { padding: 6px 4px; font-size: 13px; }
+.cup-ties .cup-home { text-align: right; width: 38%; }
+.cup-ties .cup-score { text-align: center; width: 110px; font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--ink); }
+.cup-ties tr.fd-gold td { color: var(--gold-ink); }

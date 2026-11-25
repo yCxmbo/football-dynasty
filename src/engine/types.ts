@@ -72,14 +72,31 @@ export interface Club {
   balance: number;
   transferBudget: number;
   wageBudget: number; // weekly
+  /** 1 Premier Division, 2 Championship, 3 League One, 0 foreign (Continental Cup only). */
+  division: 0 | 1 | 2 | 3;
+  country?: string;
 }
+
+export type CompId = 'D1' | 'D2' | 'D3' | 'NC' | 'LC' | 'CC' | 'SC' | 'PO2' | 'PO3';
+
+/** One dated slot in the season calendar; each "Continue" plays one slot. */
+export interface Slot { index: number; date: string; week: number; day: 'Sat' | 'Sun' | 'Wed'; entries: Array<{ comp: CompId; round: string }> }
+
+export interface CupState { round: number; alive: string[]; winner?: string; runnerUp?: string; exits: Record<string, string> }
 
 export interface Fixture {
   id: string;
+  /** Calendar slot (1-based). */
   matchday: number;
   date: string;
   homeId: string;
   awayId: string;
+  comp: CompId;
+  round: string;
+  /** Knockout: a draw goes to penalties. */
+  ko?: boolean;
+  neutral?: boolean;
+  group?: number;
   result?: MatchResult;
 }
 
@@ -87,7 +104,7 @@ export type EventType = 'goal' | 'penalty' | 'owngoal' | 'yellow' | 'red' | 'sub
 export interface MatchEvent { minute: number; order: number; type: EventType; side?: 'home' | 'away'; playerId?: string; player?: string; score?: [number, number]; text: string }
 export interface PlayerRating { playerId: string; rating: number; goals: number; assists: number; card?: 'yellow' | 'red'; subbedOff?: number; injured?: boolean; minutes: number }
 export interface MatchStats { possession: [number, number]; shots: [number, number]; onTarget: [number, number]; xg: [number, number]; corners: [number, number]; fouls: [number, number]; yellow: [number, number]; red: [number, number]; passAcc: [number, number] }
-export interface MatchResult { score: [number, number]; events: MatchEvent[]; stats: MatchStats; ratings: { home: PlayerRating[]; away: PlayerRating[] } }
+export interface MatchResult { score: [number, number]; pens?: [number, number]; winnerId?: string; events: MatchEvent[]; stats: MatchStats; ratings: { home: PlayerRating[]; away: PlayerRating[] } }
 
 export interface InboxMessage { id: string; category: 'board' | 'transfers' | 'scouting' | 'medical' | 'media' | 'training' | 'youth' | 'match' | 'finance'; from: string; role?: string; date: string; subject: string; body: string[]; unread: boolean; bidId?: string; playerId?: string }
 
@@ -97,11 +114,11 @@ export interface Installment { clubId: string; perMatchday: number; remaining: n
 export interface Negotiation { attempts: number; lastResponse?: OfferResponse; blockedUntilWindow?: boolean }
 export interface OfferResponse { status: 'accepted' | 'rejected' | 'counter'; message: string; counter?: number }
 
-export interface SeasonRecord { season: string; division: string; pos: number; pts: number; champion: string; topScorer?: { name: string; goals: number }; manager: string; isYou: boolean }
-export interface Trophy { name: string; tier: 'league' | 'cup' | 'continental'; seasons: string[] }
+export interface SeasonRecord { season: string; division: string; pos: number; pts: number; champion: string; topScorer?: { name: string; goals: number }; manager: string; isYou: boolean; movement?: 'promoted' | 'relegated'; cup?: string; leagueCup?: string; europe?: string }
+export interface Trophy { name: string; tier: 'league' | 'cup' | 'continental' | 'super'; seasons: string[] }
 
 export interface GameState {
-  version: 1;
+  version: 2;
   seed: number;
   rngState: number;
   year: number; // season starts in this year
@@ -112,6 +129,12 @@ export interface GameState {
   clubs: Record<string, Club>;
   players: Record<string, Player>;
   fixtures: Fixture[];
+  calendar: Slot[];
+  cups: Partial<Record<CompId, CupState>>;
+  /** Continental Cup groups (club ids). */
+  ccGroups: string[][];
+  /** Clubs qualified for next season's Continental Cup and Super Cup, decided at season end. */
+  qualified: { cc: string[]; superCup: [string, string] };
   inbox: InboxMessage[];
   history: Record<string, SeasonRecord[]>; // by club id
   trophies: Record<string, Trophy[]>; // by club id

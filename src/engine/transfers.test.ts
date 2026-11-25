@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { currentWeek } from './competitions';
 import { newGame, playMatchday, squadOf, startNewSeason, totalMatchdays } from './game';
 import { askingPrice, expectedRole, makeOffer, renewContract, respondToBid, startScouting, toggleTransferList, wageDemand, windowOpen, type OfferTerms } from './transfers';
 import { FREE_AGENT, type GameState, type Player } from './types';
@@ -8,7 +9,8 @@ const target = (s: GameState) => squadOf(s, 'bla').filter((p) => p.squad === 'Fi
 function terms(s: GameState, p: Player, over: Partial<OfferTerms> = {}): OfferTerms {
   return { fee: askingPrice(s, p), upfront: 100, months: 0, appearanceFee: 0, goalBonus: 0, sellOn: 0, wage: wageDemand(s, p), years: 3, signingBonus: 0, releaseClause: 0, agentFee: 0, role: expectedRole(s, p), contractType: 'full-time', ...over };
 }
-const playTo = (s: GameState, md: number) => { while (s.matchday < md) playMatchday(s); };
+/** Plays on until the given league week (the calendar also holds cup midweeks). */
+const playTo = (s: GameState, week: number) => { while (currentWeek(s) < week) playMatchday(s); };
 
 describe('transfer windows', () => {
   it('summer window open at the start, closed mid-autumn, open in January', () => {
@@ -64,7 +66,7 @@ describe('buying', () => {
     expect(makeOffer(s, p.id, terms(s, p, { fee: Math.round(askingPrice(s, p) * 1.1), upfront: 50, months: 6 })).status).toBe("accepted");
     expect(s.installments.length).toBe(1);
     const before = s.installments[0].remaining;
-    playMatchday(s);
+    playTo(s, 2);
     expect(s.installments[0]?.remaining ?? 0).toBeLessThan(before);
   });
 });
@@ -74,7 +76,7 @@ describe('scouting', () => {
     const s = game();
     const p = target(s);
     expect(startScouting(s, p.id)).toBeNull();
-    for (let i = 0; i < 3; i++) playMatchday(s);
+    playTo(s, 4); // three league weeks of scouting: 25% + 3 × 25%
     expect(s.knowledge[p.id]).toBe(100);
     expect(s.scouting).not.toContain(p.id);
     expect(s.inbox.some((m) => m.subject.startsWith('Full report'))).toBe(true);
@@ -86,7 +88,7 @@ describe('selling', () => {
     const s = game();
     const mine = squadOf(s, 'ash').filter((p) => p.squad === 'First team').slice(0, 6);
     mine.forEach((p) => toggleTransferList(s, p.id));
-    for (let i = 0; i < 3 && !s.bids.length; i++) playMatchday(s);
+    for (let i = 0; i < 6 && !s.bids.length; i++) playMatchday(s);
     expect(s.bids.length).toBeGreaterThan(0);
     const bid = s.bids[0];
     const balance = s.clubs.ash.balance;

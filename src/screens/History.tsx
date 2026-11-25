@@ -1,13 +1,20 @@
 import { useState } from 'react';
 import { FD } from '../ds';
-import { DIVISION, leagueScale } from '../engine/game';
+import { leagueScale } from '../engine/game';
+import { COMPS } from '../engine/competitions';
+import { divisionLabel } from './comp-ui';
 import type { GameState, Player } from '../engine/types';
 
 export default function History({ g }: { g: GameState }) {
   const [tab, setTab] = useState('seasons');
   const club = g.clubs[g.userClubId];
-  const trophies = g.trophies[club.id]?.length ? g.trophies[club.id] : [{ name: DIVISION, tier: 'league' as const, seasons: [] }];
-  const seasons = (g.history[club.id] ?? []).map((s) => ({ ...s, cup: undefined, europe: undefined }));
+  // everything the club has won, plus the big ones still to win
+  const won = g.trophies[club.id] ?? [];
+  const targets = [divisionLabel(club.division || 1), COMPS.D1.name, COMPS.NC.name, COMPS.LC.name, COMPS.CC.name];
+  const order = [COMPS.D1.name, COMPS.D2.name, COMPS.D3.name, COMPS.CC.name, COMPS.NC.name, COMPS.LC.name, COMPS.SC.name];
+  const trophies = [...won, ...targets.filter((t, i) => targets.indexOf(t) === i && !won.some((w) => w.name === t)).map((name) => ({ name, tier: name === COMPS.CC.name ? 'continental' as const : COMPS.D1.name === name || name.includes('Championship') || name.includes('League One') ? 'league' as const : 'cup' as const, seasons: [] as string[] }))]
+    .sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name));
+  const seasons = g.history[club.id] ?? [];
   const everyone = Object.values(g.players).filter((p) => p.career.some((c) => c.club === club.name) || (p.clubId === club.id && p.current.apps));
   const total = (p: Player, k: 'apps' | 'goals') => p.career.filter((c) => c.club === club.name).reduce((s, c) => s + c[k], 0) + (p.clubId === club.id ? p.current[k] : 0);
   const topApps = everyone.slice().sort((a, b) => total(b, 'apps') - total(a, 'apps'))[0];
@@ -36,7 +43,7 @@ export default function History({ g }: { g: GameState }) {
           bestSeason ? { label: 'Most points in a season', value: bestSeason.pts, holder: bestSeason.season } : { label: 'Most points in a season', value: '–' } ] },
       ]} />}
       {tab === 'career' && <FD.ManagerCareer manager={{ name: g.managerName, reputation: g.manager.trophies.length ? 'Title-winning manager' : 'Up-and-coming manager',
-        clubs: [{ club: club.name, division: DIVISION, from: g.manager.since, to: null, w: g.manager.w, d: g.manager.d, l: g.manager.l, trophies: g.manager.trophies }] }} />}
+        clubs: [{ club: club.name, division: divisionLabel(club.division), from: g.manager.since, to: null, w: g.manager.w, d: g.manager.d, l: g.manager.l, trophies: g.manager.trophies }] }} />}
     </div>
   );
 }

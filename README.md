@@ -11,12 +11,28 @@ npm test           # engine tests (Vitest)
 npm run build      # type-check + production build into dist/
 ```
 
-The game saves automatically in the browser (localStorage). Settings → *Start a new career* deletes the save.
+The game saves automatically in the browser (localStorage, compressed with lz-string). Settings → *Start a new career* deletes the save. Saves from before divisions and cups (v0.2 and earlier) can't be converted; the game says so and starts a new career.
 
 ## What's playable (v0.1)
 
-- **New career:** pick a manager name, a currency (€ / $ / £) and one of 12 fictional clubs.
-- **Season:** a 12-club Premier Division, double round robin (22 matchdays), with a live league table and top scorers.
+- **New career:** pick a manager name, a currency (€ / $ / £), a division and one of 36 fictional clubs. Starting in League One lets you build from the bottom.
+- **Football pyramid:** three divisions of 12 (Premier Division, Championship, League One), each a double round robin over 22 matchdays.
+  - The top two go up automatically, places 3–6 play off for a third promotion place, and the bottom three go down (League One has no relegation).
+  - Promotion and relegation change a club's reputation, TV money and board expectations.
+- **Competitions** (fictional names, modelled on real formats):
+
+  | Competition | Modelled on | Format |
+  | --- | --- | --- |
+  | National Cup | FA Cup | All 36 clubs. League One's 8 lowest-ranked clubs play a preliminary round. One-off ties, penalties if level, semi-finals and final at a neutral venue. |
+  | League Cup | Carabao Cup | The 24 clubs of the top two divisions. Knockout, neutral final. |
+  | Continental Cup | Champions League | 16 clubs: the Premier Division's top three, the National Cup winner (or 4th place), and 12 foreign clubs. Four groups of four, then quarter-finals, semi-finals and a neutral final. |
+  | Super Cup | Community Shield | League champions against National Cup winners before the season. |
+
+- **Calendar:** about 45 dated slots per season: league Saturdays, cup and Continental Wednesdays, play-offs and finals.
+  - *Play match* plays your next game.
+  - *Continue* skips nights when you don't play.
+- **Prize money** for every competition, gate receipts for cup ties (split at neutral venues) and Continental Cup TV money.
+- Computer-run clubs spend surplus money on better players and sell their stars abroad when deep in debt.
 - **Match day:** watch your match play out minute by minute (pause, 1×, 2×, 4×, sim to end) with commentary, stats and player ratings; other matches are simulated.
 - **Squad:** first team, U21 and U18 with ability and potential stars, plus full player profiles (attributes, positions, scout report, career).
 - **Tactics:** 4-3-3, 4-4-2, 4-2-3-1 or 3-5-2; click two players to swap; out-of-position players perform worse.
@@ -65,7 +81,8 @@ src/
     world.ts       clubs, squads, youth, wages and values
     fixtures.ts    double round-robin schedule
     match.ts       formations, lineup picking, match simulation
-    game.ts        game state: matchdays, table, season end, development, youth, promotion
+    competitions.ts calendar, divisions, cups, draws, knockouts, play-offs, promotion/relegation, qualification
+    game.ts        game state: playing calendar slots, season end, development, youth, promotion
     transfers.ts   windows, scouting, asking prices, offers, bids, contracts, free agents
     training.ts    weekly plans, workload, injury risk, in-season development, focus
     finance.ts     weekly income and costs, prize money, budgets, reputation

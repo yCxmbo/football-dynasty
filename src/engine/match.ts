@@ -66,14 +66,27 @@ const surname = (p: Player) => { const i = p.name.indexOf(' '); return i < 0 ? p
 
 const SCORER_WEIGHT: Record<string, number> = { GK: 0, CB: 0.6, FB: 0.5, DM: 0.6, CM: 1.2, AM: 2.2, W: 2.6, ST: 4.2 };
 
-export interface MatchMods { homeBoost?: number; awayBoost?: number; homeInjury?: number; awayInjury?: number }
+export interface MatchMods { homeBoost?: number; awayBoost?: number; homeInjury?: number; awayInjury?: number; neutral?: boolean; knockout?: boolean }
+
+/** Knockout draws go straight to a shoot-out (keepers and composure matter a little). */
+function penalties(rng: Rng, needed: boolean | undefined, home: Player[], away: Player[], homeName: string, awayName: string, events: MatchEvent[]): { pens?: [number, number]; side?: 'home' | 'away' } {
+  if (!needed) return {};
+  const taker = (side: Player[]) => side.slice(1).reduce((a, p) => a + p.attributes['Composure'] + p.attributes['Penalties'], 0) / (side.length - 1) / 40;
+  const keeper = (side: Player[]) => (side[0].attributes['One on Ones'] + side[0].attributes['Reflexes']) / 40;
+  const pH = clamp(0.72 + taker(home) * 0.12 - keeper(away) * 0.1, 0.55, 0.9), pA = clamp(0.72 + taker(away) * 0.12 - keeper(home) * 0.1, 0.55, 0.9);
+  let h = 0, a = 0;
+  for (let i = 0; i < 5; i++) { if (rng.chance(pH)) h++; if (rng.chance(pA)) a++; }
+  while (h === a) { const x = rng.chance(pH), y = rng.chance(pA); if (x) h++; if (y) a++; }
+  events.push({ minute: 90, order: 1000, type: 'whistle', text: `${h > a ? homeName : awayName} win ${Math.max(h, a)}\u2013${Math.min(h, a)} on penalties.` });
+  return { pens: [h, a] };
+}
 
 export function simulateMatch(rng: Rng, home: Player[], away: Player[], homeName: string, awayName: string, venue: string, homeFormation: Formation = '4-3-3', awayFormation: Formation = '4-3-3', mods: MatchMods = {}): MatchResult {
   const boost = (s: Side, k = 1) => ({ ...s, attack: s.attack * k, mid: s.mid * k, defence: s.defence * k, gk: s.gk * k });
   const H = boost(sideStrength(home, homeFormation), mods.homeBoost), A = boost(sideStrength(away, awayFormation), mods.awayBoost);
   const attackH = (H.attack * 0.6 + H.mid * 0.4) / (A.defence * 0.7 + A.gk * 0.3);
   const attackA = (A.attack * 0.6 + A.mid * 0.4) / (H.defence * 0.7 + H.gk * 0.3);
-  const xgH = clamp(1.32 * Math.pow(attackH, 2.6) * 1.12, 0.2, 4.2);
+  const xgH = clamp(1.32 * Math.pow(attackH, 2.6) * (mods.neutral ? 1 : 1.12), 0.2, 4.2);
   const xgA = clamp(1.32 * Math.pow(attackA, 2.6), 0.2, 4.2);
   const goalsH = poisson(rng, xgH), goalsA = poisson(rng, xgA);
   const poss = clamp(Math.round(50 + (H.mid - A.mid) * 0.45 + rng.normal(2, 3)), 30, 70);
@@ -157,7 +170,7 @@ export function simulateMatch(rng: Rng, home: Player[], away: Player[], homeName
 
   evs.sort((a, b) => a.minute - b.minute);
   let h = 0, a = 0;
-  const events: MatchEvent[] = [{ minute: 0, order: 0, type: 'whistle', text: `Kick-off at ${venue}.` }];
+  const events: MatchEvent[] = [{ minute: 0, order: 0, type: 'whistle', text: mods.neutral ? `Kick-off at the national stadium.` : `Kick-off at ${venue}.` }];
   evs.forEach((e, i) => {
     const ev: MatchEvent = { minute: e.minute, order: i + 1, type: e.type, side: e.side, playerId: e.playerId, player: e.player, text: e.text };
     if (e.goalSide) { if (e.goalSide === 'home') h++; else a++; ev.score = [h, a]; }
@@ -172,6 +185,7 @@ export function simulateMatch(rng: Rng, home: Player[], away: Player[], homeName
   const red = (side: Player[]) => side.filter((p) => ratings.get(p.id)!.card === 'red').length;
   return {
     score: [goalsH, goalsA],
+    ...penalties(rng, mods.knockout && goalsH === goalsA, home, away, homeName, awayName, events),
     events: events.sort((x, y) => x.minute - y.minute || x.order - y.order),
     stats: {
       possession: [poss, 100 - poss], shots: [shotsH, shotsA],

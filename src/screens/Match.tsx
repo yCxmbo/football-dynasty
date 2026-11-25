@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FD } from '../ds';
+import { COMPS } from '../engine/competitions';
 import type { GameState, MatchStats } from '../engine/types';
 import type { Screen } from './shared';
 
@@ -47,7 +48,7 @@ export default function Match({ g, id, live, go, onFinish }: { g: GameState; id?
     });
     return {
       match: {
-        competition: `Premier Division · Matchday ${f.matchday}`, venue: H.stadium, status: minute >= 90 ? 'FT' : minute === 45 ? 'HT' : 'live', minute, score: [sh, sa],
+        competition: `${COMPS[f.comp].name} · ${f.round}`, venue: f.neutral ? 'National Stadium' : H.stadium, status: minute >= 90 ? 'FT' : minute === 45 ? 'HT' : 'live', minute, score: [sh, sa],
         home: { name: H.name, short: H.short, isUser: H.id === g.userClubId }, away: { name: A.name, short: A.short, isUser: A.id === g.userClubId },
         events: shown.map((e) => ({ ...e, isUser: (e.side === 'home') === userHome && !!e.side })),
       },

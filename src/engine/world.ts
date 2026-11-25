@@ -1,4 +1,4 @@
-import { CLUBS, FIRST_NAMES, LAST_NAMES, NATIONALITIES } from './names';
+import { CLUBS, FIRST_NAMES, FOREIGN_CLUBS, LAST_NAMES, LOWER_CLUBS, NATIONALITIES } from './names';
 import { ATTRIBUTE_GROUPS, POS_GROUP, POSITION_WEIGHTS, abilityFromAttributes, clamp, levelForAbility, type Position } from './ratings';
 import type { Rng } from './rng';
 import type { Club, Familiarity, Player, Squad } from './types';
@@ -85,13 +85,14 @@ export function makeWorld(rng: Rng, year: number) {
   const clubs: Record<string, Club> = {};
   const players: Record<string, Player> = {};
   let n = 1;
-  for (const seed of CLUBS) {
+  for (const seed of [...CLUBS.map((c) => ({ ...c, division: 1 as const })), ...LOWER_CLUBS, ...FOREIGN_CLUBS]) {
     const id = seed.short.toLowerCase();
+    const division = seed.division ?? 1;
     clubs[id] = {
       id, name: seed.name, short: seed.short, reputation: seed.reputation, stadium: seed.stadium, capacity: seed.capacity, nickname: seed.nickname, founded: seed.founded,
       balance: Math.round(seed.reputation * seed.reputation * 9000 / 1e5) * 1e5,
       transferBudget: Math.round(seed.reputation * seed.reputation * 6000 / 1e5) * 1e5,
-      wageBudget: 0,
+      wageBudget: 0, division, country: seed.country,
     };
     const clubCA = 60 + seed.reputation * 1.15; // ~117–147 average for starters
     let shirt = 1;
@@ -104,7 +105,7 @@ export function makeWorld(rng: Rng, year: number) {
       const p = makePlayer(rng, { id: `p${n++}`, clubId: id, pos, ca, pa: clamp(ca + growth, ca, 200), age, squad: 'First team', number: shirt++, year, reputation: seed.reputation });
       players[p.id] = p; wageBill += p.wage;
     });
-    for (const squad of ['U21', 'U18'] as Squad[]) {
+    for (const squad of (division === 0 ? [] : ['U21', 'U18']) as Squad[]) {
       YOUTH_TEMPLATE.forEach((pos) => {
         const age = squad === 'U21' ? rng.int(18, 20) : rng.int(15, 17);
         const ca = clamp(Math.round(rng.normal(squad === 'U21' ? 78 : 58, 10)), 35, 120);

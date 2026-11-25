@@ -1,23 +1,40 @@
 import { useCallback, useEffect, useState } from 'react';
+import { compressToUTF16, decompressFromUTF16 } from 'lz-string';
 import { migrate } from './engine/game';
 import type { Currency, GameState } from './engine/types';
 
 const SAVE_KEY = 'football-dynasty:save:v1';
 const THEME_KEY = 'football-dynasty:theme';
 
+/** Saves are compressed (lz-string) to stay well inside the browser's ~5 MB storage limit. */
+function readRaw(): string | null {
+  const raw = localStorage.getItem(SAVE_KEY);
+  if (!raw) return null;
+  return raw.startsWith('{') ? raw : decompressFromUTF16(raw);
+}
+
+/** True when an older, incompatible save exists (before divisions and cups). */
+export function hasOldSave() {
+  try { const raw = readRaw(); return !!raw && (JSON.parse(raw) as { version?: number }).version !== 2; } catch { return false; }
+}
+
 export function loadGame(): GameState | null {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    const raw = readRaw();
     if (!raw) return null;
     const s = JSON.parse(raw) as GameState;
-    return s.version === 1 ? migrate(s) : null;
+    return s.version === 2 ? migrate(s) : null;
   } catch { return null; }
 }
 
+export let saveFailed = false;
+
 function saveGame(s: GameState | null) {
   try {
-    if (s) localStorage.setItem(SAVE_KEY, JSON.stringify(s)); else localStorage.removeItem(SAVE_KEY);
-  } catch { /* storage full or blocked: the game keeps running, unsaved */ }
+    if (s) localStorage.setItem(SAVE_KEY, compressToUTF16(JSON.stringify(s))); else localStorage.removeItem(SAVE_KEY);
+  } catch {
+    saveFailed = true; // storage full or blocked: the game keeps running, unsaved
+  }
 }
 
 /** Game state with copy-on-write updates and autosave. */

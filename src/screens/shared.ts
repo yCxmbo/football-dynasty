@@ -9,7 +9,7 @@ export type Screen = 'home' | 'inbox' | 'squad' | 'player' | 'tactics' | 'fixtur
 export const NAV = (unread: number) => [
   { id: 'home', label: 'Home', icon: 'home' }, { id: 'inbox', label: 'Inbox', icon: 'inbox', badge: unread || undefined },
   { id: 'squad', label: 'Squad', icon: 'squad' }, { id: 'tactics', label: 'Tactics', icon: 'tactics' },
-  { id: 'fixtures', label: 'Fixtures', icon: 'fixtures' }, { id: 'table', label: 'League table', icon: 'league-table' },
+  { id: 'fixtures', label: 'Fixtures', icon: 'fixtures' }, { id: 'table', label: 'Competitions', icon: 'league-table' },
   { id: 'youth', label: 'Academy', icon: 'youth' }, { id: 'history', label: 'Club history', icon: 'trophy' },
   { id: 'transfers', label: 'Transfers', icon: 'transfers' }, { id: 'scouting', label: 'Scouting', icon: 'scouting' }, { id: 'training', label: 'Training', icon: 'training' },
   { id: 'finances', label: 'Finances', icon: 'finances' }, { id: 'settings', label: 'Settings', icon: 'settings' },

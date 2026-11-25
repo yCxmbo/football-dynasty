@@ -1,22 +1,11 @@
 import { FD } from '../ds';
-import { boardTarget, currentDate, leagueTable, ordinal, seasonOver, userFixture } from '../engine/game';
-import { formatDate } from '../engine/fixtures';
-import type { Fixture, GameState } from '../engine/types';
+import { boardTarget, currentDate, leagueTable, nextUserFixture, ordinal, seasonOver } from '../engine/game';
+import { COMPS, cupResult } from '../engine/competitions';
+import type { GameState } from '../engine/types';
+import { divisionLabel, fixtureCardProps, zonesFor } from './comp-ui';
 import { toCur } from '../store';
 import type { Screen } from './shared';
 import { bidsFor } from './shared-transfers';
-
-export function fixtureCardProps(g: GameState, f: Fixture) {
-  const H = g.clubs[f.homeId], A = g.clubs[f.awayId];
-  const table = leagueTable(g);
-  const form = (id: string) => table.find((t) => t.clubId === id)?.form;
-  return {
-    competition: 'Premier Division', matchday: `Matchday ${f.matchday}`, status: f.result ? 'FT' : 'upcoming', score: f.result?.score,
-    date: formatDate(f.date), kickoff: '15:00', venue: H.stadium,
-    home: { name: H.name, short: H.short, isUser: H.id === g.userClubId, form: form(H.id) },
-    away: { name: A.name, short: A.short, isUser: A.id === g.userClubId, form: form(A.id) },
-  };
-}
 
 export default function Home({ g, go, onPlay }: { g: GameState; go: (s: Screen, id?: string) => void; onPlay: () => void }) {
   const cur = g.currency;
@@ -25,8 +14,10 @@ export default function Home({ g, go, onPlay }: { g: GameState; go: (s: Screen, 
   const pos = table.findIndex((t) => t.clubId === g.userClubId) + 1;
   const played = table[pos - 1].p;
   const target = boardTarget(g, g.userClubId);
-  const next = userFixture(g);
-  const last = g.fixtures.filter((f) => f.result && (f.homeId === g.userClubId || f.awayId === g.userClubId)).pop();
+  const next = nextUserFixture(g);
+  const isNow = next && next.matchday === g.matchday;
+  const last = g.fixtures.filter((f) => f.result && (f.homeId === g.userClubId || f.awayId === g.userClubId)).sort((a, b) => a.matchday - b.matchday).pop();
+  const cups = (['NC', 'LC', 'CC'] as const).map((c) => ({ c, r: cupResult(g, c, club.id) })).filter((x) => x.r);
   const over = seasonOver(g);
   const conf = played === 0 ? 70 : Math.max(5, Math.min(98, 100 - (pos - target.pos) * 12 - (pos > target.pos ? 10 : 0)));
   const confWord = conf >= 80 ? 'Very pleased' : conf >= 60 ? 'Satisfied' : conf >= 40 ? 'Concerned' : 'Losing patience';
@@ -39,8 +30,8 @@ export default function Home({ g, go, onPlay }: { g: GameState; go: (s: Screen, 
     ...mine.filter((p) => p.squad === 'First team' && p.morale === 'low').map((p) => ({ icon: 'morale-low', tone: 'fd-warn', t: `${p.name}: unhappy`, s: 'Low morale', id: p.id })),
   ].slice(0, 5);
   const unread = g.inbox.filter((m) => m.unread).slice(0, 3);
-  const greeting = over ? 'The season is over' : pos === 1 && played > 0 ? 'Top of the league, boss' : `Good morning, ${g.managerName.split(' ')[0]}`;
-  const lead = played === 0 ? `A new season starts ${currentDate(g)}. The board wants ${target.text}.`
+  const greeting = over ? 'The season is over' : pos === 1 && played > 0 ? 'Top of the league, boss' : `Good morning, ${g.managerName.startsWith('The ') ? g.managerName.toLowerCase() : g.managerName.split(' ')[0]}`;
+  const lead = played === 0 ? `A new season in the ${divisionLabel(club.division)} starts ${currentDate(g)}. The board wants ${target.text}.`
     : over ? `You finished ${ordinal(pos)}. Read the board's review, then start the new season.`
     : `${ordinal(pos)} after ${played} ${played === 1 ? 'match' : 'matches'}, ${pos === 1 ? `${table[0].pts - table[1].pts} ${table[0].pts - table[1].pts === 1 ? 'point' : 'points'} clear` : `${table[0].pts - table[pos - 1].pts} points off the top`}.`;
 
@@ -50,7 +41,7 @@ export default function Home({ g, go, onPlay }: { g: GameState; go: (s: Screen, 
       <div className="hm-grid">
         <div className="hm-col">
           <h2 className="pg-h">Next match</h2>
-          {next ? <FD.FixtureCard {...fixtureCardProps(g, next)} action={<FD.Button size="sm" icon="play" onClick={onPlay}>Play match</FD.Button>} />
+          {next ? <FD.FixtureCard {...fixtureCardProps(g, next)} action={isNow ? <FD.Button size="sm" icon="play" onClick={onPlay}>Play match</FD.Button> : <FD.Button size="sm" variant="secondary" icon="sim" onClick={onPlay}>Continue to it</FD.Button>} />
             : <div className="pg-card hm-note">{over ? 'No more league matches this season.' : 'No match this week.'}</div>}
           {last && <>
             <h2 className="pg-h">Last result</h2>
@@ -58,9 +49,18 @@ export default function Home({ g, go, onPlay }: { g: GameState; go: (s: Screen, 
           </>}
         </div>
         <div className="hm-col">
-          <h2 className="pg-h">League</h2>
-          <FD.LeagueTable compact rows={table.slice(0, 8).map((r) => ({ ...r }))} zones={{ champions: 1, championsLabel: 'Champions' }} />
+          <h2 className="pg-h">{divisionLabel(club.division)}</h2>
+          <FD.LeagueTable compact rows={table.map((r) => ({ ...r }))} zones={zonesFor(club.division)} />
           <button className="pg-link" style={{ alignSelf: 'flex-start' }} onClick={() => go('table')}>Full table</button>
+          {cups.length > 0 && <>
+            <h2 className="pg-h">Cups</h2>
+            <div className="pg-card hm-fin">
+              {cups.map(({ c, r }) => {
+                const out = r !== 'Winners' && g.cups[c]?.exits[club.id];
+                return <div key={c}><span className="pg-h">{COMPS[c].name}</span><strong className={r === 'Winners' ? 'fd-gold' : out ? 'fd-muted' : 'fd-ok'}>{r === 'Winners' ? 'Winners' : out ? `Out (${r})` : r}</strong></div>;
+              })}
+            </div>
+          </>}
           <h2 className="pg-h">Board</h2>
           <div className="pg-card hm-board">
             <div className="hm-board__row"><span className="pg-h">Board confidence</span><strong className={conf >= 60 ? 'fd-ok' : conf >= 40 ? 'fd-warn' : 'fd-money--neg'}>{confWord}</strong></div>

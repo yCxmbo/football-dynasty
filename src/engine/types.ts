@@ -30,6 +30,8 @@ export interface Player {
   contractEnd: number; // season year the contract ends
   morale: Morale;
   injuredFor: number; // matchdays
+  /** Fitness 0–100: drops in matches, recovers between them. */
+  condition?: number;
   suspendedFor: number; // matchdays
   yellowCards: number;
   captain?: boolean;
@@ -102,7 +104,7 @@ export interface Fixture {
 
 export type EventType = 'goal' | 'penalty' | 'owngoal' | 'yellow' | 'red' | 'sub' | 'injury' | 'chance' | 'save' | 'whistle';
 export interface MatchEvent { minute: number; order: number; type: EventType; side?: 'home' | 'away'; playerId?: string; player?: string; score?: [number, number]; text: string }
-export interface PlayerRating { playerId: string; rating: number; goals: number; assists: number; card?: 'yellow' | 'red'; subbedOff?: number; injured?: boolean; minutes: number }
+export interface PlayerRating { playerId: string; rating: number; goals: number; assists: number; card?: 'yellow' | 'red'; subbedOff?: number; subbedOn?: number; injured?: boolean; minutes: number }
 export interface MatchStats { possession: [number, number]; shots: [number, number]; onTarget: [number, number]; xg: [number, number]; corners: [number, number]; fouls: [number, number]; yellow: [number, number]; red: [number, number]; passAcc: [number, number] }
 export interface MatchResult { score: [number, number]; pens?: [number, number]; winnerId?: string; events: MatchEvent[]; stats: MatchStats; ratings: { home: PlayerRating[]; away: PlayerRating[] } }
 
@@ -139,6 +141,8 @@ export interface GameState {
   history: Record<string, SeasonRecord[]>; // by club id
   trophies: Record<string, Trophy[]>; // by club id
   lineup: string[]; // user XI in slot order of `formation`
+  /** Swap starters under 70% condition for fresh players before each match. */
+  autoRotate?: boolean;
   formation: Formation;
   manager: { since: number; w: number; d: number; l: number; trophies: string[] };
   /** Scouting knowledge 0–100 per player at other clubs (own players are always 100). */

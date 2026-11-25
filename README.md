@@ -33,7 +33,16 @@ The game saves automatically in the browser (localStorage, compressed with lz-st
   - *Continue* skips nights when you don't play.
 - **Prize money** for every competition, gate receipts for cup ties (split at neutral venues) and Continental Cup TV money.
 - Computer-run clubs spend surplus money on better players and sell their stars abroad when deep in debt.
-- **Match day:** watch your match play out minute by minute (pause, 1×, 2×, 4×, sim to end) with commentary, stats and player ratings; other matches are simulated.
+- **Match day:** your match is simulated minute by minute as you watch (pause, 1×, 2×, 4×, sim to end), with commentary, stats, live ratings and each player's condition.
+  - **Make substitution** pauses the match and lets you swap any player on the pitch for one on the bench (5 subs).
+  - Substitutions change the rest of the match. Injured players are replaced automatically, and computer-run sides make their own changes.
+  - Nothing is saved until full time. You can leave to check tactics and come back with *Back to match*.
+- **Fitness and rotation:**
+  - Every player has a condition score. It drops during matches (stamina decides how fast) and recovers each day (natural fitness, age and training intensity decide how fast).
+  - Tired players play worse and get injured more, so congested weeks with league, cup and Continental games force you to rotate.
+  - *Rotate tired players*, on by default, rests starters under 70% condition for that match only, if a fresh player can cover the position. Your chosen XI is kept.
+  - Computer-run clubs rotate too.
+  - The Tactics screen shows everyone's condition and days until fully fit.
 - **Squad:** first team, U21 and U18 with ability and potential stars, plus full player profiles (attributes, positions, scout report, career).
 - **Tactics:** 4-3-3, 4-4-2, 4-2-3-1 or 3-5-2; click two players to swap; out-of-position players perform worse.
 - **Academy:** youth players have silver stars; promoting one to the first team gives a professional contract and gold stars.
@@ -80,7 +89,8 @@ src/
     ratings.ts     attributes, position weights, ability formula
     world.ts       clubs, squads, youth, wages and values
     fixtures.ts    double round-robin schedule
-    match.ts       formations, lineup picking, match simulation
+    match.ts       formations, positional fit, condition-aware lineup picking
+    live.ts        minute-by-minute match engine: goals, cards, injuries, fatigue, substitutions, ratings
     competitions.ts calendar, divisions, cups, draws, knockouts, play-offs, promotion/relegation, qualification
     game.ts        game state: playing calendar slots, season end, development, youth, promotion
     transfers.ts   windows, scouting, asking prices, offers, bids, contracts, free agents

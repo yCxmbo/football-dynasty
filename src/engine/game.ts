@@ -1,5 +1,6 @@
 import { formatDate } from './fixtures';
-import { available, pickLineup, simulateMatch, type Formation } from './match';
+import { available, fitFor, pickLineup, slotsOf, type Formation, type MatchMods } from './match';
+import { createLive, runToEnd, toResult, type LiveMatch } from './live';
 import { POS_GROUP, abilityFromAttributes, clamp, POSITION_WEIGHTS } from './ratings';
 import { createRng } from './rng';
 import { makePlayer, makeWorld, valueFor, wageFor, SQUAD_TEMPLATE } from './world';
@@ -23,7 +24,7 @@ export function newGame(opts: { seed: number; userClubId: string; managerName: s
   const state: GameState = {
     version: 2, seed: opts.seed, rngState: rng.state(), year, matchday: 1, userClubId: opts.userClubId, managerName: opts.managerName, currency: opts.currency,
     clubs, players, fixtures: [], calendar: makeCalendar(year), cups: {}, ccGroups: [], qualified: { cc: [], superCup: ['', ''] },
-    inbox: [], history: {}, trophies: {}, lineup: [], formation: '4-3-3', nextId,
+    inbox: [], history: {}, trophies: {}, lineup: [], formation: '4-3-3', nextId, autoRotate: true,
     manager: { since: year, w: 0, d: 0, l: 0, trophies: [] },
     knowledge: {}, scouting: [], shortlist: [], transferListed: [], bids: [], negotiations: {}, installments: [],
     training: defaultTraining(), ledger: emptyLedger(),
@@ -85,13 +86,79 @@ export function nextUserFixture(state: GameState) {
 }
 export const compName = (c: CompId) => COMPS[c].name;
 
-function xiFor(state: GameState, clubId: string): Player[] {
-  if (clubId === state.userClubId) {
-    const valid = state.lineup.length === 11 && state.lineup.every((id) => state.players[id] && available(state.players[id]) && state.players[id].clubId === clubId);
-    if (!valid) state.lineup = pickLineup(squadOf(state, clubId), state.formation);
-    return state.lineup.map((id) => state.players[id]);
+/** The user's chosen XI with only unavailable or departed players replaced, slot by slot. This is what gets saved. */
+export function repairLineup(state: GameState): string[] {
+  const id = state.userClubId;
+  const squad = squadOf(state, id);
+  if (state.lineup.length !== 11) return pickLineup(squad, state.formation);
+  const slots = slotsOf(state.formation);
+  const ok = (x: string) => !!state.players[x] && state.players[x].clubId === id && state.players[x].squad === 'First team' && available(state.players[x]);
+  const used = new Set(state.lineup.filter(ok));
+  return state.lineup.map((pid, i) => {
+    if (ok(pid)) return pid;
+    const rep = squad.filter((x) => x.squad === 'First team' && available(x) && !used.has(x.id)).sort((a, b) => b.ability * fitFor(b, slots[i]) - a.ability * fitFor(a, slots[i]))[0];
+    if (!rep) return pid;
+    used.add(rep.id);
+    return rep.id;
+  });
+}
+
+/** The XI for the next match: the repaired lineup, with tired starters rested if rotation is on. Never saved. */
+export function userLineup(state: GameState): string[] {
+  const id = state.userClubId;
+  const squad = squadOf(state, id);
+  let ids = repairLineup(state);
+  if (state.autoRotate !== false) {
+    const slots = slotsOf(state.formation);
+    const used = new Set(ids);
+    ids = ids.map((pid, i) => {
+      const p = state.players[pid];
+      if (!p || (p.condition ?? 100) >= 70) return pid;
+      const rep = squad.filter((x) => x.squad === 'First team' && available(x) && !used.has(x.id) && (x.condition ?? 100) >= 85)
+        .sort((a, b) => b.ability * fitFor(b, slots[i]) - a.ability * fitFor(a, slots[i]))[0];
+      if (rep && rep.ability * fitFor(rep, slots[i]) >= p.ability * fitFor(p, slots[i]) * 0.8) { used.delete(pid); used.add(rep.id); return rep.id; }
+      return pid;
+    });
   }
+  return ids;
+}
+
+function xiFor(state: GameState, clubId: string): Player[] {
+  if (clubId === state.userClubId) return userLineup(state).map((id) => state.players[id]);
   return pickLineup(squadOf(state, clubId)).map((id) => state.players[id]);
+}
+
+function benchFor(state: GameState, clubId: string, xi: Player[]) {
+  const ids = new Set(xi.map((p) => p.id));
+  return firstTeam(state, clubId).filter((p) => !ids.has(p.id) && available(p)).sort((a, b) => b.ability - a.ability).slice(0, clubId === state.userClubId ? 12 : 9);
+}
+
+function setupFor(state: GameState, f: Fixture) {
+  const te = effects(state.training);
+  const uh = f.homeId === state.userClubId, ua = f.awayId === state.userClubId;
+  const hx = xiFor(state, f.homeId), ax = xiFor(state, f.awayId);
+  const H = state.clubs[f.homeId], A = state.clubs[f.awayId];
+  const mods: MatchMods = { homeBoost: uh ? te.matchBoost : 1, awayBoost: ua ? te.matchBoost : 1, homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1, neutral: f.neutral, knockout: f.ko };
+  return {
+    home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: (uh ? state.formation : '4-3-3') as Formation, name: H.name, user: uh },
+    away: { xi: ax, bench: benchFor(state, f.awayId, ax), formation: (ua ? state.formation : '4-3-3') as Formation, name: A.name, user: ua },
+    venue: H.stadium, mods,
+  };
+}
+
+/** The user's match in the current slot, ready to be played live (does not change the game state). */
+export function startUserMatch(state: GameState): LiveMatch | undefined {
+  const f = userFixture(state);
+  if (!f) return undefined;
+  const s = setupFor(state, f);
+  return createLive((state.rngState ^ (state.matchday * 7919) ^ 0x5bd1e995) >>> 0, s.home, s.away, s.venue, s.mods);
+}
+
+/** Condition regained per day off: natural fitness helps, age and hard training slow it. */
+export function recoveryPerDay(state: GameState, p: Player) {
+  const base = 5.5 + (p.attributes['Natural Fitness'] - 10) * 0.35 - Math.max(0, p.age - 30) * 0.3;
+  const intensity = p.clubId === state.userClubId ? (state.training.intensity === 'high' ? -1.2 : state.training.intensity === 'low' ? 1.2 : 0) : 0;
+  return Math.max(2.5, base + intensity);
 }
 
 /** Keeps full match detail only for the user's games so saves stay small. */
@@ -102,7 +169,8 @@ function slim(f: Fixture) {
 }
 
 /** Plays every fixture in the current calendar slot. Returns the user's fixture (with result), if any. */
-export function playMatchday(state: GameState): Fixture | undefined {
+/** Plays every fixture in the current calendar slot. Pass the user's live match to use its result (with their substitutions). */
+export function playMatchday(state: GameState, live?: { fixtureId: string; lm: LiveMatch }): Fixture | undefined {
   if (seasonOver(state)) return undefined;
   const rng = createRng(state.rngState ^ (state.matchday * 7919));
   const md = state.matchday;
@@ -113,19 +181,25 @@ export function playMatchday(state: GameState): Fixture | undefined {
   const positions: Record<string, number> = {};
   for (const d of [1, 2, 3]) divisionTable(state, d).forEach((r, i) => { positions[r.clubId] = i + 1; });
   for (const f of state.fixtures.filter((x) => x.matchday === md && !x.result)) {
-    const home = xiFor(state, f.homeId), away = xiFor(state, f.awayId);
-    const H = state.clubs[f.homeId], A = state.clubs[f.awayId];
     const uh = f.homeId === state.userClubId, ua = f.awayId === state.userClubId;
-    f.result = simulateMatch(rng, home, away, H.name, A.name, H.stadium, uh ? state.formation : '4-3-3', ua ? state.formation : '4-3-3',
-      { homeBoost: uh ? te.matchBoost : 1, awayBoost: ua ? te.matchBoost : 1, homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1, neutral: f.neutral, knockout: f.ko });
-    if (f.ko) f.result.winnerId = winnerOf(f);
-    applyResult(f, home, away, rng);
+    let lm: LiveMatch;
+    if (live && live.fixtureId === f.id) lm = structuredClone(live.lm);
+    else { const st = setupFor(state, f); lm = createLive(rng.int(0, 2 ** 31 - 1), st.home, st.away, st.venue, st.mods); }
+    if (uh || ua) state.lineup = repairLineup(state);
+    runToEnd(lm);
+    const { result, conditions } = toResult(lm, f.homeId, f.awayId);
+    f.result = result;
+    if (f.ko) result.winnerId = winnerOf(f);
+    for (const [id, c] of Object.entries(conditions)) if (state.players[id]) state.players[id].condition = c;
+    applyResult(state, f, rng);
     if (f.comp.startsWith('D')) homeIds.add(f.homeId); else cupGate(state, f);
     if (!uh && !ua) slim(f);
   }
+  const days = state.calendar[md] ? Math.round((Date.parse(state.calendar[md].date) - Date.parse(slot.date)) / 86400000) : 30;
   for (const p of Object.values(state.players)) {
     if (p.injuredFor > 0) p.injuredFor--;
     if (p.suspendedFor > 0) p.suspendedFor--;
+    if ((p.condition ?? 100) < 100) p.condition = Math.min(100, Math.round((p.condition ?? 100) + days * recoveryPerDay(state, p)));
   }
   const cupNews = advanceCups(state, rng, slot);
   if (leagueWeek) {
@@ -157,19 +231,17 @@ export function playMatchday(state: GameState): Fixture | undefined {
   return uf;
 }
 
-function applyResult(f: Fixture, home: Player[], away: Player[], rng: ReturnType<typeof createRng>) {
+function applyResult(state: GameState, f: Fixture, rng: ReturnType<typeof createRng>) {
   const r = f.result!;
-  const apply = (side: Player[], ratings: typeof r.ratings.home) => {
-    ratings.forEach((pr, i) => {
-      const p = side[i];
-      p.current.apps++; p.current.goals += pr.goals; p.current.assists += pr.assists; p.current.ratingSum += pr.rating;
-      if (pr.card === 'yellow') { p.yellowCards++; if (p.yellowCards % 5 === 0) p.suspendedFor = 2; }
-      if (pr.card === 'red') p.suspendedFor = 2; // counts down once after this slot → misses 1
-      if (pr.injured) p.injuredFor = 1 + rng.int(1, 4) + Math.round(p.hidden.injuryProneness / 8);
-      if (pr.rating >= 7.5) p.morale = 'high'; else if (pr.rating < 6) p.morale = p.morale === 'high' ? 'ok' : 'low';
-    });
-  };
-  apply(home, r.ratings.home); apply(away, r.ratings.away);
+  for (const pr of [...r.ratings.home, ...r.ratings.away]) {
+    const p = state.players[pr.playerId];
+    if (!p) continue;
+    p.current.apps++; p.current.goals += pr.goals; p.current.assists += pr.assists; p.current.ratingSum += pr.rating;
+    if (pr.card === 'yellow') { p.yellowCards++; if (p.yellowCards % 5 === 0) p.suspendedFor = 2; }
+    if (pr.card === 'red') p.suspendedFor = 2; // counts down once after this slot → misses 1
+    if (pr.injured) p.injuredFor = 1 + rng.int(1, 4) + Math.round(p.hidden.injuryProneness / 8);
+    if (pr.rating >= 7.5) p.morale = 'high'; else if (pr.rating < 6) p.morale = p.morale === 'high' ? 'ok' : 'low';
+  }
 }
 
 function postMatchMessages(state: GameState, f: Fixture) {
@@ -305,7 +377,7 @@ export function startNewSeason(state: GameState) {
   state.matchday = 1;
   state.lineup = pickLineup(squadOf(state, state.userClubId), state.formation);
   state.rngState = rng.state();
-  for (const p of Object.values(state.players)) { p.caStart = p.ability; p.progress = {}; }
+  for (const p of Object.values(state.players)) { p.caStart = p.ability; p.progress = {}; p.condition = 95; }
   state.lastLedger = state.ledger;
   state.ledger = emptyLedger();
   state.ledger.balanceHistory.push(state.clubs[state.userClubId].balance);
@@ -456,6 +528,8 @@ export function leagueScale(state: GameState) {
 }
 export function youthScale() { return { low: 35, high: 140 }; }
 
+export function setAutoRotate(state: GameState, on: boolean) { state.autoRotate = on; }
+
 export function setTactics(state: GameState, formation: Formation, lineup: string[]) {
   state.formation = formation;
   state.lineup = lineup;
@@ -469,7 +543,7 @@ export function bestLineup(state: GameState, formation: Formation = state.format
 export function migrate(state: GameState): GameState {
   state.knowledge ??= {}; state.scouting ??= []; state.shortlist ??= []; state.transferListed ??= [];
   state.bids ??= []; state.negotiations ??= {}; state.installments ??= [];
-  state.training ??= defaultTraining(); state.ledger ??= emptyLedger();
+  state.training ??= defaultTraining(); state.ledger ??= emptyLedger(); state.autoRotate ??= true;
   return state;
 }
 

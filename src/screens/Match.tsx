@@ -1,71 +1,160 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FD } from '../ds';
 import { COMPS } from '../engine/competitions';
+import { MAX_SUBS, ratingOf, substitute, tick, type LiveMatch } from '../engine/live';
+import { slotsOf } from '../engine/match';
 import type { GameState, MatchStats } from '../engine/types';
 import type { Screen } from './shared';
 
 const TICK_MS: Record<string, number> = { '1': 700, '2': 320, '4': 120 };
 
-export default function Match({ g, id, live, go, onFinish }: { g: GameState; id?: string; live: boolean; go: (s: Screen) => void; onFinish: () => void }) {
-  const f = g.fixtures.find((x) => x.id === id);
-  const [minute, setMinute] = useState(live ? 0 : 90);
+export interface LiveState { fixtureId: string; lm: LiveMatch }
+
+/** Live match (user's game, ticked here) or a stored match report. */
+export default function Match({ g, id, live, setLive, go, onFinish }: {
+  g: GameState; id?: string; live: LiveState | null; setLive: (fn: (prev: LiveState | null) => LiveState | null) => void; go: (s: Screen) => void; onFinish: () => void;
+}) {
+  const f = g.fixtures.find((x) => x.id === (live?.fixtureId ?? id));
+  const isLive = !!live && !!f && live.fixtureId === f.id;
   const [speed, setSpeed] = useState<string>('2');
+  const [subOpen, setSubOpen] = useState(false);
+  const lm = live?.lm;
+
   useEffect(() => {
-    if (!live || minute >= 90 || speed === 'pause') return;
-    const t = setTimeout(() => setMinute((m) => Math.min(90, m + 1)), TICK_MS[speed] ?? 300);
+    if (!isLive || !lm || lm.done || speed === 'pause' || subOpen) return;
+    const t = setTimeout(() => setLive((prev) => {
+      if (!prev) return prev;
+      const next = structuredClone(prev.lm);
+      tick(next);
+      return { ...prev, lm: next };
+    }), TICK_MS[speed] ?? 300);
     return () => clearTimeout(t);
-  }, [live, minute, speed]);
+  }, [isLive, lm, speed, subOpen, setLive]);
 
   const view = useMemo(() => {
-    if (!f?.result) return null;
-    const r = f.result;
+    if (!f) return null;
     const H = g.clubs[f.homeId], A = g.clubs[f.awayId];
-    const shown = r.events.filter((e) => e.minute <= minute && !(minute < 90 && e.order === 999));
-    let sh = 0, sa = 0;
-    for (const e of shown) if (e.score) [sh, sa] = e.score;
-    const frac = Math.max(0.02, minute / 90);
-    const scale = (k: keyof MatchStats) => {
-      const v = r.stats[k];
-      if (k === 'possession' || k === 'passAcc' || minute >= 90) return v;
-      if (k === 'xg') return [Math.round(v[0] * frac * 100) / 100, Math.round(v[1] * frac * 100) / 100];
-      return [Math.round(v[0] * frac), Math.round(v[1] * frac)];
-    };
-    const stats = Object.fromEntries((Object.keys(r.stats) as Array<keyof MatchStats>).map((k) => [k, scale(k)]));
-    if (minute < 90) {
-      stats.yellow = [shown.filter((e) => e.type === 'yellow' && e.side === 'home').length, shown.filter((e) => e.type === 'yellow' && e.side === 'away').length];
-      stats.red = [shown.filter((e) => e.type === 'red' && e.side === 'home').length, shown.filter((e) => e.type === 'red' && e.side === 'away').length];
-    }
     const userHome = f.homeId === g.userClubId;
-    const ratings = (userHome ? r.ratings.home : r.ratings.away).map((pr) => {
-      const p = g.players[pr.playerId];
-      const goals = shown.filter((e) => (e.type === 'goal' || e.type === 'penalty') && e.playerId === pr.playerId).length;
-      const card = shown.some((e) => e.type === 'red' && e.playerId === pr.playerId) ? 'red' : shown.some((e) => e.type === 'yellow' && e.playerId === pr.playerId) ? 'yellow' : undefined;
-      const off = pr.subbedOff && pr.subbedOff <= minute ? pr.subbedOff : undefined;
-      // live ratings drift from 6.5 toward the final figure as the match goes on
-      const rating = minute >= 90 ? pr.rating : Math.round((6.5 + (pr.rating - 6.5) * frac) * 10) / 10;
-      return { number: p?.number ?? 0, name: p?.name ?? 'Former player', pos: p?.pos ?? '', rating, goals, card, subbedOff: off, injured: pr.injured && off ? true : undefined,
-        condition: Math.max(35, Math.round(100 - frac * (42 - (p?.attributes['Natural Fitness'] ?? 10)))) };
-    });
-    return {
-      match: {
-        competition: `${COMPS[f.comp].name} · ${f.round}`, venue: f.neutral ? 'National Stadium' : H.stadium, status: minute >= 90 ? 'FT' : minute === 45 ? 'HT' : 'live', minute, score: [sh, sa],
-        home: { name: H.name, short: H.short, isUser: H.id === g.userClubId }, away: { name: A.name, short: A.short, isUser: A.id === g.userClubId },
-        events: shown.map((e) => ({ ...e, isUser: (e.side === 'home') === userHome && !!e.side })),
-      },
-      stats, ratings,
+    const base = {
+      competition: `${COMPS[f.comp].name} · ${f.round}`, venue: f.neutral ? 'National Stadium' : H.stadium,
+      home: { name: H.name, short: H.short, isUser: userHome }, away: { name: A.name, short: A.short, isUser: !userHome },
     };
-  }, [f, g, minute]);
+    if (isLive && lm) {
+      const key = userHome ? 'home' : 'away';
+      const mins = Math.max(1, lm.minute);
+      const stats: MatchStats = {
+        possession: [Math.round(lm.stats.possession / mins), 100 - Math.round(lm.stats.possession / mins)],
+        shots: lm.stats.shots, onTarget: lm.stats.onTarget, xg: [Math.round(lm.stats.xg[0] * 100) / 100, Math.round(lm.stats.xg[1] * 100) / 100],
+        corners: lm.stats.corners, fouls: lm.stats.fouls,
+        yellow: [0, 1].map((i) => Object.entries(lm.perf).filter(([pid, p]) => lm.sideOf[pid] === (i ? 'away' : 'home') && p.card === 'yellow').length) as [number, number],
+        red: [0, 1].map((i) => Object.entries(lm.perf).filter(([pid, p]) => lm.sideOf[pid] === (i ? 'away' : 'home') && p.card === 'red').length) as [number, number],
+        passAcc: [Math.round(lm.stats.passAcc[0] / mins) || 0, Math.round(lm.stats.passAcc[1] / mins) || 0],
+      };
+      const ratings = Object.entries(lm.perf).filter(([pid]) => lm.sideOf[pid] === key)
+        .sort((a, b) => (a[1].onAt - b[1].onAt) || (lm[key].xi.indexOf(a[0]) - lm[key].xi.indexOf(b[0])))
+        .map(([pid, p]) => ({ number: lm.players[pid].number, name: lm.players[pid].name, pos: lm.players[pid].pos, rating: ratingOf(lm, pid, key), goals: p.goals, card: p.card,
+          subbedOff: p.offAt !== undefined && p.card !== 'red' ? p.offAt : undefined, injured: p.injured, condition: Math.round(lm.players[pid].condition) }));
+      return {
+        match: { ...base, status: lm.done ? 'FT' : lm.minute === 45 ? 'HT' : 'live', minute: lm.minute, score: lm.score,
+          events: lm.events.map((e) => ({ ...e, isUser: !!e.side && (e.side === 'home') === userHome })) },
+        stats, ratings, key, done: lm.done,
+      };
+    }
+    if (!f.result) return null;
+    const r = f.result;
+    const mine = userHome ? r.ratings.home : r.ratings.away;
+    const ratings = mine.map((pr) => {
+      const p = g.players[pr.playerId];
+      return { number: p?.number ?? 0, name: p?.name ?? 'Former player', pos: p?.pos ?? '', rating: pr.rating, goals: pr.goals, card: pr.card, subbedOff: pr.subbedOff, injured: pr.injured };
+    });
+    return { match: { ...base, status: 'FT', minute: 90, score: r.score, events: r.events.map((e) => ({ ...e, isUser: !!e.side && (e.side === 'home') === userHome })) }, stats: r.stats, ratings, key: userHome ? 'home' : 'away', done: true };
+  }, [f, g, isLive, lm]);
 
   if (!f || !view) return <div className="pg-empty">No match to show. <button className="pg-link" onClick={() => go('fixtures')}>Fixtures</button></div>;
+  const side = isLive && lm ? lm[view.key as 'home' | 'away'] : undefined;
   return (
-    <FD.MatchDay
-      match={view.match} stats={view.stats} ratings={view.ratings}
-      speed={speed} onSpeedChange={setSpeed}
-      onSimToEnd={() => setMinute(90)}
-      onTactics={() => go('tactics')}
-      subsLeft={live ? 5 : undefined}
-      onSubstitute={() => go('tactics')}
-      onContinue={() => (live ? onFinish() : go('fixtures'))}
-    />
+    <>
+      <FD.MatchDay
+        match={view.match} stats={view.stats} ratings={view.ratings}
+        speed={speed} onSpeedChange={setSpeed}
+        onSimToEnd={() => setLive((prev) => { if (!prev) return prev; const next = structuredClone(prev.lm); while (!next.done) tick(next); return { ...prev, lm: next }; })}
+        onTactics={() => go('tactics')}
+        subsLeft={side ? MAX_SUBS - side.subsUsed : undefined}
+        onSubstitute={() => setSubOpen(true)}
+        onContinue={() => (isLive ? onFinish() : go('fixtures'))}
+      />
+      {subOpen && isLive && lm && side && (
+        <SubPanel lm={lm} sideKey={view.key as 'home' | 'away'} onClose={() => setSubOpen(false)}
+          onSub={(off, on) => {
+            let err: string | null = null;
+            setLive((prev) => {
+              if (!prev) return prev;
+              const next = structuredClone(prev.lm);
+              err = substitute(next, view.key as 'home' | 'away', off, on);
+              return err ? prev : { ...prev, lm: next };
+            });
+            return err;
+          }} />
+      )}
+    </>
+  );
+}
+
+function Cond({ c }: { c: number }) {
+  return (
+    <span className="sub-cond" title={`Condition ${c}%`}>
+      <span className="fd-meter"><span className={`fd-meter__bar fd-meter__bar--${c >= 75 ? 'low' : c >= 60 ? 'medium' : 'high'}`} style={{ width: c + '%' }} /></span>
+      <span className={c < 60 ? 'fd-money--neg' : c < 75 ? 'fd-warn' : 'fd-muted'}>{c}%</span>
+    </span>
+  );
+}
+
+function SubPanel({ lm, sideKey, onSub, onClose }: { lm: LiveMatch; sideKey: 'home' | 'away'; onSub: (off: string, on: string) => string | null; onClose: () => void }) {
+  const s = lm[sideKey];
+  const slots = slotsOf(s.formation);
+  const [off, setOff] = useState<string | null>(null);
+  const [on, setOn] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const left = MAX_SUBS - s.subsUsed;
+  const bench = s.bench.filter((id) => !lm.perf[id]);
+  return (
+    <div className="sub-backdrop" role="dialog" aria-modal="true" aria-label="Make a substitution" onClick={onClose}>
+      <div className="sub-panel pg-card" onClick={(e) => e.stopPropagation()}>
+        <div className="pg-row" style={{ justifyContent: 'space-between' }}>
+          <h2 className="pg-title" style={{ fontSize: 24, lineHeight: '28px' }}>Substitution · {lm.minute}′</h2>
+          <span className="fd-muted">{left} of {MAX_SUBS} left · match paused</span>
+        </div>
+        <div className="sub-cols">
+          <section>
+            <h3 className="pg-h">Take off</h3>
+            <ul className="sub-list">
+              {s.xi.map((id, i) => id ? (
+                <li key={id}><button type="button" className={'sub-row' + (off === id ? ' is-on' : '')} aria-pressed={off === id} onClick={() => setOff(id)}>
+                  <span className="sub-num">{lm.players[id].number}</span><span className="sub-name">{lm.players[id].name}</span><span className="fd-pos">{slots[i]}</span>
+                  <span className="sub-rating">{ratingOf(lm, id, sideKey).toFixed(1)}</span><Cond c={Math.round(lm.players[id].condition)} />
+                </button></li>) : <li key={'x' + i} className="sub-row sub-row--empty"><span className="fd-muted">{slots[i]}: sent off</span></li>)}
+            </ul>
+          </section>
+          <section>
+            <h3 className="pg-h">Bring on</h3>
+            <ul className="sub-list">
+              {bench.length ? bench.map((id) => (
+                <li key={id}><button type="button" className={'sub-row' + (on === id ? ' is-on' : '')} aria-pressed={on === id} onClick={() => setOn(id)}>
+                  <span className="sub-num">{lm.players[id].number}</span><span className="sub-name">{lm.players[id].name}</span><span className="fd-pos">{lm.players[id].pos}</span>
+                  <span /><Cond c={Math.round(lm.players[id].condition)} />
+                </button></li>)) : <li className="hm-note">Nobody left on the bench.</li>}
+            </ul>
+          </section>
+        </div>
+        {err && <p className="fd-money--neg" role="alert">{err}</p>}
+        <div className="pg-row" style={{ justifyContent: 'flex-end' }}>
+          <FD.Button variant="ghost" onClick={onClose}>Back to the match</FD.Button>
+          <FD.Button icon="transfers" disabled={!off || !on || left <= 0} onClick={() => {
+            const e = off && on ? onSub(off, on) : 'Pick one player to take off and one to bring on.';
+            if (e) setErr(e); else { setOff(null); setOn(null); setErr(null); onClose(); }
+          }}>Make substitution</FD.Button>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -4,6 +4,7 @@ import { formatDate } from '../engine/fixtures';
 import type { Fixture, GameState } from '../engine/types';
 import { toCur } from '../store';
 import type { Screen } from './shared';
+import { bidsFor } from './shared-transfers';
 
 export function fixtureCardProps(g: GameState, f: Fixture) {
   const H = g.clubs[f.homeId], A = g.clubs[f.awayId];
@@ -31,6 +32,7 @@ export default function Home({ g, go, onPlay }: { g: GameState; go: (s: Screen, 
   const confWord = conf >= 80 ? 'Very pleased' : conf >= 60 ? 'Satisfied' : conf >= 40 ? 'Concerned' : 'Losing patience';
   const mine = Object.values(g.players).filter((p) => p.clubId === g.userClubId);
   const alerts = [
+    ...bidsFor(g).map(({ b, p }) => ({ icon: 'transfers', tone: 'fd-ok', t: `Bid for ${p.name}`, s: `${g.clubs[b.fromClubId].name} offer ${FD.formatMoney(toCur(b.fee, cur), cur)}`, id: p.id, screen: 'scouting' as Screen })),
     ...mine.filter((p) => p.injuredFor > 0).map((p) => ({ icon: 'injury', tone: 'fd-money--neg', t: `${p.name}: injured`, s: `Out ${p.injuredFor} more ${p.injuredFor === 1 ? 'match' : 'matches'}`, id: p.id })),
     ...mine.filter((p) => p.suspendedFor > 0).map((p) => ({ icon: 'booking', tone: 'fd-money--neg', t: `${p.name}: suspended`, s: 'Misses the next match', id: p.id })),
     ...mine.filter((p) => p.squad === 'First team' && p.contractEnd <= g.year).map((p) => ({ icon: 'contract', tone: 'fd-warn', t: `${p.name}: contract expiring`, s: 'Ends this summer', id: p.id })),
@@ -78,7 +80,7 @@ export default function Home({ g, go, onPlay }: { g: GameState; go: (s: Screen, 
           <h2 className="pg-h">Squad alerts</h2>
           <ul className="pg-card hm-list">
             {alerts.length ? alerts.map((a) => (
-              <li key={a.t} className="hm-item"><button onClick={() => go('player', a.id)}>
+              <li key={a.t} className="hm-item"><button onClick={() => { const to = (a as { screen?: Screen }).screen; if (to) go(to); else go('player', a.id); }}>
                 <span className={`hm-item__icon ${a.tone}`}><FD.Icon name={a.icon} size={18} /></span>
                 <span className="hm-item__text"><strong>{a.t}</strong><span className="fd-muted">{a.s}</span></span>
               </button></li>)) : <li className="hm-item hm-note">Everyone is fit and available.</li>}

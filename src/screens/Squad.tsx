@@ -26,7 +26,7 @@ export default function Squad({ g, go }: { g: GameState; go: (s: Screen, id?: st
         </div>
       </div>
       <p className="pg-h">Stars compared to: {tab === 'First team' ? 'Premier Division' : 'youth level'} · click a player for the full profile</p>
-      <FD.SquadTable key={tab} players={list.map((p) => squadRow(p, g.currency))} currency={g.currency} scale={scale} onSelect={(p: { id: string }) => go('player', p.id)} />
+      <FD.SquadTable key={tab} players={list.map((p) => squadRow(p, g.currency, g.year))} currency={g.currency} scale={scale} onSelect={(p: { id: string }) => go('player', p.id)} />
     </div>
   );
 }

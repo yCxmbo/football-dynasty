@@ -35,7 +35,13 @@ export interface Player {
   captain?: boolean;
   career: SeasonLine[];
   current: { apps: number; goals: number; assists: number; ratingSum: number };
+  releaseClause?: number;
+  /** Season the player joined the current club. */
+  joined?: number;
 }
+
+/** clubId for players without a club. */
+export const FREE_AGENT = 'free';
 
 export interface SeasonLine { season: string; club: string; apps: number; goals: number; rating?: number; honour?: string }
 
@@ -68,7 +74,13 @@ export interface PlayerRating { playerId: string; rating: number; goals: number;
 export interface MatchStats { possession: [number, number]; shots: [number, number]; onTarget: [number, number]; xg: [number, number]; corners: [number, number]; fouls: [number, number]; yellow: [number, number]; red: [number, number]; passAcc: [number, number] }
 export interface MatchResult { score: [number, number]; events: MatchEvent[]; stats: MatchStats; ratings: { home: PlayerRating[]; away: PlayerRating[] } }
 
-export interface InboxMessage { id: string; category: 'board' | 'transfers' | 'scouting' | 'medical' | 'media' | 'training' | 'youth' | 'match' | 'finance'; from: string; role?: string; date: string; subject: string; body: string[]; unread: boolean; action?: { label: string; kind: 'promote'; playerId: string } }
+export interface InboxMessage { id: string; category: 'board' | 'transfers' | 'scouting' | 'medical' | 'media' | 'training' | 'youth' | 'match' | 'finance'; from: string; role?: string; date: string; subject: string; body: string[]; unread: boolean; bidId?: string; playerId?: string }
+
+/** An AI club's bid for one of the user's players. */
+export interface Bid { id: string; playerId: string; fromClubId: string; fee: number; status: 'open' | 'accepted' | 'rejected' | 'expired' }
+export interface Installment { clubId: string; perMatchday: number; remaining: number }
+export interface Negotiation { attempts: number; lastResponse?: OfferResponse; blockedUntilWindow?: boolean }
+export interface OfferResponse { status: 'accepted' | 'rejected' | 'counter'; message: string; counter?: number }
 
 export interface SeasonRecord { season: string; division: string; pos: number; pts: number; champion: string; topScorer?: { name: string; goals: number }; manager: string; isYou: boolean }
 export interface Trophy { name: string; tier: 'league' | 'cup' | 'continental'; seasons: string[] }
@@ -91,6 +103,16 @@ export interface GameState {
   lineup: string[]; // user XI in slot order of `formation`
   formation: Formation;
   manager: { since: number; w: number; d: number; l: number; trophies: string[] };
+  /** Scouting knowledge 0–100 per player at other clubs (own players are always 100). */
+  knowledge: Record<string, number>;
+  scouting: string[]; // players being scouted (max 5)
+  shortlist: string[];
+  transferListed: string[]; // user's players offered for sale
+  bids: Bid[];
+  negotiations: Record<string, Negotiation>;
+  installments: Installment[];
+  /** AI clubs' players available for less (unused for now; reserved). */
+  transferListedAI?: string[];
   lastUserFixtureId?: string;
   nextId: number;
 }

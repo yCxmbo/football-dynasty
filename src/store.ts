@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { migrate } from './engine/game';
 import type { Currency, GameState } from './engine/types';
 
 const SAVE_KEY = 'football-dynasty:save:v1';
@@ -9,7 +10,7 @@ export function loadGame(): GameState | null {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
     const s = JSON.parse(raw) as GameState;
-    return s.version === 1 ? s : null;
+    return s.version === 1 ? migrate(s) : null;
   } catch { return null; }
 }
 
@@ -49,3 +50,4 @@ export function useTheme() {
 /** Fixed in-game exchange rates; all amounts are stored in euros. */
 export const RATES: Record<Currency, number> = { EUR: 1, USD: 1.08, GBP: 0.86 };
 export const toCur = (eur: number, c: Currency) => Math.round(eur * RATES[c]);
+export const fromCur = (amount: number, c: Currency) => Math.round(amount / RATES[c]);

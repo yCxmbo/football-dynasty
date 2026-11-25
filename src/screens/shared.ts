@@ -1,28 +1,29 @@
 import { ATTRIBUTE_GROUPS, attributeWeight } from '../engine/ratings';
-import type { Currency, GameState, Player } from '../engine/types';
+import { knowledgeOf } from '../engine/transfers';
+import { FREE_AGENT, type Currency, type GameState, type Player } from '../engine/types';
 import { seasonLabel } from '../engine/types';
 import { toCur } from '../store';
 
-export type Screen = 'home' | 'inbox' | 'squad' | 'player' | 'tactics' | 'fixtures' | 'table' | 'match' | 'youth' | 'history' | 'settings' | 'transfers' | 'training' | 'scouting' | 'finances';
+export type Screen = 'home' | 'inbox' | 'squad' | 'player' | 'tactics' | 'fixtures' | 'table' | 'match' | 'youth' | 'history' | 'settings' | 'transfers' | 'training' | 'scouting' | 'finances' | 'offer' | 'contract';
 
 export const NAV = (unread: number) => [
   { id: 'home', label: 'Home', icon: 'home' }, { id: 'inbox', label: 'Inbox', icon: 'inbox', badge: unread || undefined },
   { id: 'squad', label: 'Squad', icon: 'squad' }, { id: 'tactics', label: 'Tactics', icon: 'tactics' },
   { id: 'fixtures', label: 'Fixtures', icon: 'fixtures' }, { id: 'table', label: 'League table', icon: 'league-table' },
   { id: 'youth', label: 'Academy', icon: 'youth' }, { id: 'history', label: 'Club history', icon: 'trophy' },
-  { id: 'transfers', label: 'Transfers', icon: 'transfers' }, { id: 'training', label: 'Training', icon: 'training' },
+  { id: 'transfers', label: 'Transfers', icon: 'transfers' }, { id: 'scouting', label: 'Scouting', icon: 'scouting' }, { id: 'training', label: 'Training', icon: 'training' },
   { id: 'finances', label: 'Finances', icon: 'finances' }, { id: 'settings', label: 'Settings', icon: 'settings' },
 ];
 
 export function moraleOf(p: Player) { return p.morale; }
 
 /** Player → design-system SquadTable row (money converted to the chosen currency). */
-export function squadRow(p: Player, cur: Currency, selected?: boolean) {
+export function squadRow(p: Player, cur: Currency, year: number, selected?: boolean) {
   return {
     id: p.id, number: p.number, name: p.name, pos: p.pos, age: p.age, ability: p.ability, potential: p.potential,
     knowledge: 100, morale: p.morale, wage: toCur(p.wage, cur), contractEnd: p.contractEnd + 1, captain: p.captain,
     squad: p.squad, contractType: p.contractType, selected,
-    status: p.injuredFor > 0 ? 'injured' : p.suspendedFor > 0 ? 'suspended' : undefined,
+    status: p.injuredFor > 0 ? 'injured' : p.suspendedFor > 0 ? 'suspended' : p.squad === 'First team' && p.contractEnd <= year ? 'expiring' : undefined,
   };
 }
 
@@ -45,16 +46,19 @@ export function scoutReport(p: Player) {
 }
 
 export function profileData(state: GameState, p: Player, cur: Currency) {
-  const club = state.clubs[p.clubId];
+  const club = state.clubs[p.clubId] ?? { name: 'Free agent' };
+  const knowledge = knowledgeOf(state, p);
   const history = [
     ...(p.current.apps ? [{ season: seasonLabel(state.year), club: club.name, apps: p.current.apps, goals: p.current.goals, rating: p.current.ratingSum / p.current.apps }] : []),
     ...p.career,
   ];
   return {
-    number: p.number, name: p.name, pos: p.pos, age: p.age, nationality: p.nationality, club: `${club.name} · ${p.squad}`,
-    ability: p.ability, potential: p.potential, knowledge: 100, positions: p.positions,
+    number: p.clubId === FREE_AGENT ? undefined : p.number, name: p.name, pos: p.pos, age: p.age, nationality: p.nationality,
+    club: p.clubId === FREE_AGENT ? 'Free agent' : p.clubId === state.userClubId ? `${club.name} · ${p.squad}` : club.name,
+    ability: p.ability, potential: p.potential, knowledge, positions: p.positions,
     value: toCur(p.value, cur), wage: toCur(p.wage, cur), contractEnd: `June ${p.contractEnd + 1}`, morale: p.morale,
-    foot: p.attributes['Balance'] % 3 === 0 ? 'Left' : 'Right', attributes: p.attributes, report: scoutReport(p), history,
+    foot: p.attributes['Balance'] % 3 === 0 ? 'Left' : 'Right', attributes: p.attributes,
+    report: knowledge >= 50 ? scoutReport(p) : { summary: `Scouting knowledge ${knowledge}%. Scout him for a full report.` }, history,
     squad: p.squad, contractType: p.contractType,
   };
 }

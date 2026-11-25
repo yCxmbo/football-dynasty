@@ -22,9 +22,18 @@ The game saves automatically in the browser (localStorage). Settings → *Start 
 - **Tactics:** 4-3-3, 4-4-2, 4-2-3-1 or 3-5-2; click two players to swap; out-of-position players perform worse.
 - **Academy:** youth players have silver stars; promoting one to the first team gives a professional contract and gold stars.
 - **Season end:** player development (young players grow toward potential, veterans decline), retirements, a youth intake, the board's review, and club history (trophy cabinet, season-by-season record, records, hall of fame, your manager career).
-- **Inbox:** board, media, medical, youth and league messages.
+- **Inbox:** board, media, medical, youth, league and transfer messages; bids can be accepted or rejected from the inbox.
+- **Transfers:**
+  - Two windows: pre-season through matchday 4, and January (matchdays 11–13).
+  - Search other clubs' players and free agents by position, age, asking price and name.
+  - The selling club accepts, counters or rejects your fee. They value money paid now above instalments and add-ons, and end talks after four poor offers.
+  - The player then decides on your contract: wage, length, squad role and contract type.
+  - The board blocks deals over the transfer or wage budget. Fees paid in instalments come out of your balance each matchday.
+- **Scouting:** other clubs' players are 25% known at first, so their attributes show as ranges and their stars as estimates. Scout up to 5 players at a time (+25% knowledge per matchday). At 100% you get a full report.
+- **Selling:** transfer-list players to attract bids, and other clubs sometimes bid for unlisted players too. Accepting a bid sends 60% of the fee to your transfer budget.
+- **Contracts:** contracts run out at season end. Renew players from their profile (they ask for a raise, and players over 32 sign for 2 years at most). Players who aren't renewed leave as free agents, whom any club can sign without a fee. You get a reminder about expiring contracts when the January window opens.
 
-Not built yet (shown as "coming soon"): transfers and scouting, training schedules, and detailed finances. Contracts don't expire yet.
+Not built yet (shown as "coming soon"): training schedules and detailed finances.
 
 ## Rating system
 
@@ -46,7 +55,8 @@ src/
     fixtures.ts    double round-robin schedule
     match.ts       formations, lineup picking, match simulation
     game.ts        game state: matchdays, table, season end, development, youth, promotion
-    game.test.ts   engine tests
+    transfers.ts   windows, scouting, asking prices, offers, bids, contracts, free agents
+    *.test.ts      engine tests
   ds/              the design system (bundle.js, bundle.css, tokens) + a typed wrapper
   screens/         one file per screen, built from design-system components
   App.tsx          navigation and game flow

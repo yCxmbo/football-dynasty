@@ -5,6 +5,11 @@ import type { Formation } from './engine/match';
 import { formatDate } from './engine/fixtures';
 import { seasonLabel } from './engine/types';
 import { toCur, useGame, useTheme } from './store';
+import { makeOffer, respondToBid, startScouting, toggleShortlist, toggleTransferList, type OfferTerms } from './engine/transfers';
+import Contract from './screens/Contract';
+import Offer from './screens/Offer';
+import Scouting from './screens/Scouting';
+import Transfers from './screens/Transfers';
 import Fixtures from './screens/Fixtures';
 import History from './screens/History';
 import Home from './screens/Home';
@@ -54,20 +59,26 @@ export default function App() {
   const club = g.clubs[g.userClubId];
   const liveFx = screen === 'match' && live ? g.fixtures.find((f) => f.id === param) : undefined;
   const unread = g.inbox.filter((m) => m.unread).length;
-  const navActive = screen === 'player' ? 'squad' : screen === 'match' ? 'fixtures' : screen;
+  const navActive = screen === 'player' ? (param && g.players[param]?.clubId !== g.userClubId ? 'transfers' : 'squad') : screen === 'match' ? 'fixtures' : screen === 'offer' ? 'transfers' : screen === 'contract' ? 'squad' : screen;
 
   let body: JSX.Element;
   switch (screen) {
     case 'home': body = <Home g={g} go={go} onPlay={play} />; break;
     case 'squad': body = <Squad g={g} go={go} />; break;
-    case 'player': body = <PlayerScreen g={g} id={param} go={go} onPromote={(id) => { update((d) => promote(d, id)); }} />; break;
+    case 'player': body = <PlayerScreen g={g} id={param} go={go} act={{
+      promote: (id) => update((d) => promote(d, id)), scout: (id) => update((d) => { startScouting(d, id); }),
+      shortlist: (id) => update((d) => toggleShortlist(d, id)), transferList: (id) => update((d) => toggleTransferList(d, id)) }} />; break;
+    case 'transfers': body = <Transfers g={g} go={go} update={update} />; break;
+    case 'scouting': body = <Scouting g={g} go={go} update={update} />; break;
+    case 'offer': body = <Offer g={g} id={param} go={go} submit={(id: string, o: OfferTerms) => update((d) => { makeOffer(d, id, o); })} />; break;
+    case 'contract': body = <Contract key={param} g={g} id={param} go={go} update={update} />; break;
     case 'tactics': body = <Tactics g={g} onChange={(f: Formation, l: string[]) => update((d) => setTactics(d, f, l))} />; break;
     case 'fixtures': body = <Fixtures g={g} go={go} />; break;
     case 'table': body = <Table g={g} />; break;
     case 'match': body = <Match key={param} g={g} id={param} live={live} go={go} onFinish={() => go('home')} />; break;
     case 'youth': body = <Youth g={g} go={go} onPromote={(id) => update((d) => promote(d, id))} />; break;
     case 'history': body = <History g={g} />; break;
-    case 'inbox': body = <InboxScreen g={g} selectedId={param} onOpen={(id) => update((d) => markRead(d, id))} />; break;
+    case 'inbox': body = <InboxScreen g={g} selectedId={param} go={go} onOpen={(id) => { setParam(id); update((d) => markRead(d, id)); }} onBid={(bid, ok) => update((d) => respondToBid(d, bid, ok))} />; break;
     case 'settings': body = <Settings g={g} theme={theme} setTheme={setTheme} setCurrency={(c) => update((d) => { d.currency = c; })} onNewCareer={() => { setGame(null); setScreen('home'); }} />; break;
     default: body = <Placeholder id={screen} />;
   }

@@ -4,7 +4,8 @@ import { POS_GROUP, abilityFromAttributes, clamp, POSITION_WEIGHTS } from './rat
 import { createRng } from './rng';
 import { makePlayer, makeWorld, valueFor, wageFor, SQUAD_TEMPLATE } from './world';
 import type { Club, Currency, Fixture, GameState, InboxMessage, Player, SeasonRecord } from './types';
-import { seasonLabel } from './types';
+import { FREE_AGENT, seasonLabel } from './types';
+import { aiBids, expireContracts, payInstallments, scoutingTick, WINDOWS } from './transfers';
 
 export const DIVISION = 'Premier Division';
 
@@ -16,6 +17,7 @@ export function newGame(opts: { seed: number; userClubId: string; managerName: s
     version: 1, seed: opts.seed, rngState: rng.state(), year, matchday: 1, userClubId: opts.userClubId, managerName: opts.managerName, currency: opts.currency,
     clubs, players, fixtures: makeFixtures(Object.keys(clubs), year), inbox: [], history: {}, trophies: {}, lineup: [], formation: '4-3-3', nextId,
     manager: { since: year, w: 0, d: 0, l: 0, trophies: [] },
+    knowledge: {}, scouting: [], shortlist: [], transferListed: [], bids: [], negotiations: {}, installments: [],
   };
   state.lineup = pickLineup(squadOf(state, opts.userClubId));
   const club = clubs[opts.userClubId];
@@ -82,6 +84,11 @@ export function playMatchday(state: GameState): Fixture | undefined {
 
   state.rngState = rng.state();
   state.matchday++;
+  scoutingTick(state);
+  payInstallments(state);
+  aiBids(state, state.rngState ^ (state.matchday * 104729));
+  if (state.matchday === WINDOWS.januaryFrom) januaryReminder(state);
+  if (state.matchday === WINDOWS.summerUntil + 1 || state.matchday === WINDOWS.januaryTo + 1) state.negotiations = {};
   const uf = state.fixtures.find((f) => f.matchday === md && (f.homeId === state.userClubId || f.awayId === state.userClubId));
   if (uf) postMatchMessages(state, uf);
   if (seasonOver(state)) seasonEndMessage(state);
@@ -120,6 +127,14 @@ function postMatchMessages(state: GameState, f: Fixture) {
     if (pr.injured && p.injuredFor > 0) addMessage(state, { category: 'medical', from: 'Medical team', role: 'Head physio', subject: `${p.name}: injured, out ${p.injuredFor} ${p.injuredFor === 1 ? 'match' : 'matches'}`, body: [`${p.name} was hurt against ${them.name} and should miss about ${p.injuredFor} ${p.injuredFor === 1 ? 'match' : 'matches'}.`] });
     if (p.suspendedFor > 0 && (pr.card === 'red' || p.yellowCards % 5 === 0)) addMessage(state, { category: 'match', from: 'League office', subject: `${p.name} suspended for the next match`, body: [pr.card === 'red' ? `${p.name} was sent off and is banned for one match.` : `${p.name} has reached ${p.yellowCards} yellow cards and is banned for one match.`] });
   }
+}
+
+function januaryReminder(state: GameState) {
+  const expiring = squadOf(state, state.userClubId).filter((p) => p.squad === 'First team' && p.contractEnd <= state.year);
+  addMessage(state, { category: 'transfers', from: 'Director of football', subject: 'The January transfer window is open', body: [
+    `The window is open until matchday ${WINDOWS.januaryTo}.`,
+    expiring.length ? `${expiring.length} ${expiring.length === 1 ? 'player\'s contract ends' : 'players\' contracts end'} this summer: ${expiring.map((p) => p.name).join(', ')}. Renew them from their profiles or they will leave for free.` : 'No contracts run out this summer.',
+  ] });
 }
 
 function seasonEndMessage(state: GameState) {
@@ -175,13 +190,18 @@ export function startNewSeason(state: GameState) {
     if (p.current.apps) p.career.unshift({ season: label, club: state.clubs[p.clubId].name, apps: p.current.apps, goals: p.current.goals, rating: Math.round((p.current.ratingSum / p.current.apps) * 100) / 100, honour: p.clubId === champion ? DIVISION : undefined });
     p.current = { apps: 0, goals: 0, assists: 0, ratingSum: 0 };
     p.yellowCards = 0; p.suspendedFor = 0;
+  }
+  expireContracts(state);
+  for (const p of Object.values(state.players)) {
     develop(rng, p, p.career[0]?.apps ?? 0);
     p.age++;
     p.value = valueFor(p.ability, p.potential, p.age);
   }
+  for (const b of state.bids) if (b.status === 'open') b.status = 'expired';
+  state.negotiations = {};
   // retire old players and replace them so squads stay full
   for (const p of Object.values(state.players)) {
-    if (p.age >= 36 || (p.age >= 33 && p.ability < 90)) {
+    if (p.age >= 36 || (p.age >= 33 && p.ability < 90) || (p.clubId === FREE_AGENT && p.age >= 34)) {
       delete state.players[p.id];
       if (p.clubId === state.userClubId) addMessage(state, { category: 'media', from: 'Club media', subject: `${p.name} retires`, body: [`${p.name} has retired after ${p.career.reduce((s, c) => s + c.apps, 0)} appearances.`] });
     }
@@ -232,6 +252,12 @@ function refillSquad(state: GameState, rng: ReturnType<typeof createRng>, c: Clu
       // AI clubs promote their best youth player at that position first, else sign someone
       const youth = squadOf(state, c.id).filter((p) => p.squad !== 'First team' && p.pos === pos).sort((a, b) => b.ability - a.ability)[0];
       if (youth && c.id !== state.userClubId && youth.age >= 18) { promote(state, youth.id, false); continue; }
+      const level = 60 + c.reputation * 1.1;
+      const fa = Object.values(state.players).filter((p) => p.clubId === FREE_AGENT && p.pos === pos && p.ability >= level - 25 && p.age <= 33).sort((a, b) => b.ability - a.ability)[0];
+      if (fa && c.id !== state.userClubId) {
+        Object.assign(fa, { clubId: c.id, number: freeNumber(state, c.id), wage: wageFor(fa.ability, c.reputation), contractEnd: state.year + 2, joined: state.year });
+        continue;
+      }
       const age = rng.int(22, 29);
       const ca = clamp(Math.round(rng.normal(60 + c.reputation * 1.1, 8)), 60, 185);
       const p = makePlayer(rng, { id: `p${state.nextId++}`, clubId: c.id, pos: pos as Player['pos'], ca, pa: ca + rng.int(0, 10), age, squad: 'First team', number: freeNumber(state, c.id), year: state.year, reputation: c.reputation });
@@ -277,7 +303,7 @@ export function promote(state: GameState, playerId: string, notify = true) {
 }
 
 export function leagueScale(state: GameState) {
-  const cas = Object.values(state.players).filter((p) => p.squad === 'First team').map((p) => p.ability);
+  const cas = Object.values(state.players).filter((p) => p.squad === 'First team' && p.clubId !== FREE_AGENT).map((p) => p.ability);
   return { low: Math.min(...cas), high: Math.max(...cas) };
 }
 export function youthScale() { return { low: 35, high: 140 }; }
@@ -289,6 +315,13 @@ export function setTactics(state: GameState, formation: Formation, lineup: strin
 
 export function bestLineup(state: GameState, formation: Formation = state.formation) {
   return pickLineup(squadOf(state, state.userClubId), formation);
+}
+
+/** Fills fields added after v0.1 so older saves keep working. */
+export function migrate(state: GameState): GameState {
+  state.knowledge ??= {}; state.scouting ??= []; state.shortlist ??= []; state.transferListed ??= [];
+  state.bids ??= []; state.negotiations ??= {}; state.installments ??= [];
+  return state;
 }
 
 export function markRead(state: GameState, id: string) { const m = state.inbox.find((x) => x.id === id); if (m) m.unread = false; }

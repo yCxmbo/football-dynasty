@@ -113,7 +113,7 @@ export default function App() {
 
   return (
     <FD.AppFrame
-      crestSrc="/crest-128.png" club={club.name}
+      crestSrc={`${import.meta.env.BASE_URL}crest-128.png`} club={club.name}
       season={`Season ${g.year - g.manager.since + 1} · ${slotLabel} · ${liveFx ? formatDate(liveFx.date) : currentDate(g)}`}
       budget={toCur(club.transferBudget, g.currency)} currency={g.currency}
       onCurrencyChange={(c: 'EUR' | 'USD' | 'GBP') => update((d) => { d.currency = c; })}

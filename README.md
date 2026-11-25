@@ -2,6 +2,12 @@
 
 A browser soccer management game: run a club season after season, develop youth players, and build a dynasty. The look and the rating rules come from the **Football Dynasty design system** (published as a Design System artifact); this repo uses its components directly.
 
+## Play online
+
+**https://ycxmbo.github.io/football-dynasty/**
+
+Every push to `main` runs the tests, builds the game and redeploys it with GitHub Actions (`.github/workflows/deploy.yml`). Saves live in your browser, so each browser or device has its own career.
+
 ## Run it
 
 ```bash

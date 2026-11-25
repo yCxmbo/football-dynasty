@@ -18,7 +18,7 @@ export default function NewGame({ onStart, oldSave }: { onStart: (o: { clubId: s
   const ranked = all.filter((c) => c.division === div).sort((a, b) => b.reputation - a.reputation);
   return (
     <main className="ng">
-      <img className="ng__crest" src="/crest-512.png" alt="Football Dynasty: Soccer Management" />
+      <img className="ng__crest" src={`${import.meta.env.BASE_URL}crest-512.png`} alt="Football Dynasty: Soccer Management" />
       <section className="ng__card pg-card">
         <h1 className="pg-title">Start your dynasty</h1>
         {oldSave && <p className="fd-warn" role="status">Your previous save is from an older version without divisions and cups, and can't be loaded. Starting a career replaces it.</p>}

@@ -76,3 +76,20 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .sc-item:last-child { border-bottom: 0; }
 .sc-item > .pg-link { font-weight: 700; min-width: 160px; text-align: left; }
 .sc-item > :last-child { margin-left: auto; }
+
+/* Training & finances */
+.tg-effects { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
+@media (max-width: 1000px) { .tg-effects { grid-template-columns: 1fr 1fr; } }
+.tg-effects .pg-card { display: flex; flex-direction: column; gap: 4px; }
+.tg-effects .pg-h { margin: 0; }
+.tg-effects strong { font: 700 24px/28px var(--font-display); }
+.tg-devs { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: var(--space-4); }
+.tg-devs .fd-dev { max-width: none; }
+.tg-devs .fd-input--select { min-width: 160px; margin-left: auto; }
+.fn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); }
+@media (max-width: 900px) { .fn-grid { grid-template-columns: 1fr; } }
+.fn-list { display: flex; flex-direction: column; }
+.fn-row { display: grid; grid-template-columns: 160px 1fr 110px; gap: var(--space-4); align-items: center; padding: var(--space-2) 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.fn-row strong { text-align: right; font: 700 16px/20px var(--font-display); }
+.fn-meter { width: 100%; }
+.fn-total { border-bottom: 0; font-weight: 700; }

@@ -162,6 +162,7 @@ export function completeTransfer(s: GameState, p: Player, o: OfferTerms) {
   const upfront = Math.round((o.fee * o.upfront) / 100);
   club.transferBudget -= upfront + o.signingBonus + o.agentFee;
   club.balance -= upfront + o.signingBonus + o.agentFee;
+  if (s.ledger) s.ledger.expenses.transfers += upfront + o.signingBonus + o.agentFee;
   const rest = o.fee - upfront;
   if (rest > 0) s.installments.push({ clubId: s.userClubId, perMatchday: Math.ceil(rest / Math.max(1, Math.round(o.months * 4.3))), remaining: rest });
   if (from !== FREE_AGENT && s.clubs[from]) { s.clubs[from].balance += o.fee; s.clubs[from].transferBudget += Math.round(o.fee * 0.5); }
@@ -214,6 +215,7 @@ export function respondToBid(s: GameState, bidId: string, accept: boolean) {
   b.status = 'accepted';
   buyer.transferBudget -= b.fee; buyer.balance -= b.fee;
   club.balance += b.fee; club.transferBudget += Math.round(b.fee * 0.6);
+  if (s.ledger) s.ledger.income.sales += b.fee;
   p.clubId = buyer.id; p.number = freeNumber(s, buyer.id); p.captain = false; p.joined = s.year;
   s.lineup = s.lineup.filter((id) => id !== p.id);
   s.transferListed = s.transferListed.filter((id) => id !== p.id);
@@ -265,6 +267,7 @@ export function payInstallments(s: GameState) {
     const pay = Math.min(i.perMatchday, i.remaining);
     i.remaining -= pay;
     if (s.clubs[i.clubId]) s.clubs[i.clubId].balance -= pay;
+    if (i.clubId === s.userClubId && s.ledger) s.ledger.expenses.transfers += pay;
   }
   s.installments = s.installments.filter((i) => i.remaining > 0);
 }

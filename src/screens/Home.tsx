@@ -89,6 +89,7 @@ export default function Home({ g, go, onPlay }: { g: GameState; go: (s: Screen, 
           <div className="pg-card hm-fin">
             <div><span className="pg-h">Balance</span><strong><FD.Money amount={toCur(club.balance, cur)} currency={cur} /></strong></div>
             <div><span className="pg-h">Transfer budget</span><strong><FD.Money amount={toCur(club.transferBudget, cur)} currency={cur} /></strong></div>
+            <div><span className="pg-h">Profit this season</span><strong><FD.Money amount={toCur(Object.values(g.ledger.income).reduce((a, b) => a + b, 0) - Object.values(g.ledger.expenses).reduce((a, b) => a + b, 0), cur)} currency={cur} signed /></strong></div>
             <div><span className="pg-h">Wage bill</span><strong><FD.Money amount={toCur(mine.reduce((s, p) => s + p.wage, 0), cur)} currency={cur} perWeek /></strong></div>
           </div>
         </div>

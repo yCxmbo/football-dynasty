@@ -33,7 +33,18 @@ The game saves automatically in the browser (localStorage). Settings → *Start 
 - **Selling:** transfer-list players to attract bids, and other clubs sometimes bid for unlisted players too. Accepting a bid sends 60% of the fee to your transfer budget.
 - **Contracts:** contracts run out at season end. Renew players from their profile (they ask for a raise, and players over 32 sign for 2 years at most). Players who aren't renewed leave as free agents, whom any club can sign without a fee. You get a reminder about expiring contracts when the January window opens.
 
-Not built yet (shown as "coming soon"): training schedules and detailed finances.
+- **Training:**
+  - Pick a weekly plan (Balanced, Development, Match focus, Light week) or click sessions to change them, and set the intensity.
+  - Harder, technical-heavy weeks develop players faster; the high-intensity Development plan runs at about 135% of normal.
+  - The workload decides the injury risk in matches and in training.
+  - Match prep, tactics and set-piece sessions add a little match sharpness.
+  - A week without days off hurts morale.
+  - Give young players an individual focus to steer their growth into one attribute. Every club's players develop every 4 matchdays, with a smaller step in the summer.
+- **Finances:**
+  - Each matchday brings gate receipts (home games), TV money, sponsorship and merchandise. It costs wages and staff for that share of the year.
+  - Prize money depends on your final position.
+  - At season end the board sets new transfer and wage budgets from your balance and income. Reputation rises or falls with results against expectations.
+  - Clubs roughly break even, so finishing well and selling players decide whether you can spend. In debt, the transfer budget is cut.
 
 ## Rating system
 
@@ -56,6 +67,8 @@ src/
     match.ts       formations, lineup picking, match simulation
     game.ts        game state: matchdays, table, season end, development, youth, promotion
     transfers.ts   windows, scouting, asking prices, offers, bids, contracts, free agents
+    training.ts    weekly plans, workload, injury risk, in-season development, focus
+    finance.ts     weekly income and costs, prize money, budgets, reputation
     *.test.ts      engine tests
   ds/              the design system (bundle.js, bundle.css, tokens) + a typed wrapper
   screens/         one file per screen, built from design-system components

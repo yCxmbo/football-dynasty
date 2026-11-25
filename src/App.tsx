@@ -7,6 +7,8 @@ import { seasonLabel } from './engine/types';
 import { toCur, useGame, useTheme } from './store';
 import { makeOffer, respondToBid, startScouting, toggleShortlist, toggleTransferList, type OfferTerms } from './engine/transfers';
 import Contract from './screens/Contract';
+import Finances from './screens/Finances';
+import Training from './screens/Training';
 import Offer from './screens/Offer';
 import Scouting from './screens/Scouting';
 import Transfers from './screens/Transfers';
@@ -71,6 +73,8 @@ export default function App() {
     case 'transfers': body = <Transfers g={g} go={go} update={update} />; break;
     case 'scouting': body = <Scouting g={g} go={go} update={update} />; break;
     case 'offer': body = <Offer g={g} id={param} go={go} submit={(id: string, o: OfferTerms) => update((d) => { makeOffer(d, id, o); })} />; break;
+    case 'training': body = <Training g={g} update={update} />; break;
+    case 'finances': body = <Finances g={g} />; break;
     case 'contract': body = <Contract key={param} g={g} id={param} go={go} update={update} />; break;
     case 'tactics': body = <Tactics g={g} onChange={(f: Formation, l: string[]) => update((d) => setTactics(d, f, l))} />; break;
     case 'fixtures': body = <Fixtures g={g} go={go} />; break;

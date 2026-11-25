@@ -66,8 +66,11 @@ const surname = (p: Player) => { const i = p.name.indexOf(' '); return i < 0 ? p
 
 const SCORER_WEIGHT: Record<string, number> = { GK: 0, CB: 0.6, FB: 0.5, DM: 0.6, CM: 1.2, AM: 2.2, W: 2.6, ST: 4.2 };
 
-export function simulateMatch(rng: Rng, home: Player[], away: Player[], homeName: string, awayName: string, venue: string, homeFormation: Formation = '4-3-3', awayFormation: Formation = '4-3-3'): MatchResult {
-  const H = sideStrength(home, homeFormation), A = sideStrength(away, awayFormation);
+export interface MatchMods { homeBoost?: number; awayBoost?: number; homeInjury?: number; awayInjury?: number }
+
+export function simulateMatch(rng: Rng, home: Player[], away: Player[], homeName: string, awayName: string, venue: string, homeFormation: Formation = '4-3-3', awayFormation: Formation = '4-3-3', mods: MatchMods = {}): MatchResult {
+  const boost = (s: Side, k = 1) => ({ ...s, attack: s.attack * k, mid: s.mid * k, defence: s.defence * k, gk: s.gk * k });
+  const H = boost(sideStrength(home, homeFormation), mods.homeBoost), A = boost(sideStrength(away, awayFormation), mods.awayBoost);
   const attackH = (H.attack * 0.6 + H.mid * 0.4) / (A.defence * 0.7 + A.gk * 0.3);
   const attackA = (A.attack * 0.6 + A.mid * 0.4) / (H.defence * 0.7 + H.gk * 0.3);
   const xgH = clamp(1.32 * Math.pow(attackH, 2.6) * 1.12, 0.2, 4.2);
@@ -122,7 +125,7 @@ export function simulateMatch(rng: Rng, home: Player[], away: Player[], homeName
   cards(home, 'home', away); cards(away, 'away', home);
 
   for (const [side, s] of [[home, 'home'], [away, 'away']] as const) {
-    const injChance = 0.08;
+    const injChance = 0.08 * ((s === 'home' ? mods.homeInjury : mods.awayInjury) ?? 1);
     if (rng.chance(injChance)) {
       const p = rng.weighted(side, (x) => x.hidden.injuryProneness);
       const r = ratings.get(p.id)!; r.injured = true; r.minutes = pickMinute(); r.subbedOff = r.minutes;

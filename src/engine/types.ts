@@ -36,8 +36,23 @@ export interface Player {
   career: SeasonLine[];
   current: { apps: number; goals: number; assists: number; ratingSum: number };
   releaseClause?: number;
+  /** Attribute changes this season (shown on development cards). */
+  progress?: Record<string, number>;
+  /** Current Ability at the start of the season. */
+  caStart?: number;
   /** Season the player joined the current club. */
   joined?: number;
+}
+
+export type SessionType = 'fitness' | 'technical' | 'tactical' | 'setpieces' | 'matchprep' | 'recovery' | 'rest' | 'match';
+export type Day = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
+export type Intensity = 'low' | 'normal' | 'high';
+export interface Training { week: Record<Day, SessionType[]>; intensity: Intensity; focus: Record<string, string> }
+
+export interface Ledger {
+  income: { gate: number; tv: number; sponsorship: number; merchandise: number; prize: number; sales: number };
+  expenses: { wages: number; staff: number; transfers: number };
+  balanceHistory: number[];
 }
 
 /** clubId for players without a club. */
@@ -111,6 +126,9 @@ export interface GameState {
   bids: Bid[];
   negotiations: Record<string, Negotiation>;
   installments: Installment[];
+  training: Training;
+  ledger: Ledger;
+  lastLedger?: Ledger;
   /** AI clubs' players available for less (unused for now; reserved). */
   transferListedAI?: string[];
   lastUserFixtureId?: string;

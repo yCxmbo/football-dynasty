@@ -6,6 +6,8 @@ import { makePlayer, makeWorld, valueFor, wageFor, SQUAD_TEMPLATE } from './worl
 import type { Club, Currency, Fixture, GameState, InboxMessage, Player, SeasonRecord } from './types';
 import { FREE_AGENT, seasonLabel } from './types';
 import { aiBids, expireContracts, payInstallments, scoutingTick, WINDOWS } from './transfers';
+import { defaultTraining, developStep, effects, trainingWeek } from './training';
+import { emptyLedger, financeWeek, seasonFinances } from './finance';
 
 export const DIVISION = 'Premier Division';
 
@@ -18,8 +20,11 @@ export function newGame(opts: { seed: number; userClubId: string; managerName: s
     clubs, players, fixtures: makeFixtures(Object.keys(clubs), year), inbox: [], history: {}, trophies: {}, lineup: [], formation: '4-3-3', nextId,
     manager: { since: year, w: 0, d: 0, l: 0, trophies: [] },
     knowledge: {}, scouting: [], shortlist: [], transferListed: [], bids: [], negotiations: {}, installments: [],
+    training: defaultTraining(), ledger: emptyLedger(),
   };
   state.lineup = pickLineup(squadOf(state, opts.userClubId));
+  for (const p of Object.values(players)) p.caStart = p.ability;
+  state.ledger.balanceHistory.push(clubs[opts.userClubId].balance);
   const club = clubs[opts.userClubId];
   const target = boardTarget(state, opts.userClubId);
   addMessage(state, { category: 'board', from: 'The board', role: club.name, subject: `Welcome to ${club.name}`, body: [
@@ -70,11 +75,16 @@ export function playMatchday(state: GameState): Fixture | undefined {
   if (seasonOver(state)) return undefined;
   const rng = createRng(state.rngState ^ (state.matchday * 7919));
   const md = state.matchday;
-
+  const te = effects(state.training);
+  const homeIds = new Set<string>();
+  const positions = Object.fromEntries(leagueTable(state).map((r, i) => [r.clubId, i + 1]));
   for (const f of state.fixtures.filter((x) => x.matchday === md)) {
     const home = xiFor(state, f.homeId), away = xiFor(state, f.awayId);
     const H = state.clubs[f.homeId], A = state.clubs[f.awayId];
-    f.result = simulateMatch(rng, home, away, H.name, A.name, H.stadium, f.homeId === state.userClubId ? state.formation : '4-3-3', f.awayId === state.userClubId ? state.formation : '4-3-3');
+    homeIds.add(f.homeId);
+    const uh = f.homeId === state.userClubId, ua = f.awayId === state.userClubId;
+    f.result = simulateMatch(rng, home, away, H.name, A.name, H.stadium, uh ? state.formation : '4-3-3', ua ? state.formation : '4-3-3',
+      { homeBoost: uh ? te.matchBoost : 1, awayBoost: ua ? te.matchBoost : 1, homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1 });
     applyResult(f, home, away, rng);
   }
   for (const p of Object.values(state.players)) {
@@ -82,6 +92,15 @@ export function playMatchday(state: GameState): Fixture | undefined {
     if (p.suspendedFor > 0) p.suspendedFor--;
   }
 
+  financeWeek(state, homeIds, positions);
+  for (const msg of trainingWeek(rng, state, squadOf(state, state.userClubId))) addMessage(state, { category: 'training', from: 'Head coach', role: 'Training ground', subject: 'Training update', body: [msg] });
+  if (md % 4 === 0) {
+    for (const p of Object.values(state.players)) {
+      if (p.clubId === FREE_AGENT) continue;
+      const mine = p.clubId === state.userClubId;
+      developStep(rng, p, 0.12, mine ? te.development : 1, mine ? state.training.focus[p.id] : undefined);
+    }
+  }
   state.rngState = rng.state();
   state.matchday++;
   scoutingTick(state);
@@ -181,6 +200,7 @@ export function startNewSeason(state: GameState) {
       manager: row.clubId === state.userClubId ? state.managerName : 'AI manager', isYou: row.clubId === state.userClubId };
     (state.history[row.clubId] ??= []).unshift(rec);
   }
+  const money = seasonFinances(state, table);
   const cabinet = (state.trophies[champion] ??= [{ name: DIVISION, tier: 'league', seasons: [] }]);
   const league = cabinet.find((t) => t.name === DIVISION) ?? (cabinet.push({ name: DIVISION, tier: 'league', seasons: [] }), cabinet[cabinet.length - 1]);
   league.seasons.push(label);
@@ -213,15 +233,25 @@ export function startNewSeason(state: GameState) {
   state.matchday = 1;
   state.lineup = pickLineup(squadOf(state, state.userClubId), state.formation);
   state.rngState = rng.state();
+  for (const p of Object.values(state.players)) { p.caStart = p.ability; p.progress = {}; }
+  state.lastLedger = state.ledger;
+  state.ledger = emptyLedger();
+  state.ledger.balanceHistory.push(state.clubs[state.userClubId].balance);
   const target = boardTarget(state, state.userClubId);
-  addMessage(state, { category: 'board', from: 'The board', role: state.clubs[state.userClubId].name, subject: `New season: ${seasonLabel(state.year)}`, body: [`A new season begins. The board's target: ${target.text}.`] });
+  const m = (n: number) => `${Math.round(n / 1e5) / 10}M`;
+  addMessage(state, { category: 'board', from: 'The board', role: state.clubs[state.userClubId].name, subject: `New season: ${seasonLabel(state.year)}`, body: [
+    `A new season begins. The board's target: ${target.text}.`,
+    `Prize money last season: ${m(money.prize)}. Club reputation ${money.repChange > 0 ? 'rose' : money.repChange < 0 ? 'fell' : 'held steady'} (${money.reputation}).`,
+    `Your transfer budget is ${m(money.transferBudget)} and the wage budget is ${Math.round(money.wageBudget / 1000)}k a week.`,
+    ...(money.balance < 0 ? ['The club is in debt. The board has cut the transfer budget and expects you to sell before buying.'] : [])] });
 }
 
 /** CA moves toward PA for young players, declines after 30; attributes follow. */
 export function develop(rng: ReturnType<typeof createRng>, p: Player, apps: number) {
   let delta: number;
-  if (p.age <= 23) delta = (p.potential - p.ability) * (0.18 + p.hidden.professionalism / 100 + Math.min(apps, 30) / 150) + rng.normal(0, 3);
-  else if (p.age <= 28) delta = (p.potential - p.ability) * 0.25 + rng.normal(0, 2);
+  // Growth is split: most happens in-season (training.ts developStep); this is the summer step.
+  if (p.age <= 23) delta = 0.45 * ((p.potential - p.ability) * (0.18 + p.hidden.professionalism / 100 + Math.min(apps, 30) / 150) + rng.normal(0, 3));
+  else if (p.age <= 28) delta = 0.45 * ((p.potential - p.ability) * 0.25 + rng.normal(0, 2));
   else if (p.age <= 30) delta = rng.normal(-1, 2);
   else delta = -rng.int(3, 9) - (p.age - 31) * 2;
   const target = clamp(Math.round(p.ability + delta), 20, p.age <= 28 ? p.potential : 200);
@@ -321,6 +351,7 @@ export function bestLineup(state: GameState, formation: Formation = state.format
 export function migrate(state: GameState): GameState {
   state.knowledge ??= {}; state.scouting ??= []; state.shortlist ??= []; state.transferListed ??= [];
   state.bids ??= []; state.negotiations ??= {}; state.installments ??= [];
+  state.training ??= defaultTraining(); state.ledger ??= emptyLedger();
   return state;
 }
 

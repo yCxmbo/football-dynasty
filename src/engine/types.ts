@@ -1,0 +1,98 @@
+import type { Position } from './ratings';
+import type { Formation } from './match';
+
+export type Currency = 'EUR' | 'USD' | 'GBP';
+export type Squad = 'First team' | 'U21' | 'U18';
+export type ContractType = 'full-time' | 'youth';
+export type Morale = 'high' | 'ok' | 'low';
+export type Familiarity = 'natural' | 'accomplished' | 'competent' | 'unconvincing' | 'awkward';
+
+export interface Player {
+  id: string;
+  clubId: string;
+  name: string;
+  nationality: string;
+  pos: Position;
+  positions: Record<string, Familiarity>;
+  age: number;
+  attributes: Record<string, number>;
+  /** Hidden Current Ability 1–200, derived from attributes. */
+  ability: number;
+  /** Hidden Potential Ability 1–200. */
+  potential: number;
+  /** Hidden attributes 1–20 (never shown as numbers). */
+  hidden: { professionalism: number; injuryProneness: number; consistency: number; bigMatches: number };
+  squad: Squad;
+  contractType: ContractType;
+  number: number;
+  wage: number; // weekly, base currency (EUR)
+  value: number; // base currency
+  contractEnd: number; // season year the contract ends
+  morale: Morale;
+  injuredFor: number; // matchdays
+  suspendedFor: number; // matchdays
+  yellowCards: number;
+  captain?: boolean;
+  career: SeasonLine[];
+  current: { apps: number; goals: number; assists: number; ratingSum: number };
+}
+
+export interface SeasonLine { season: string; club: string; apps: number; goals: number; rating?: number; honour?: string }
+
+export interface Club {
+  id: string;
+  name: string;
+  short: string;
+  reputation: number; // 1–100
+  stadium: string;
+  capacity: number;
+  nickname: string;
+  founded: number;
+  balance: number;
+  transferBudget: number;
+  wageBudget: number; // weekly
+}
+
+export interface Fixture {
+  id: string;
+  matchday: number;
+  date: string;
+  homeId: string;
+  awayId: string;
+  result?: MatchResult;
+}
+
+export type EventType = 'goal' | 'penalty' | 'owngoal' | 'yellow' | 'red' | 'sub' | 'injury' | 'chance' | 'save' | 'whistle';
+export interface MatchEvent { minute: number; order: number; type: EventType; side?: 'home' | 'away'; playerId?: string; player?: string; score?: [number, number]; text: string }
+export interface PlayerRating { playerId: string; rating: number; goals: number; assists: number; card?: 'yellow' | 'red'; subbedOff?: number; injured?: boolean; minutes: number }
+export interface MatchStats { possession: [number, number]; shots: [number, number]; onTarget: [number, number]; xg: [number, number]; corners: [number, number]; fouls: [number, number]; yellow: [number, number]; red: [number, number]; passAcc: [number, number] }
+export interface MatchResult { score: [number, number]; events: MatchEvent[]; stats: MatchStats; ratings: { home: PlayerRating[]; away: PlayerRating[] } }
+
+export interface InboxMessage { id: string; category: 'board' | 'transfers' | 'scouting' | 'medical' | 'media' | 'training' | 'youth' | 'match' | 'finance'; from: string; role?: string; date: string; subject: string; body: string[]; unread: boolean; action?: { label: string; kind: 'promote'; playerId: string } }
+
+export interface SeasonRecord { season: string; division: string; pos: number; pts: number; champion: string; topScorer?: { name: string; goals: number }; manager: string; isYou: boolean }
+export interface Trophy { name: string; tier: 'league' | 'cup' | 'continental'; seasons: string[] }
+
+export interface GameState {
+  version: 1;
+  seed: number;
+  rngState: number;
+  year: number; // season starts in this year
+  matchday: number; // next matchday to play (1-based)
+  userClubId: string;
+  managerName: string;
+  currency: Currency;
+  clubs: Record<string, Club>;
+  players: Record<string, Player>;
+  fixtures: Fixture[];
+  inbox: InboxMessage[];
+  history: Record<string, SeasonRecord[]>; // by club id
+  trophies: Record<string, Trophy[]>; // by club id
+  lineup: string[]; // user XI in slot order of `formation`
+  formation: Formation;
+  manager: { since: number; w: number; d: number; l: number; trophies: string[] };
+  lastUserFixtureId?: string;
+  nextId: number;
+}
+
+export function seasonLabel(year: number) { return `${year}/${String((year + 1) % 100).padStart(2, '0')}`; }

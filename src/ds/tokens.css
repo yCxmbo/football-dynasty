@@ -1,0 +1,80 @@
+/* Football Dynasty — generated from tokens.json (design system). Do not edit by hand. */
+:root, [data-theme="dark"] {
+  --surface: #0b1c31;
+  --surface-raised: #122d45;
+  --surface-sunken: #091627;
+  --line: #23405c;
+  --line-strong: #5b7690;
+  --ink: #eef1ea;
+  --ink-muted: #9fb0c0;
+  --gold: #d6b25e;
+  --on-gold: #0b1c31;
+  --gold-ink: #e2c27a;
+  --teal: #49ccbd;
+  --pitch: #1b6271;
+  --navy: #173e56;
+  --loss: #f07a6c;
+  --warn: #f0a54a;
+  --rating-elite: var(--gold-ink);
+  --rating-good: var(--teal);
+  --rating-average: var(--ink);
+  --rating-poor: var(--ink-muted);
+  --star-gold: #e2c27a;
+  --star-silver: #c3ccd5;
+  --star-empty: var(--line-strong);
+  --on-navy: #eef1ea;
+  --on-navy-muted: #9fb0c0;
+  --form-win: #49ccbd;
+  --form-loss: #f07a6c;
+  --card-yellow: #f2c230;
+  --card-red: #e5483a;
+}
+[data-theme="light"] {
+  --surface: #f3f5f7;
+  --surface-raised: #ffffff;
+  --surface-sunken: #e7ecf1;
+  --line: #d3dbe3;
+  --line-strong: #7d8d9c;
+  --ink: #0b1c31;
+  --ink-muted: #4f6070;
+  --gold: #d6b25e;
+  --on-gold: #0b1c31;
+  --gold-ink: #7d5f16;
+  --teal: #0c7268;
+  --pitch: #1b6271;
+  --navy: #0f2a42;
+  --loss: #b3261e;
+  --warn: #9a5300;
+  --rating-elite: var(--gold-ink);
+  --rating-good: var(--teal);
+  --rating-average: var(--ink);
+  --rating-poor: var(--ink-muted);
+  --star-gold: #a88232;
+  --star-silver: #7d8b98;
+  --star-empty: var(--line-strong);
+  --on-navy: #eef1ea;
+  --on-navy-muted: #9fb0c0;
+  --form-win: #49ccbd;
+  --form-loss: #f07a6c;
+  --card-yellow: #f2c230;
+  --card-red: #d02c1f;
+}
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius-sm: 2px;
+  --radius-md: 6px;
+  --radius-pill: 999px;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-sans: "Barlow", system-ui, sans-serif;
+}
+.display { font-family: var(--font-display); font-size: 56px; line-height: 56px; font-weight: 700; }
+.score { font-family: var(--font-display); font-size: 40px; line-height: 44px; font-weight: 700; }
+.headline { font-family: var(--font-display); font-size: 28px; line-height: 32px; font-weight: 700; }
+.title { font-family: var(--font-sans); font-size: 18px; line-height: 24px; font-weight: 600; }
+.body { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 400; }
+.table { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 400; }
+.label { font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 600; }

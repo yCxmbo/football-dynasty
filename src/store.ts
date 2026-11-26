@@ -1,71 +1,157 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { compressToUTF16, decompressFromUTF16 } from 'lz-string';
+import { compressToBase64, decompressFromBase64, decompressFromUTF16 } from 'lz-string';
 import { migrate } from './engine/game';
-import type { Currency, GameState } from './engine/types';
+import { seasonLabel, type Currency, type GameState } from './engine/types';
+import { idbDel, idbGet, idbPut } from './idb';
 
-const SAVE_KEY = 'football-dynasty:save:v1';
+/* Saves: several careers in IndexedDB, with a small list of them in localStorage.
+   The old single save in localStorage is moved over on first start. */
+const LEGACY_KEY = 'football-dynasty:save:v1';
+const CAREERS_KEY = 'football-dynasty:careers';
+const ACTIVE_KEY = 'football-dynasty:active';
 const THEME_KEY = 'football-dynasty:theme';
+const VERSION = 3;
 
-/** Saves are compressed (lz-string) to stay well inside the browser's ~5 MB storage limit. */
-function readRaw(): string | null {
-  const raw = localStorage.getItem(SAVE_KEY);
-  if (!raw) return null;
-  return raw.startsWith('{') ? raw : decompressFromUTF16(raw);
+export interface Career { id: string; club: string; manager: string; season: string; world: string; updated: number }
+
+function readCareers(): Career[] {
+  try { return JSON.parse(localStorage.getItem(CAREERS_KEY) ?? '[]') as Career[]; } catch { return []; }
 }
+function writeCareers(list: Career[]) { try { localStorage.setItem(CAREERS_KEY, JSON.stringify(list)); } catch { /* ignore */ } }
+function setActive(id: string | null) { try { if (id) localStorage.setItem(ACTIVE_KEY, id); else localStorage.removeItem(ACTIVE_KEY); } catch { /* ignore */ } }
 
-/** True when an older, incompatible save exists (before divisions and cups). */
-export function hasOldSave() {
-  try { const raw = readRaw(); return !!raw && (JSON.parse(raw) as { version?: number }).version !== 3; } catch { return false; }
-}
+const careerOf = (id: string, g: GameState): Career => ({
+  id, club: g.clubs[g.userClubId]?.name ?? '?', manager: g.managerName, season: seasonLabel(g.year),
+  world: g.world.source === 'real' ? 'Real world' : g.world.source === 'import' ? g.world.name : 'Fictional world', updated: Date.now(),
+});
 
-export function loadGame(): GameState | null {
+/** Moves a save from the old localStorage slot into IndexedDB. Returns true if an old, incompatible save was found. */
+async function migrateLegacy(): Promise<boolean> {
+  let raw: string | null = null;
+  try { raw = localStorage.getItem(LEGACY_KEY); } catch { return false; }
+  if (!raw) return false;
   try {
-    const raw = readRaw();
-    if (!raw) return null;
-    const s = JSON.parse(raw) as GameState;
-    return s.version === 3 ? migrate(s) : null;
-  } catch { return null; }
+    const json = raw.startsWith('{') ? raw : decompressFromUTF16(raw);
+    const s = JSON.parse(json) as GameState;
+    if (s.version !== VERSION) { localStorage.removeItem(LEGACY_KEY); return true; }
+    const id = `c${Date.now()}`;
+    await idbPut(id, s);
+    writeCareers([careerOf(id, s), ...readCareers()]);
+    setActive(id);
+    localStorage.removeItem(LEGACY_KEY);
+  } catch { /* leave it */ }
+  return false;
 }
 
 export let saveFailed = false;
 
-function saveGame(s: GameState | null) {
-  try {
-    if (s) localStorage.setItem(SAVE_KEY, compressToUTF16(JSON.stringify(s))); else localStorage.removeItem(SAVE_KEY);
-  } catch {
-    saveFailed = true; // storage full or blocked: the game keeps running, unsaved
-  }
-}
-
-/** Game state with copy-on-write updates and autosave. */
+/** Game state with copy-on-write updates, autosave and several careers. */
 export function useGame() {
-  const [game, setGame] = useState<GameState | null>(() => loadGame());
-  // Saving a large world takes a moment, so save once things are quiet, and always when the page is hidden.
+  const [game, setGameState] = useState<GameState | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [oldSave, setOldSave] = useState(false);
+  const [careers, setCareers] = useState<Career[]>(() => readCareers());
+  const activeId = useRef<string | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      setOldSave(await migrateLegacy());
+      setCareers(readCareers());
+      const id = localStorage.getItem(ACTIVE_KEY);
+      if (id) {
+        const s = await idbGet<GameState>(id).catch(() => undefined);
+        if (s && s.version === VERSION) { activeId.current = id; setGameState(migrate(s)); }
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  // Save once things are quiet, and always when the page is hidden.
   const latest = useRef(game);
   const dirty = useRef(false);
+  const save = useCallback(() => {
+    const g = latest.current;
+    if (!dirty.current || !g) return;
+    dirty.current = false;
+    let id = activeId.current;
+    if (!id) { id = `c${Date.now()}`; activeId.current = id; setActive(id); }
+    const sid = id;
+    idbPut(sid, g).then(() => {
+      saveFailed = false;
+      const list = [careerOf(sid, g), ...readCareers().filter((c) => c.id !== sid)];
+      writeCareers(list); setCareers(list);
+    }).catch(() => { saveFailed = true; });
+  }, []);
   useEffect(() => {
     latest.current = game;
+    if (!game) return;
     dirty.current = true;
-    if (!game) { saveGame(null); dirty.current = false; return; }
-    const t = setTimeout(() => { if (dirty.current) { saveGame(latest.current); dirty.current = false; } }, 1500);
+    const t = setTimeout(save, 1500);
     return () => clearTimeout(t);
-  }, [game]);
+  }, [game, save]);
   useEffect(() => {
-    const flush = () => { if (dirty.current) { saveGame(latest.current); dirty.current = false; } };
-    const onVis = () => { if (document.visibilityState === 'hidden') flush(); };
-    window.addEventListener('pagehide', flush);
+    const onVis = () => { if (document.visibilityState === 'hidden') save(); };
+    window.addEventListener('pagehide', save);
     document.addEventListener('visibilitychange', onVis);
-    return () => { window.removeEventListener('pagehide', flush); document.removeEventListener('visibilitychange', onVis); };
-  }, []);
+    return () => { window.removeEventListener('pagehide', save); document.removeEventListener('visibilitychange', onVis); };
+  }, [save]);
+
   const update = useCallback((fn: (draft: GameState) => void) => {
-    setGame((prev) => {
+    setGameState((prev) => {
       if (!prev) return prev;
       const draft = structuredClone(prev);
       fn(draft);
       return draft;
     });
   }, []);
-  return { game, setGame, update };
+
+  /** Replaces the game in the current career (a new game started from the menu gets a new career). */
+  const setGame = useCallback((g: GameState | null) => { setGameState(g); }, []);
+
+  /** Leaves the current career (it stays saved) to start or load another. */
+  const leave = useCallback(() => { save(); activeId.current = null; setActive(null); setGameState(null); }, [save]);
+
+  const loadCareer = useCallback(async (id: string) => {
+    save();
+    setLoading(true);
+    const s = await idbGet<GameState>(id).catch(() => undefined);
+    if (s && s.version === VERSION) { activeId.current = id; setActive(id); setGameState(migrate(s)); }
+    setLoading(false);
+  }, [save]);
+
+  const deleteCareer = useCallback(async (id: string) => {
+    await idbDel(id).catch(() => undefined);
+    const list = readCareers().filter((c) => c.id !== id);
+    writeCareers(list); setCareers(list);
+    if (activeId.current === id) { activeId.current = null; setActive(null); setGameState(null); }
+  }, []);
+
+  /** Reads an exported save file and opens it as a new career. Returns an error message, or null. */
+  const importSave = useCallback(async (text: string): Promise<string | null> => {
+    try {
+      const json = text.trim().startsWith('{') ? text : decompressFromBase64(text.trim());
+      const s = JSON.parse(json ?? '') as GameState;
+      if (s.version !== VERSION || !s.clubs || !s.players) return 'This file is not a save from this version of Football Dynasty.';
+      save();
+      const id = `c${Date.now()}`;
+      await idbPut(id, s);
+      const list = [careerOf(id, s), ...readCareers()];
+      writeCareers(list); setCareers(list);
+      activeId.current = id; setActive(id); setGameState(migrate(s));
+      return null;
+    } catch { return 'This file could not be read as a Football Dynasty save.'; }
+  }, [save]);
+
+  return { game, setGame, update, loading, oldSave, careers, activeId: activeId.current, leave, loadCareer, deleteCareer, importSave };
+}
+
+/** A save as a compact text file (lz-string, base64). */
+export function exportSave(g: GameState) {
+  const blob = new Blob([compressToBase64(JSON.stringify(g))], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const name = `${g.clubs[g.userClubId]?.name ?? 'career'} ${seasonLabel(g.year).replace('/', '-')}`.replace(/[^\w\- ]+/g, '').replace(/\s+/g, '-');
+  Object.assign(document.createElement('a'), { href: url, download: `${name}.fdsave` }).click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
 export type Theme = 'dark' | 'light';

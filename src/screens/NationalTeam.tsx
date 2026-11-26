@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { FD } from '../ds';
 import { FORMATIONS, type Formation } from '../engine/match';
-import { nextTournaments } from '../engine/international';
+import { nextTournaments, summerTournaments, takesPart, tournamentName } from '../engine/international';
 import { MAX_SQUAD, autoPick, candidates, jobOffers, managerReputation, reputationNeeded, resignJob, setNationalFormation, takeJob, toggleSelection } from '../engine/nationaljob';
 import { NATION, nationName } from '../engine/nations';
 import type { GameState, Player } from '../engine/types';
@@ -9,6 +9,14 @@ import { badgeUrl } from './badge';
 import type { Screen } from './shared';
 
 const flag = (code: string) => badgeUrl({ id: `nation-${code}`, short: code, colours: NATION[code]?.colours });
+/** The next tournament this nation can play in, e.g. "FIFA World Cup 2030". */
+function nextFor(code: string, seasonStartYear: number) {
+  for (let y = seasonStartYear; y < seasonStartYear + 8; y++) {
+    const ids = summerTournaments(y).filter((id) => takesPart(id, code));
+    if (ids.length) return `${tournamentName(ids[0])} ${y + 1}`;
+  }
+  return '—';
+}
 const stars = (ability: number) => Math.max(0.5, Math.min(5, Math.round(ability / 20) / 2));
 
 function PlayerRows({ g, list, picked, onToggle, go, full }: { g: GameState; list: Player[]; picked: Set<string>; onToggle: (id: string) => void; go: (s: Screen, id?: string) => void; full: boolean }) {
@@ -83,7 +91,7 @@ export default function NationalTeam({ g, go, update, ranking }: { g: GameState;
           <p className="hm-note" style={{ margin: 0 }}>
             World #{ranking.indexOf(job.code) + 1} · Record {job.w}–{job.d}–{job.l}
             {job.tournaments.length ? ` · ${job.tournaments.map((t) => `${t.name}: ${t.reached}`).join(' · ')}` : ''}
-            {next.names.length ? ` · Next: ${next.names.filter((n) => (n === 'UEFA Euro' ? NATION[job.code].confed === 'UEFA' : n === 'Copa América' ? ['CONMEBOL', 'CONCACAF'].includes(NATION[job.code].confed) : true)).join(' and ') || 'no tournament for your confederation'} ${next.year}` : ''}
+            {` · Next: ${nextFor(job.code, g.year)}`}
           </p>
         </div>
         <FD.Button variant="ghost" onClick={() => { if (confirm(`Resign as ${nationName(job.code)} manager?`)) update((d) => resignJob(d)); }}>Resign</FD.Button>

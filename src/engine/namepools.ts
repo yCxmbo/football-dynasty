@@ -45,6 +45,10 @@ const P: Record<string, Pool> = {
     ['Kim', 'Lee', 'Park', 'Choi', 'Jung', 'Kang', 'Cho', 'Yoon', 'Jang', 'Lim', 'Han', 'Oh', 'Seo', 'Hwang', 'Song', 'Jeon']],
   fa: [['Mehdi', 'Ali', 'Alireza', 'Saeid', 'Reza', 'Amir', 'Milad', 'Morteza', 'Saman', 'Otabek'],
     ['Karimi', 'Hosseini', 'Rezaei', 'Mohammadi', 'Ahmadi', 'Jafari', 'Ghorbani', 'Nazarov', 'Rahimi', 'Ebrahimi']],
+  eaf: [['Michael', 'Brian', 'Joseph', 'Emmanuel', 'Erick', 'Kelvin', 'Dennis', 'Abdul', 'Ibrahim', 'Allan', 'Moses', 'Faisal', 'Kenneth', 'Ronald'],
+    ['Otieno', 'Odhiambo', 'Mwangi', 'Okello', 'Mutebi', 'Ssemakula', 'Mbwana', 'Kasongo', 'Ochieng', 'Kamau', 'Nsubuga', 'Mollel', 'Juma', 'Kiprono']],
+  sea: [['Supachai', 'Chanathip', 'Teerasil', 'Nguyen', 'Quang', 'Tuan', 'Rizky', 'Egy', 'Arhan', 'Safawi', 'Faisal', 'Sunil', 'Anirudh', 'Lallian'],
+    ['Saengsri', 'Chaiyawat', 'Pham', 'Tran', 'Le', 'Hoang', 'Pratama', 'Saputra', 'Hidayat', 'Rahman', 'Ismail', 'Singh', 'Thapa', 'Kumar']],
   zh: [['Wei', 'Lei', 'Jun', 'Hao', 'Yang', 'Peng', 'Tao', 'Bin', 'Jian', 'Long', 'Ming', 'Xin'], ['Wang', 'Li', 'Zhang', 'Liu', 'Chen', 'Yang', 'Zhao', 'Huang', 'Zhou', 'Wu', 'Xu', 'Sun']],
   ru: [['Aleksandr', 'Dmitri', 'Maksim', 'Artem', 'Ivan', 'Kirill', 'Nikita', 'Sergei', 'Andrei', 'Igor', 'Roman', 'Denis'], ['Ivanov', 'Smirnov', 'Kuznetsov', 'Popov', 'Sokolov', 'Lebedev', 'Kozlov', 'Novikov', 'Morozov', 'Volkov']],
   gr: [['Giorgos', 'Konstantinos', 'Dimitris', 'Nikos', 'Christos', 'Vangelis', 'Kostas', 'Panagiotis', 'Giannis', 'Anastasios'], ['Papadopoulos', 'Georgiou', 'Nikolaou', 'Karagiannis']],
@@ -60,7 +64,8 @@ const GROUP: Record<string, string> = {
   RUS: 'ru', GRE: 'gr', GEO: 'ka', ISR: 'en', TUR: 'tr',
   MAR: 'ar', ALG: 'ar', TUN: 'ar', EGY: 'ar', KSA: 'ar', QAT: 'ar', UAE: 'ar', IRQ: 'ar', JOR: 'ar', OMA: 'ar', BHR: 'ar', PLE: 'ar',
   SEN: 'waf', NGA: 'waf', CIV: 'waf', GHA: 'waf', CMR: 'waf', MLI: 'waf', GUI: 'waf', BFA: 'waf', COD: 'waf', GAB: 'waf', GAM: 'waf', BEN: 'waf', TOG: 'waf', CTA: 'waf',
-  JPN: 'jp', KOR: 'kr', IRN: 'fa', UZB: 'fa', CHN: 'zh',
+  JPN: 'jp', KOR: 'kr', IRN: 'fa', UZB: 'fa', KGZ: 'fa', TJK: 'fa', CHN: 'zh', SYR: 'ar', LBN: 'ar', KUW: 'ar', SUD: 'ar', LBY: 'ar',
+  THA: 'sea', VIE: 'sea', IDN: 'sea', MAS: 'sea', IND: 'sea', KEN: 'eaf', UGA: 'eaf', TAN: 'eaf',
 };
 
 /** A made-up name that fits the nationality (a FIFA code). */

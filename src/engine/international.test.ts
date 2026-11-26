@@ -9,10 +9,10 @@ import { createRng } from './rng';
 const world = () => newGame({ seed: 11, userClubId: 'eng-arsenal', managerName: 'T', currency: 'EUR', world: realWorld(), source: 'real' });
 
 describe('international football', () => {
-  it('schedules the World Cup in 2026, then the Euro and Copa América in 2028', () => {
+  it('schedules the World Cup in 2026, the Africa Cup of Nations and Asian Cup in 2027, the Euro and Copa América in 2028', () => {
     expect(summerTournaments(2025)).toEqual(['wc']);
-    expect(summerTournaments(2026)).toEqual([]);
     expect(summerTournaments(2027)).toEqual(['euro', 'copa']);
+    expect(summerTournaments(2026)).toEqual(['afcon', 'asian']);
     expect(summerTournaments(2029)).toEqual(['wc']);
   });
 
@@ -59,6 +59,13 @@ describe('international football', () => {
     expect(copa.teams.length).toBe(16);
     expect(copa.teams.filter((c) => NATION[c].confed === 'CONMEBOL').length).toBe(10);
     expect(copa.matches.length).toBe(24 + 7);
+    const afcon = playTournament(s, createRng(6), 'afcon', 2027).tournament;
+    expect(afcon.teams.length).toBe(24);
+    expect(afcon.teams.every((c) => NATION[c].confed === 'CAF')).toBe(true);
+    expect(afcon.hosts).toEqual(['KEN', 'UGA', 'TAN']);
+    const asian = playTournament(s, createRng(7), 'asian', 2027).tournament;
+    expect(asian.teams.length).toBe(24);
+    expect(asian.teams.every((c) => NATION[c].confed === 'AFC')).toBe(true);
   });
 
   it('a club manager can take a national team job, pick the squad, and the tournament uses it', () => {

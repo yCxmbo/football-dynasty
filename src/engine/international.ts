@@ -7,7 +7,7 @@ import type { Rng } from './rng';
 import type { GameState, Player } from './types';
 import { makePlayer } from './world';
 
-export type TournamentId = 'wc' | 'euro' | 'copa';
+export type TournamentId = 'wc' | 'euro' | 'copa' | 'afcon' | 'asian';
 export interface IntlMatch { h: string; a: string; s: [number, number]; p?: [number, number]; stage: string; g?: number }
 export interface Tournament {
   id: TournamentId; name: string; year: number; hosts: string[];
@@ -23,15 +23,17 @@ const SPECS: Record<TournamentId, Spec> = {
   wc: { id: 'wc', name: 'FIFA World Cup', size: 48, confeds: { UEFA: 16, CAF: 9, AFC: 8, CONMEBOL: 6, CONCACAF: 6, OFC: 1 }, wildcards: 2 },
   euro: { id: 'euro', name: 'UEFA Euro', size: 24, confeds: { UEFA: 24 } },
   copa: { id: 'copa', name: 'Copa América', size: 16, confeds: { CONMEBOL: 10, CONCACAF: 6 } },
+  afcon: { id: 'afcon', name: 'Africa Cup of Nations', size: 24, confeds: { CAF: 24 } },
+  asian: { id: 'asian', name: 'AFC Asian Cup', size: 24, confeds: { AFC: 24 } },
 };
 
 /** Real hosts where they are known; later editions get a strong host from the right region. */
-const HOSTS: Record<string, string[]> = { 'wc-2026': ['USA', 'MEX', 'CAN'], 'wc-2030': ['ESP', 'POR', 'MAR'], 'wc-2034': ['KSA'], 'euro-2028': ['ENG', 'SCO', 'WAL', 'IRL'], 'euro-2032': ['ITA', 'TUR'], 'copa-2028': ['ARG'] };
+const HOSTS: Record<string, string[]> = { 'wc-2026': ['USA', 'MEX', 'CAN'], 'wc-2030': ['ESP', 'POR', 'MAR'], 'wc-2034': ['KSA'], 'euro-2028': ['ENG', 'SCO', 'WAL', 'IRL'], 'euro-2032': ['ITA', 'TUR'], 'copa-2028': ['ARG'], 'afcon-2027': ['KEN', 'UGA', 'TAN'], 'asian-2027': ['KSA'] };
 
 /** Tournaments played in the summer that ends a season (state.year is the season's start year). */
 export function summerTournaments(seasonStartYear: number): TournamentId[] {
   const y = seasonStartYear + 1;
-  return y % 4 === 2 ? ['wc'] : y % 4 === 0 ? ['euro', 'copa'] : [];
+  return y % 4 === 2 ? ['wc'] : y % 4 === 0 ? ['euro', 'copa'] : y % 4 === 3 ? ['afcon', 'asian'] : [];
 }
 
 /** The next summer with a tournament, for display. */
@@ -40,6 +42,8 @@ export function nextTournaments(seasonStartYear: number) {
   return { year: seasonStartYear + 1, ids: [] as TournamentId[], names: [] as string[] };
 }
 export const tournamentName = (id: TournamentId) => SPECS[id].name;
+/** Whether a nation's confederation plays in a tournament. */
+export const takesPart = (id: TournamentId, code: string) => !!NATION[code] && SPECS[id].confeds[NATION[code].confed] !== undefined;
 
 /* ---------- national squads ---------- */
 const DEPTH: Array<[Player['pos'], number]> = [['GK', 3], ['CB', 4], ['LB', 2], ['RB', 2], ['DM', 2], ['CM', 3], ['AM', 2], ['LW', 2], ['RW', 2], ['ST', 4]];

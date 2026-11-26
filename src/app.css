@@ -162,3 +162,7 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .nt-club { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nt-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 @media (max-width: 1100px) { .nt-grid { grid-template-columns: 1fr; } }
+.ng--loading { justify-content: center; }
+.careers { display: flex; flex-direction: column; gap: var(--space-2); }
+.careers td { vertical-align: middle; }
+.st__block { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4) 0; border-top: 1px solid var(--line); }

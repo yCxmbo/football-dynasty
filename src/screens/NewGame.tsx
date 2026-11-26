@@ -5,6 +5,8 @@ import { validateWorld, type ClubDef, type LeagueDef, type Validation, type Worl
 import type { Currency } from '../engine/types';
 import { realWorld } from '../data/real';
 import { badgeUrl } from './badge';
+import Careers from './Careers';
+import type { Career } from '../store';
 
 type Source = 'real' | 'builtin' | 'import';
 export interface StartOpts { clubId: string; name: string; currency: Currency; world: WorldDef; source: Source }
@@ -38,7 +40,9 @@ function expectation(l: LeagueDef, rank: number, size: number, world: WorldDef) 
 
 const stars = (rep: number) => Math.max(0.5, Math.min(5, Math.round(((rep - 30) / 60) * 10) / 2));
 
-export default function NewGame({ onStart, oldSave }: { onStart: (o: StartOpts) => void; oldSave?: boolean }) {
+export default function NewGame({ onStart, oldSave, careers = [], onLoad, onDelete, onImport }: {
+  onStart: (o: StartOpts) => void; oldSave?: boolean; careers?: Career[]; onLoad?: (id: string) => void; onDelete?: (id: string) => void; onImport?: (text: string) => Promise<string | null>;
+}) {
   const [source, setSource] = useState<Source>('real');
   const [imported, setImported] = useState<{ world: WorldDef; check: Validation; file: string } | null>(null);
   const [importError, setImportError] = useState('');
@@ -84,9 +88,15 @@ export default function NewGame({ onStart, oldSave }: { onStart: (o: StartOpts) 
   return (
     <main className="ng">
       <img className="ng__crest" src={`${import.meta.env.BASE_URL}crest-512.png`} alt="Football Dynasty" />
+      {onLoad && onDelete && onImport && (careers.length > 0) && (
+        <section className="ng__card pg-card">
+          <h1 className="pg-title">Continue a career</h1>
+          <Careers careers={careers} onLoad={onLoad} onDelete={onDelete} onImport={onImport} />
+        </section>
+      )}
       <section className="ng__card pg-card">
         <h1 className="pg-title">Start your dynasty</h1>
-        {oldSave && <p className="fd-warn" role="status">Your previous save is from an older version and can't be loaded. Starting a career replaces it.</p>}
+        {oldSave && <p className="fd-warn" role="status">Your previous save was from an older version and couldn't be loaded. Start a new career below.</p>}
         <div className="fd-grid2">
           <FD.Field label="Your name"><div className="fd-input"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Manager name" aria-label="Your name" maxLength={40} /></div></FD.Field>
           <FD.Field label="Currency"><FD.CurrencyToggle value={currency} onChange={setCurrency} /></FD.Field>

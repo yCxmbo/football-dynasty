@@ -42,13 +42,18 @@ export const NATIONS: Nation[] = [
   N('GAB', 'Gabon', 'CAF', 67, '#009E60', '#FCD116'), N('ANG', 'Angola', 'CAF', 66, '#CC092F', '#000000'), N('ZAM', 'Zambia', 'CAF', 65, '#198A00', '#FFFFFF'),
   N('GAM', 'Gambia', 'CAF', 65, '#CE1126', '#0C1C8C'), N('BEN', 'Benin', 'CAF', 64, '#FCD116', '#008751'), N('TOG', 'Togo', 'CAF', 64, '#006A4E', '#FFCE00'),
   N('EQG', 'Equatorial Guinea', 'CAF', 63, '#E32118', '#3E9A00'), N('MOZ', 'Mozambique', 'CAF', 62, '#D21034', '#000000'), N('ZIM', 'Zimbabwe', 'CAF', 62, '#FFD200', '#006400'),
-  N('CTA', 'Central African Republic', 'CAF', 60, '#003082', '#FFCE00'),
+  N('CTA', 'Central African Republic', 'CAF', 60, '#003082', '#FFCE00'), N('KEN', 'Kenya', 'CAF', 61, '#BB0000', '#006600'), N('UGA', 'Uganda', 'CAF', 61, '#FCDC04', '#D90000'),
+  N('TAN', 'Tanzania', 'CAF', 60, '#1EB53A', '#00A3DD'), N('SUD', 'Sudan', 'CAF', 59, '#D21034', '#FFFFFF'), N('LBY', 'Libya', 'CAF', 61, '#E70013', '#000000'),
   // AFC
   N('JPN', 'Japan', 'AFC', 76, '#000555', '#FFFFFF'), N('KOR', 'South Korea', 'AFC', 74, '#C60C30', '#003478'), N('IRN', 'Iran', 'AFC', 72, '#FFFFFF', '#DA0000'),
   N('AUS', 'Australia', 'AFC', 70, '#FFCD00', '#00843D'), N('KSA', 'Saudi Arabia', 'AFC', 68, '#006C35', '#FFFFFF'), N('QAT', 'Qatar', 'AFC', 67, '#8A1538', '#FFFFFF'),
   N('UZB', 'Uzbekistan', 'AFC', 68, '#FFFFFF', '#1EB53A'), N('IRQ', 'Iraq', 'AFC', 66, '#FFFFFF', '#007A3D'), N('JOR', 'Jordan', 'AFC', 66, '#FFFFFF', '#CE1126'),
   N('UAE', 'United Arab Emirates', 'AFC', 65, '#FFFFFF', '#00732F'), N('OMA', 'Oman', 'AFC', 63, '#DB161B', '#FFFFFF'), N('CHN', 'China', 'AFC', 62, '#DE2910', '#FFDE00'),
   N('PLE', 'Palestine', 'AFC', 61, '#FFFFFF', '#007A3D'), N('BHR', 'Bahrain', 'AFC', 61, '#CE1126', '#FFFFFF'),
+  N('SYR', 'Syria', 'AFC', 61, '#CE1126', '#FFFFFF'), N('LBN', 'Lebanon', 'AFC', 58, '#ED1C24', '#FFFFFF'), N('KUW', 'Kuwait', 'AFC', 56, '#007A3D', '#FFFFFF'),
+  N('THA', 'Thailand', 'AFC', 60, '#241D4F', '#ED1C24'), N('VIE', 'Vietnam', 'AFC', 59, '#DA251D', '#FFFF00'), N('IDN', 'Indonesia', 'AFC', 60, '#CE1126', '#FFFFFF'),
+  N('MAS', 'Malaysia', 'AFC', 57, '#FFD200', '#000000'), N('IND', 'India', 'AFC', 55, '#0055A4', '#FF9933'), N('KGZ', 'Kyrgyzstan', 'AFC', 57, '#E8112D', '#FFEF00'),
+  N('TJK', 'Tajikistan', 'AFC', 58, '#CC0000', '#FFFFFF'),
   // OFC
   N('NZL', 'New Zealand', 'OFC', 64, '#FFFFFF', '#000000'), N('NCL', 'New Caledonia', 'OFC', 55, '#9E9E9E', '#D52B1E'),
 ];

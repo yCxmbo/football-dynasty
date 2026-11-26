@@ -4,7 +4,7 @@ import { currentDate, markRead, newGame, playMatchday, promote, seasonOver, setA
 import type { Formation } from './engine/match';
 import { formatDate } from './engine/fixtures';
 import { seasonLabel } from './engine/types';
-import { hasOldSave, toCur, useGame, useTheme } from './store';
+import { toCur, useGame, useTheme } from './store';
 import { compInfo, currentSlot, currentWeek } from './engine/competitions';
 import { makeOffer, respondToBid, startScouting, toggleShortlist, toggleTransferList, type OfferTerms } from './engine/transfers';
 import Contract from './screens/Contract';
@@ -36,7 +36,7 @@ function liveFx0(g: NonNullable<ReturnType<typeof useGame>['game']>, live: LiveS
 }
 
 export default function App() {
-  const { game: g, setGame, update } = useGame();
+  const { game: g, setGame, update, loading, oldSave, careers, activeId, leave, loadCareer, deleteCareer, importSave } = useGame();
   const [theme, setTheme] = useTheme();
   const [screen, setScreen] = useState<Screen>('home');
   const [param, setParam] = useState<string | undefined>();
@@ -45,8 +45,11 @@ export default function App() {
   const [simMenu, setSimMenu] = useState(false);
   const stopSim = useRef(false);
 
+  if (loading) {
+    return <main className="ng ng--loading"><img className="ng__crest" src={`${import.meta.env.BASE_URL}crest-512.png`} alt="Football Dynasty" /><p className="hm-note" role="status">Loading your career…</p></main>;
+  }
   if (!g) {
-    return <NewGame oldSave={hasOldSave()} onStart={({ clubId, name, currency, world, source }) => { setGame(newGame({ seed: Math.floor(Math.random() * 2 ** 31), userClubId: clubId, managerName: name, currency, world, source })); setScreen('home'); }} />;
+    return <NewGame oldSave={oldSave} careers={careers} onLoad={(id) => { void loadCareer(id); setScreen('home'); }} onDelete={(id) => void deleteCareer(id)} onImport={async (t) => { const e = await importSave(t); if (!e) setScreen('home'); return e; }} onStart={({ clubId, name, currency, world, source }) => { setGame(newGame({ seed: Math.floor(Math.random() * 2 ** 31), userClubId: clubId, managerName: name, currency, world, source })); setScreen('home'); }} />;
   }
 
   const go = (s: Screen, id?: string) => {
@@ -166,7 +169,7 @@ export default function App() {
     case 'youth': body = <Youth g={g} go={go} onPromote={(id) => update((d) => promote(d, id))} />; break;
     case 'history': body = <History g={g} />; break;
     case 'inbox': body = <InboxScreen g={g} selectedId={param} go={go} onOpen={(id) => { setParam(id); update((d) => markRead(d, id)); }} onBid={(bid, ok) => update((d) => respondToBid(d, bid, ok))} />; break;
-    case 'settings': body = <Settings g={g} theme={theme} setTheme={setTheme} setCurrency={(c) => update((d) => { d.currency = c; })} onNewCareer={() => { setGame(null); setScreen('home'); }} />; break;
+    case 'settings': body = <Settings g={g} theme={theme} setTheme={setTheme} setCurrency={(c) => update((d) => { d.currency = c; })} onNewCareer={() => { leave(); setScreen('home'); }} careers={careers} activeId={activeId} onLoad={(id) => { void loadCareer(id); setScreen('home'); }} onDelete={(id) => void deleteCareer(id)} onImport={async (t) => { const e = await importSave(t); if (!e) go('home'); return e; }} />; break;
     default: body = <Placeholder id={screen} />;
   }
 

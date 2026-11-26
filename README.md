@@ -17,7 +17,7 @@ npm test           # engine tests (Vitest)
 npm run build      # type-check + production build into dist/
 ```
 
-The game saves automatically in the browser (localStorage, compressed with lz-string). Settings → *Start a new career* deletes the save. Saves are written a moment after you stop clicking and whenever the tab is hidden. Saves from before the multi-country worlds can't be converted; the game says so and starts a new career.
+The game saves automatically in the browser (IndexedDB), and you can keep several careers: Settings → *Start a new career* keeps the current one, and *Your careers* loads or deletes them. *Export save file* downloads a compact backup (`.fdsave`, about 2 MB) that *Import a save file* opens on any device. Saves from the older single-slot version are moved over automatically. Saves are written a moment after you stop clicking and whenever the tab is hidden. Saves from before the multi-country worlds can't be converted; the game says so.
 
 ## What's playable (v0.1)
 
@@ -42,7 +42,7 @@ The game saves automatically in the browser (localStorage, compressed with lz-st
   | AFC Champions League Elite | 16 clubs from Saudi Arabia and the rest of Asia. |
 
 - **International football:** every player has a nationality, and generated players mostly come from their club's country, with names that fit it.
-  - In the summer between seasons the game plays the **FIFA World Cup** (2026, 2030, …: 48 teams, 12 groups, round of 32), the **UEFA Euro** (2028, 2032, …: 24 teams) and the **Copa América** (16 teams, with six CONCACAF guests). Real hosts where known (USA/Mexico/Canada 2026, Spain/Portugal/Morocco 2030, UK and Ireland 2028).
+  - In the summer between seasons the game plays the **FIFA World Cup** (2026, 2030, …: 48 teams, 12 groups, round of 32), the **UEFA Euro** (2028, 2032, …: 24 teams), the **Copa América** (16 teams, with six CONCACAF guests), and the **Africa Cup of Nations** and **AFC Asian Cup** (2027, 2031, …: 24 teams each). Real hosts where known (USA/Mexico/Canada 2026, Kenya/Uganda/Tanzania and Saudi Arabia 2027, UK and Ireland 2028, Spain/Portugal/Morocco 2030).
   - National teams pick the best 26 of their nationality anywhere in the world, so your players get called up. Nations with few players in the world get depth players at their usual level. Qualifying follows confederation places, with some luck.
   - Players win caps, goals and titles (shown on their profile); winners come back with high morale. Your inbox reports who went and how far they got.
   - The **International** screen has the world ranking, your internationals, every tournament's groups and knockout rounds, and a roll of honour.
@@ -127,7 +127,7 @@ src/
   data/real/       the real-world database, one file per country (compact format, see types.ts)
   screens/         one file per screen, built from design-system components; badge.ts draws club badges
   App.tsx          navigation and game flow
-  store.ts         autosave, theme, currency conversion
+  store.ts         careers and autosave (IndexedDB via idb.ts), save export/import, theme, currency conversion
 public/            the game crest at several sizes and the title-screen background
 ```
 

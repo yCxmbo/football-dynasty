@@ -8,7 +8,7 @@ import { badgeUrl } from './badge';
 import type { Screen } from './shared';
 import NationalTeam from './NationalTeam';
 
-const KNOWN_HOSTS: Record<string, string> = { 'FIFA World Cup 2026': 'USA, Mexico and Canada', 'FIFA World Cup 2030': 'Spain, Portugal and Morocco', 'FIFA World Cup 2034': 'Saudi Arabia', 'UEFA Euro 2028': 'the UK and Ireland', 'UEFA Euro 2032': 'Italy and Turkey' };
+const KNOWN_HOSTS: Record<string, string> = { 'FIFA World Cup 2026': 'USA, Mexico and Canada', 'FIFA World Cup 2030': 'Spain, Portugal and Morocco', 'FIFA World Cup 2034': 'Saudi Arabia', 'UEFA Euro 2028': 'the UK and Ireland', 'UEFA Euro 2032': 'Italy and Turkey', 'Africa Cup of Nations 2027': 'Kenya, Uganda and Tanzania', 'AFC Asian Cup 2027': 'Saudi Arabia' };
 const KO_ORDER = ['Final', 'Semi-final', 'Quarter-final', 'Round of 16', 'Round of 32'];
 
 const flag = (code: string) => badgeUrl({ id: `nation-${code}`, short: code, colours: NATION[code]?.colours });

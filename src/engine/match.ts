@@ -46,4 +46,4 @@ export function pickLineup(squad: Player[], formation: Formation = '4-3-3'): str
   return result.filter(Boolean).length === 11 ? result : result.map((id) => id || pool.find((p) => !used.has(p.id))?.id || '');
 }
 
-export interface MatchMods { homeBoost?: number; awayBoost?: number; homeInjury?: number; awayInjury?: number; neutral?: boolean; knockout?: boolean }
+export interface MatchMods { homeBoost?: number; awayBoost?: number; homeInjury?: number; awayInjury?: number; neutral?: boolean; knockout?: boolean; /** A derby's name: more fouls and cards. */ derby?: string }

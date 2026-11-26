@@ -2,6 +2,7 @@ import { compInfo, leagueDef, leagueTableOf, withThe } from '../engine/competiti
 import { formatDate } from '../engine/fixtures';
 import type { Fixture, GameState } from '../engine/types';
 import { badgeUrl } from './badge';
+import { derbyName } from '../engine/rivalries';
 
 /** Zones for the design system's LeagueTable from the league's rules. */
 export function zonesFor(g: GameState, leagueId: string | undefined) {
@@ -28,7 +29,7 @@ export function fixtureCardProps(g: GameState, f: Fixture) {
   const pens = r?.pens ? ` · ${r.pens[0]}–${r.pens[1]} pens` : '';
   const day = new Date(f.date + 'T12:00:00Z').getUTCDay();
   return {
-    competition: compInfo(g, f.comp).name, matchday: compInfo(g, f.comp).kind === 'league' ? f.round : f.round + pens, status: r ? 'FT' : 'upcoming', score: r?.score,
+    competition: derbyName(g, f.homeId, f.awayId) ? `${compInfo(g, f.comp).name} · ${derbyName(g, f.homeId, f.awayId)}` : compInfo(g, f.comp).name, matchday: compInfo(g, f.comp).kind === 'league' ? f.round : f.round + pens, status: r ? 'FT' : 'upcoming', score: r?.score,
     date: formatDate(f.date), kickoff: day === 3 || day === 2 || day === 4 ? '19:45' : '15:00', venue: f.neutral ? 'Neutral venue' : H.stadium,
     home: { name: H.name, short: H.short, crest: badgeUrl(H), isUser: H.id === g.userClubId, form: formOf(g, H.id) },
     away: { name: A.name, short: A.short, crest: badgeUrl(A), isUser: A.id === g.userClubId, form: formOf(g, A.id) },

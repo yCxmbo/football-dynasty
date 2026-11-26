@@ -33,6 +33,8 @@ export interface PlayerDef {
 export interface WorldDef {
   format: typeof WORLD_FORMAT; version: number; name: string; startYear?: number;
   countries: CountryDef[]; leagues: LeagueDef[]; cups: CupDef[]; continental: ContinentalDef[]; clubs: ClubDef[]; players?: PlayerDef[];
+  /** Named derbies between two club ids, e.g. { "a": "arsenal", "b": "tottenham", "name": "North London derby" }. */
+  rivalries?: Array<{ a: string; b: string; name: string }>;
 }
 
 /* ---------- validation ---------- */

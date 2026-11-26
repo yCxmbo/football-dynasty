@@ -2,7 +2,7 @@ import type { Position } from './ratings';
 import type { Formation } from './match';
 import type { ContinentalDef, CountryDef, CupDef, LeagueDef } from './worlddef';
 
-export interface WorldMeta { name: string; source: 'builtin' | 'real' | 'import'; userCountry: string; countries: CountryDef[]; leagues: LeagueDef[]; cups: CupDef[]; continental: ContinentalDef[] }
+export interface WorldMeta { name: string; source: 'builtin' | 'real' | 'import'; userCountry: string; countries: CountryDef[]; leagues: LeagueDef[]; cups: CupDef[]; continental: ContinentalDef[]; /** Named derbies. */ rivalries?: import('./rivalries').Rivalry[] }
 
 export type Currency = 'EUR' | 'USD' | 'GBP';
 export type Squad = 'First team' | 'U21' | 'U18';
@@ -171,6 +171,9 @@ export interface GameState {
   /** Your coaching style, and the season you last changed it. */
   managerStyle?: import('./style').ManagerStyle;
   styleChanged?: number;
+  /** Head-to-head records of every derby, and derbies you have won. */
+  derbies?: Record<string, import('./rivalries').DerbyRecord>;
+  derbyWins?: number;
   /** All-time records across the world. */
   records?: import('./records').Records;
   /** Achievements unlocked, with the season. */

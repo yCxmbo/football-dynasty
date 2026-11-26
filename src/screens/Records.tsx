@@ -39,6 +39,9 @@ export default function Records({ g }: { g: GameState }) {
           rows={(r?.seasons ?? []).map((x) => [x.name, mine(x.club), x.season, x.goals])} />
         <Table title="Most points by a champion" head={['Club', 'League', 'Season', 'Points']} empty={none}
           rows={(r?.points ?? []).map((x) => [mine(x.club), x.league, x.season, x.pts])} />
+        <Table title="Derbies" head={['Derby', 'Head to head', 'Last', 'Played']} empty="No derbies played yet."
+          rows={Object.entries(g.derbies ?? {}).sort((a, b) => (b[1].aWins + b[1].bWins + b[1].draws) - (a[1].aWins + a[1].bWins + a[1].draws)).slice(0, 20)
+            .map(([name, d]) => [[d.a, d.b].includes(g.userClubId) ? <strong className="fd-gold">{name}</strong> : name, `${g.clubs[d.a]?.short ?? '?'} ${d.aWins} · ${d.draws} draws · ${d.bWins} ${g.clubs[d.b]?.short ?? '?'}`, d.last ?? '', d.aWins + d.bWins + d.draws])} />
         <Table title="Record transfers" head={['Player', 'From', 'To', 'Season', 'Fee']} empty="No big transfers yet (from 5M)."
           rows={(r?.transfers ?? []).map((x) => [x.name, mine(x.from), mine(x.to), x.season, FD.formatMoney(toCur(x.fee, cur), cur)])} />
       </div>

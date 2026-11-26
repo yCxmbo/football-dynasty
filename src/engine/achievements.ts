@@ -11,6 +11,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'wins-250', title: 'Serial winner', desc: 'Win 250 matches.', group: 'Results' },
   { id: 'giant-killer', title: 'Giant killer', desc: 'Beat a club far bigger than yours.', group: 'Results' },
   { id: 'thrashing', title: 'No mercy', desc: 'Win a match by six goals or more.', group: 'Results' },
+  { id: 'derby-king', title: 'Derby king', desc: 'Win five derbies.', group: 'Results' },
   { id: 'unbeaten', title: 'Invincibles', desc: 'Go a whole league season unbeaten.', group: 'Results' },
   { id: 'goals-100', title: 'Goal machine', desc: 'Score 100 league goals in a season.', group: 'Results' },
   { id: 'first-trophy', title: 'Silverware', desc: 'Win your first trophy.', group: 'Trophies' },
@@ -55,6 +56,7 @@ export function afterMatch(s: GameState, f: Fixture) {
   if (w >= 100) unlock(s, 'wins-100');
   if (w >= 250) unlock(s, 'wins-250');
   if (won && gf - ga >= 6) unlock(s, 'thrashing');
+  if ((s.derbyWins ?? 0) >= 5) unlock(s, 'derby-king');
   const opp = s.clubs[home ? f.awayId : f.homeId];
   if (won && opp && opp.reputation - s.clubs[s.userClubId].reputation >= 20) unlock(s, 'giant-killer');
 }

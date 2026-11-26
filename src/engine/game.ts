@@ -6,6 +6,7 @@ import { nationRanking, playSummer } from './international';
 import { summerStep } from './summer';
 import { jobOffers, managerReputation, tidySelection } from './nationaljob';
 import { returnLoans } from './loans';
+import { afterDerby, derbyName, REAL_RIVALRIES } from './rivalries';
 import { moraleBonus, styleTilt, talkMultiplier, youthDevelopmentBoost, youthIntakeBonus } from './style';
 import { recordSeason, recordTransfer } from './records';
 import { afterMatch, afterSeason, afterTournament } from './achievements';
@@ -42,7 +43,7 @@ export function newGame(opts: NewGameOpts): GameState {
   const state: GameState = {
     version: 3, seed: opts.seed, rngState: rng.state(), year, matchday: 1, userClubId: opts.userClubId, managerName: opts.managerName, currency: opts.currency,
     clubs, players, fixtures: [], calendar: [], leagueWeeks: 38, comps: {}, cups: {}, groups: {}, qualified: {},
-    world: { name: def.name, source: opts.source ?? (opts.world ? 'import' : 'builtin'), userCountry, countries: def.countries, leagues: def.leagues, cups: def.cups, continental: def.continental },
+    world: { name: def.name, source: opts.source ?? (opts.world ? 'import' : 'builtin'), userCountry, countries: def.countries, leagues: def.leagues, cups: def.cups, continental: def.continental, rivalries: (def.rivalries ?? []).filter((r) => def.clubs.some((c) => c.id === r.a) && def.clubs.some((c) => c.id === r.b)) },
     inbox: [], history: {}, trophies: {}, lineup: [], formation: '4-3-3', nextId, autoRotate: true,
     manager: { since: year, w: 0, d: 0, l: 0, trophies: [] },
     knowledge: {}, scouting: [], shortlist: [], transferListed: [], bids: [], negotiations: {}, installments: [],
@@ -173,7 +174,8 @@ function setupFor(state: GameState, f: Fixture) {
   const hx = xiFor(state, f.homeId), ax = xiFor(state, f.awayId);
   const H = state.clubs[f.homeId], A = state.clubs[f.awayId];
   const tilt = { ...styleTilt(state), talk: talkMultiplier(state) };
-  const mods: MatchMods = { homeBoost: uh ? te.matchBoost : 1, awayBoost: ua ? te.matchBoost : 1, homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1, neutral: f.neutral, knockout: f.ko };
+  const derby = derbyName(state, f.homeId, f.awayId);
+  const mods: MatchMods = { derby, homeBoost: uh ? te.matchBoost : 1, awayBoost: ua ? te.matchBoost : 1, homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1, neutral: f.neutral, knockout: f.ko };
   return {
     home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: (uh ? state.formation : '4-3-3') as Formation, name: H.name, user: uh, ...(uh ? { tilt } : {}) },
     away: { xi: ax, bench: benchFor(state, f.awayId, ax), formation: (ua ? state.formation : '4-3-3') as Formation, name: A.name, user: ua, ...(ua ? { tilt } : {}) },
@@ -219,6 +221,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
   const leagueWeek = leagueIds.size > 0;
   const te = effects(state.training);
   const homeIds = new Set<string>();
+  const derbyHomes = new Set<string>();
   const positions: Record<string, number> = {};
   for (const l of state.world.leagues) leagueTableOf(state, l.id).forEach((r, i) => { positions[r.clubId] = i + 1; });
   for (const f of state.fixtures.filter((x) => x.matchday === md && !x.result)) {
@@ -233,6 +236,8 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     if (f.ko) result.winnerId = winnerOf(f);
     for (const [id, c] of Object.entries(conditions)) if (state.players[id]) state.players[id].condition = c;
     applyResult(state, f, rng);
+    afterDerby(state, f);
+    if (derbyName(state, f.homeId, f.awayId)) derbyHomes.add(f.homeId);
     if (compInfo(state, f.comp).kind === 'league') homeIds.add(f.homeId); else cupGate(state, f);
     if (!uh && !ua) slim(f);
   }
@@ -245,7 +250,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
   const cupNews = advanceCups(state, rng, slot);
   for (const e of slot.entries) if (isLeague(state, e.comp)) setupSplit(state, e.comp, Number(e.round.replace('Matchday ', '')));
   if (leagueWeek) {
-    financeWeek(state, leagueIds, homeIds, positions);
+    financeWeek(state, leagueIds, homeIds, positions, derbyHomes);
     for (const p of squadOf(state, state.userClubId)) if (p.morale === 'low' && rng.chance(moraleRecoveryChance(state) + moraleBonus(state))) p.morale = 'ok';
     weeklyMood(state, rng, slot.week);
     for (const msg of trainingWeek(rng, state, squadOf(state, state.userClubId))) addMessage(state, { category: 'training', from: 'Head coach', role: 'Training ground', subject: 'Training update', body: [msg] });
@@ -690,6 +695,7 @@ export function bestLineup(state: GameState, formation: Formation = state.format
 
 /** Fills fields added after v0.2 so older saves keep working. (v1 saves can't be converted: see store.ts.) */
 export function migrate(state: GameState): GameState {
+  if (!state.world.rivalries && state.world.source === 'real') state.world.rivalries = REAL_RIVALRIES.filter((r) => state.clubs[r.a] && state.clubs[r.b]);
   if (state.world.source !== 'builtin') reserveNames(Object.values(state.players).filter((p) => !p.filler && !p.id.startsWith('nt-')).map((p) => p.name));
   for (const p of Object.values(state.players)) if (p.nationality && p.nationality.length > 3) p.nationality = nationCode(p.nationality) ?? p.nationality;
   state.knowledge ??= {}; state.scouting ??= []; state.shortlist ??= []; state.transferListed ??= [];

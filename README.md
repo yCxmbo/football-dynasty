@@ -80,6 +80,7 @@ The game saves automatically in the browser (IndexedDB), and you can keep severa
   - After heavy wins and defeats (and some other games) the press want a word: answer in the inbox. Taking responsibility pleases the board; blaming the players hurts morale; praising a player lifts him.
   - Regulars who are unhappy and not playing ask to leave: promise more games (then keep it: three games in six weeks, or he goes public and onto the transfer list), transfer-list him, or tell him to fight for his place.
 - **Stadium and facilities:** expand the stadium (2,500 to 10,000 seats at a time; the new stands open next season), and upgrade the training ground (faster development) and youth academy (better intakes) through five levels. Crowds are limited by the fan base, which grows with reputation, so seats only pay when the demand is there. Building work is paid from the balance and the transfer budget; facilities cost upkeep each week.
+- **Derbies:** 62 real rivalries, from El Clásico, the Old Firm and the Superclásico to the Black Country derby and El Tráfico. Derbies are labelled on fixtures, sell out, are more heated (more fouls and cards), and matter more: a win lifts the squad and the board's trust, a defeat costs some. Every derby's head-to-head record is on the Records screen.
 - **Achievements:** 24 milestones in four groups (results, trophies, club, career): from your first win to the treble, a World Cup with a national team, a dynasty of five titles, or managing in three countries. Each unlocks once with its season, arrives in the inbox, and shows on the Career screen.
 - **World records:** the Records screen keeps all-time records across the world since your career began: most top-flight and continental titles, all-time top scorers (retired players keep their place), most goals in a season, most points by a champion, and record transfers.
 - **Tips for new players:** the first time you open each main screen, a short tip explains what it's for and what to try. Dismiss each with *Got it*, or *Hide all tips*; Settings → *Show tips again* brings them back. Remembered per browser.
@@ -137,6 +138,7 @@ src/
     media.ts       press conferences, transfer requests, promises
     staff.ts       backroom staff, their effects, hiring
     loans.ts       loans out and in, recalls, returns at season end
+    rivalries.ts   named derbies, their effects and head-to-head records
     style.ts       coaching styles and their effects
     records.ts     all-time world records
     achievements.ts career milestones and when they unlock

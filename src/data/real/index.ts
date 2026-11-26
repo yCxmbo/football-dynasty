@@ -11,6 +11,7 @@ import { BRAZIL, ARGENTINA, USA, MEXICO } from './americas';
 import { SAUDI } from './saudi';
 import { EUROPE_REST, SOUTH_AMERICA_REST, ASIA_REST } from './fillers';
 import type { RC, RCountry, RFillers } from './types';
+import { REAL_RIVALRIES } from '../../engine/rivalries';
 
 export const REAL_COUNTRIES: RCountry[] = [ENGLAND, SPAIN, ITALY, GERMANY, FRANCE, PORTUGAL, NETHERLANDS, BELGIUM, TURKEY, SCOTLAND, BRAZIL, ARGENTINA, USA, SAUDI, MEXICO];
 const FILLERS: RFillers[] = [EUROPE_REST, SOUTH_AMERICA_REST, ASIA_REST];
@@ -49,6 +50,7 @@ export function realWorld(): WorldDef {
       { id: 'acl', name: 'AFC Champions League Elite', short: 'ACL Elite', rank: 1, size: 16, places: { ksa: 4 }, fillers: fill.asi },
     ],
     clubs, players,
+    rivalries: REAL_RIVALRIES,
   };
   return cached;
 }

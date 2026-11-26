@@ -20,7 +20,7 @@ interface Perf { base: number; goals: number; assists: number; saves: number; ca
 type SideKey = 'home' | 'away';
 export interface LiveSide { formation: Formation; xi: Array<string | null>; bench: string[]; subsUsed: number; boost: number; injury: number; user: boolean; name: string; /** Style tilt: attack and defence multipliers. */ atk?: number; def?: number; /** Team talks count this much more. */ talk?: number }
 export interface LiveMatch {
-  rng: number; minute: number; done: boolean; neutral: boolean; knockout: boolean; venue: string;
+  rng: number; minute: number; done: boolean; neutral: boolean; knockout: boolean; venue: string; derby?: string;
   home: LiveSide; away: LiveSide;
   score: [number, number]; pens?: [number, number]; events: MatchEvent[]; order: number;
   /** Team talks given by the user (before kickoff, at half-time). */
@@ -47,9 +47,9 @@ export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; 
   for (const p of [...home.xi, ...away.xi]) perf[p.id] = { base: 6.3 + rng.normal(0, 0.3), goals: 0, assists: 0, saves: 0, onAt: 0 };
   const side = (s: typeof home, boost = 1, injury = 1): LiveSide => ({ formation: s.formation, xi: s.xi.map((p) => p.id), bench: s.bench.map((p) => p.id), subsUsed: 0, boost, injury, user: !!s.user, name: s.name, ...(s.tilt ? { atk: s.tilt.atk, def: s.tilt.def, talk: s.tilt.talk } : {}) });
   return {
-    rng: rng.state(), minute: 0, done: false, neutral: !!mods.neutral, knockout: !!mods.knockout, venue,
+    rng: rng.state(), minute: 0, done: false, neutral: !!mods.neutral, knockout: !!mods.knockout, venue, ...(mods.derby ? { derby: mods.derby } : {}),
     home: side(home, mods.homeBoost, mods.homeInjury), away: side(away, mods.awayBoost, mods.awayInjury),
-    score: [0, 0], events: [{ minute: 0, order: 0, type: 'whistle', text: mods.neutral ? 'Kick-off at the national stadium.' : `Kick-off at ${venue}.` }], order: 1,
+    score: [0, 0], events: [{ minute: 0, order: 0, type: 'whistle', text: mods.derby ? `Derby day: ${mods.derby}. Kick-off at ${venue}, and the noise is deafening.` : mods.neutral ? 'Kick-off at the national stadium.' : `Kick-off at ${venue}.` }], order: 1,
     stats: { shots: [0, 0], onTarget: [0, 0], xg: [0, 0], corners: [0, 0], fouls: [0, 0], possession: 0, passAcc: [0, 0] },
     players, perf, sideOf,
   };
@@ -158,9 +158,9 @@ export function tick(lm: LiveMatch) {
       } else if (rng.chance(0.18)) push(lm, { minute: m, type: 'chance', side: key, text: rng.pick([`${shooter.name} drags a shot just wide.`, `${shooter.name} heads over from a corner.`, `Chance for ${surname(shooter.name)}, but it's blocked.`]) });
     }
     if (rng.chance(5 / 90)) lm.stats.corners[si]++;
-    if (rng.chance(11 / 90)) lm.stats.fouls[si]++;
-    // cards
-    if (rng.chance(1.7 / 90)) {
+    if (rng.chance((lm.derby ? 15 : 11) / 90)) lm.stats.fouls[si]++;
+    // cards (derbies are hotter)
+    if (rng.chance((lm.derby ? 2.4 : 1.7) / 90)) {
       const p = rng.weighted(pl, (x) => x.attrs.Aggression + (POS_GROUP[x.pos] === 'GK' ? -15 : 0));
       const perf = lm.perf[p.id];
       const victim = onPitch(other)[0] ? lm.players[rng.pick(onPitch(other))] : undefined;

@@ -1,5 +1,6 @@
 import { FD } from '../ds';
 import { compInfo } from '../engine/competitions';
+import { derbyName } from '../engine/rivalries';
 import { badgeUrl } from './badge';
 import { formatDate } from '../engine/fixtures';
 import type { GameState } from '../engine/types';
@@ -26,7 +27,7 @@ export default function Fixtures({ g, go }: { g: GameState; go: (s: Screen, id?:
               return (
                 <tr key={f.id} className={(f === next ? 'fx-next ' : '') + (r ? 'fx-click' : '')} onClick={r ? () => go('match', f.id) : undefined}>
                   <td>{formatDate(f.date)}</td>
-                  <td><span className={compInfo(g, f.comp).kind === 'league' ? '' : 'fd-gold'}>{compInfo(g, f.comp).name}</span></td>
+                  <td><span className={compInfo(g, f.comp).kind === 'league' ? '' : 'fd-gold'}>{compInfo(g, f.comp).name}</span>{derbyName(g, f.homeId, f.awayId) ? <span className="derby-tag">{derbyName(g, f.homeId, f.awayId)}</span> : null}</td>
                   <td className="fd-muted">{f.round}</td>
                   <td><span className="club-cell"><img className="club-badge" src={badgeUrl(opp)} alt="" /><strong>{opp.name}</strong>{opp.country !== g.clubs[g.userClubId].country ? <span className="fd-muted"> · {g.world.countries.find((c) => c.id === opp.country)?.name}</span> : null}</span></td>
                   <td className="fd-muted">{f.neutral ? 'Neutral' : home ? 'Home' : 'Away'}</td>

@@ -70,6 +70,10 @@ A league needs an even number of clubs, at least 4.
 - `"reserve": true` marks a reserve side (Jong Ajax, Benfica B): it plays in its league but can't be promoted; the next club takes the place.
 - `colours` is two hex colours, e.g. `["#c8102e", "#ffffff"]`, used for the generated badge.
 
+### Rivalries (optional)
+
+`"rivalries": [{ "a": "arsenal", "b": "tottenham", "name": "North London derby" }]` names derbies between two clubs. Derbies sell out (as far as the fan base allows), are more heated (more fouls and cards), matter more to your board and squad, and keep head-to-head records.
+
 ### Players (optional)
 
 `{ "name", "club", "pos", "age", "nationality", "overall", "potential", "number", "wage", "contractEnd" }`

@@ -220,3 +220,7 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .hm-pre { display: flex; flex-direction: column; gap: var(--space-2); }
 .hm-pre__row { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); flex-wrap: wrap; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
 .hm-pre__act { display: inline-flex; gap: var(--space-2); align-items: center; }
+.trait { display: inline-flex; flex-direction: column; gap: 1px; padding: 4px 10px; border-radius: var(--radius-sm, 6px); border: 1px solid var(--line); font-weight: 700; font-size: 13px; }
+.trait em { font-style: normal; font-weight: 400; font-size: 11px; color: var(--ink-muted); }
+.trait--good { border-color: var(--teal); }
+.trait--bad { border-color: var(--warn, #e0a030); }

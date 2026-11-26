@@ -105,8 +105,10 @@ describe('contracts', () => {
     const ft = squadOf(s, 'ash').filter((p) => p.squad === 'First team');
     const [leaver, keeper] = ft;
     leaver.contractEnd = s.year; keeper.contractEnd = s.year;
-    for (let i = 0, n = totalMatchdays(s); i < n; i++) playMatchday(s);
+    // renew while it's still possible (before anyone else can talk to him), then play the season out
+    keeper.morale = 'ok';
     expect(renewContract(s, keeper.id, Math.round(wageDemand(s, keeper, true) * 1.05), 3)).toBeNull();
+    for (let i = 0, n = totalMatchdays(s); i < n; i++) playMatchday(s);
     startNewSeason(s);
     expect(s.players[keeper.id]?.clubId).toBe('ash');
     const gone = s.players[leaver.id];

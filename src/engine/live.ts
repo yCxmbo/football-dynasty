@@ -10,10 +10,12 @@ const KEY_ATTRS = ['Finishing', 'Passing', 'Aggression', 'Composure', 'Penalties
 export interface Snap {
   id: string; name: string; number: number; pos: string; positions: Player['positions']; ability: number; morale: Player['morale'];
   attrs: Record<(typeof KEY_ATTRS)[number], number>; injuryProneness: number; condition: number;
+  /** Character: big-match temperament, this match's form (consistency), a leader, a hothead. */ bigMatches?: number; form?: number; leader?: boolean; hothead?: boolean;
 }
 export const snap = (p: Player): Snap => ({
   id: p.id, name: p.name, number: p.number, pos: p.pos, positions: p.positions, ability: p.ability, morale: p.morale,
   attrs: Object.fromEntries(KEY_ATTRS.map((k) => [k, p.attributes[k] ?? 10])) as Snap['attrs'], injuryProneness: p.hidden.injuryProneness, condition: p.condition ?? 100,
+  bigMatches: p.hidden.bigMatches, leader: (p.attributes.Leadership ?? 0) >= 16 && p.age >= 23, hothead: (p.attributes.Aggression ?? 0) >= 15 && p.hidden.professionalism <= 9,
 });
 
 interface Perf { base: number; goals: number; assists: number; saves: number; card?: 'yellow' | 'red'; onAt: number; offAt?: number; injured?: boolean }
@@ -42,8 +44,10 @@ export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; 
   const rng = createRng(seed);
   const players: Record<string, Snap> = {}, perf: Record<string, Perf> = {};
   const sideOf: Record<string, SideKey> = {};
-  for (const p of [...home.xi, ...home.bench]) { players[p.id] = snap(p); sideOf[p.id] = 'home'; }
-  for (const p of [...away.xi, ...away.bench]) { players[p.id] = snap(p); sideOf[p.id] = 'away'; }
+  // this match's form: consistent players stay close to their level, inconsistent ones swing
+  const withForm = (p: Player) => ({ ...snap(p), form: 1 + rng.normal(0, (21 - p.hidden.consistency) * 0.0035) });
+  for (const p of [...home.xi, ...home.bench]) { players[p.id] = withForm(p); sideOf[p.id] = 'home'; }
+  for (const p of [...away.xi, ...away.bench]) { players[p.id] = withForm(p); sideOf[p.id] = 'away'; }
   for (const p of [...home.xi, ...away.xi]) perf[p.id] = { base: 6.3 + rng.normal(0, 0.3), goals: 0, assists: 0, saves: 0, onAt: 0 };
   const side = (s: typeof home, boost = 1, injury = 1): LiveSide => ({ formation: s.formation, xi: s.xi.map((p) => p.id), bench: s.bench.map((p) => p.id), subsUsed: 0, boost, injury, user: !!s.user, name: s.name, ...(s.tilt ? { atk: s.tilt.atk, def: s.tilt.def, talk: s.tilt.talk } : {}) });
   return {
@@ -79,11 +83,13 @@ function computeStrength(lm: LiveMatch, s: LiveSide) {
   const eff = (id: string | null, i: number) => {
     if (!id) return 0;
     const p = lm.players[id];
-    return p.ability * fitFor(p as unknown as Player, slots[i]) * (p.morale === 'high' ? 1.03 : p.morale === 'low' ? 0.96 : 1) * conditionFactor(p.condition);
+    const big = lm.knockout || lm.derby ? 1 + ((p.bigMatches ?? 10) - 10) * 0.006 : 1;
+    return p.ability * fitFor(p as unknown as Player, slots[i]) * (p.morale === 'high' ? 1.03 : p.morale === 'low' ? 0.96 : 1) * conditionFactor(p.condition) * (p.form ?? 1) * big;
   };
   const idx = (r: string) => roleIdx(s.formation, r);
   const avg = (ix: number[]) => ix.reduce((a, i) => a + eff(s.xi[i], i), 0) / ix.length;
-  const k = s.boost;
+  // a leader on the pitch lifts everyone a little
+  const k = s.boost * (s.xi.some((id) => id && lm.players[id].leader) ? 1.015 : 1);
   return { gk: eff(s.xi[0], 0) * k, defence: avg(idx('def')) * k, mid: avg(idx('mid')) * k, attack: avg(idx('att')) * k, defIdx: [0, ...idx('def')] };
 }
 
@@ -161,7 +167,7 @@ export function tick(lm: LiveMatch) {
     if (rng.chance((lm.derby ? 15 : 11) / 90)) lm.stats.fouls[si]++;
     // cards (derbies are hotter)
     if (rng.chance((lm.derby ? 2.4 : 1.7) / 90)) {
-      const p = rng.weighted(pl, (x) => x.attrs.Aggression + (POS_GROUP[x.pos] === 'GK' ? -15 : 0));
+      const p = rng.weighted(pl, (x) => (x.attrs.Aggression + (POS_GROUP[x.pos] === 'GK' ? -15 : 0)) * (x.hothead ? 1.8 : 1));
       const perf = lm.perf[p.id];
       const victim = onPitch(other)[0] ? lm.players[rng.pick(onPitch(other))] : undefined;
       if (perf.card === 'yellow' && rng.chance(0.3)) sendOff(lm, key, p.id, m, `${p.name} is sent off for a second yellow card!`);

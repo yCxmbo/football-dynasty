@@ -95,6 +95,7 @@ The game saves automatically in the browser (IndexedDB), and you can keep severa
 - **Loans:** while a window is open, send young or fringe players to a club where they'd start in their position (the profile lists who would take them; the borrowing club pays the wages, and the games help them develop), recall them, or ask to borrow other clubs' fringe players who would play for you. Loans end in the summer. Your loanees are listed under the squad.
 - **Staff:** an assistant manager, first-team coach, fitness coach, physio, chief scout and youth coach, each rated 1–20 (10 is average). Better staff speed up development, recovery and scouting, shorten injuries, improve the youth intake and lift low morale; the Staff screen shows what each one does now. Hire from a pool of candidates that refreshes each summer (the best won't join small clubs; the outgoing holder is paid eight weeks' wages). Staff belong to the club: change clubs and you inherit theirs.
 - **Contracts with teeth:** every player at a Spanish club has a release clause (3–6 times his value), and some good young players elsewhere do too. Offer the clause in full, all up front, and his club can't refuse; but bigger clubs can trigger the clauses in your players' contracts too. Players in their final year who are unhappy, or far too good for your club, won't renew, and from the mid-season window other clubs can sign your expiring players on pre-contracts: they leave on a free in the summer. Profiles show clauses and pre-contracts.
+- **Personalities:** players carry tags from their hidden character, shown on their profile once scouted: *Leader* (lifts the side when he plays), *Big-game player* / *Nervous* (better or worse in knockouts, finals and derbies), *Hothead* (more cards), *Model professional* / *Needs pushing* (development), *Injury-prone* / *Iron man*, and *Consistent* / *Inconsistent* (how much his form swings from match to match). All of them act in the match engine.
 - **Scouting:** other clubs' players are 25% known at first, so their attributes show as ranges and their stars as estimates. Scout up to 5 players at a time (+25% knowledge per matchday). At 100% you get a full report.
 - **Selling:** transfer-list players to attract bids, and other clubs sometimes bid for unlisted players too. Accepting a bid sends 60% of the fee to your transfer budget.
 - **Contracts:** contracts run out at season end. Renew players from their profile (they ask for a raise, and players over 32 sign for 2 years at most). Players who aren't renewed leave as free agents, whom any club can sign without a fee. You get a reminder about expiring contracts when the January window opens.
@@ -139,6 +140,7 @@ src/
     facilities.ts  stadium expansion, training ground and academy levels
     media.ts       press conferences, transfer requests, promises
     staff.ts       backroom staff, their effects, hiring
+    traits.ts      personality tags and what they do
     contracts.ts   release clauses, refusals to renew, pre-contracts
     loans.ts       loans out and in, recalls, returns at season end
     friendlies.ts  pre-season friendlies and tours

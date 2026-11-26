@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FD } from '../ds';
 import { wantsOut } from '../engine/contracts';
+import { TRAIT_TEXT, traitsOf } from '../engine/traits';
 import { toCur } from '../store';
 import { canLoanOut, loanDestinations, loanIn, loanInVerdict, loanOut, recall } from '../engine/loans';
 import { badgeUrl } from './badge';
@@ -78,6 +79,13 @@ export default function PlayerScreen({ g, id, go, act, update }: { g: GameState;
           </section>
         );
       })()}
+      <section className="pg-card intl-line">
+        <h2 className="pg-h" style={{ margin: 0 }}>Personality</h2>
+        {mine || ours || knowledgeOf(g, p) >= 50 ? (
+          traitsOf(p).length ? traitsOf(p).map((t) => <span key={t} className={'trait ' + (TRAIT_TEXT[t].good ? 'trait--good' : 'trait--bad')} title={TRAIT_TEXT[t].effect}>{TRAIT_TEXT[t].label}<em>{TRAIT_TEXT[t].effect}</em></span>)
+            : <span className="fd-muted">An even temperament: nothing stands out.</span>
+        ) : <span className="fd-muted">Scout him to learn his character.</span>}
+      </section>
       <section className="pg-card intl-line">
         <h2 className="pg-h" style={{ margin: 0 }}>International · {nationName(p.nationality)}</h2>
         <span>{intl?.caps ? `${intl.caps} cap${intl.caps === 1 ? '' : 's'}, ${intl.goals} goal${intl.goals === 1 ? '' : 's'} at tournaments` : 'No tournament appearances yet'}</span>

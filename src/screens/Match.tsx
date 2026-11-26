@@ -6,7 +6,7 @@ import { slotsOf } from '../engine/match';
 import type { GameState, MatchStats } from '../engine/types';
 import type { Screen } from './shared';
 
-const TICK_MS: Record<string, number> = { '1': 700, '2': 320, '4': 120 };
+export const TICK_MS: Record<string, number> = { '1': 700, '2': 320, '4': 120 };
 
 export interface LiveState { fixtureId: string; lm: LiveMatch }
 
@@ -125,7 +125,7 @@ function Cond({ c }: { c: number }) {
   );
 }
 
-function SubPanel({ lm, sideKey, onSub, onClose }: { lm: LiveMatch; sideKey: 'home' | 'away'; onSub: (off: string, on: string) => string | null; onClose: () => void }) {
+export function SubPanel({ lm, sideKey, onSub, onClose }: { lm: LiveMatch; sideKey: 'home' | 'away'; onSub: (off: string, on: string) => string | null; onClose: () => void }) {
   const s = lm[sideKey];
   const slots = slotsOf(s.formation);
   const [off, setOff] = useState<string | null>(null);

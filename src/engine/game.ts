@@ -3,6 +3,7 @@ import { available, fitFor, pickLineup, slotsOf, type Formation, type MatchMods 
 import { createLive, runToEnd, toResult, type LiveMatch } from './live';
 import { POS_GROUP, abilityFromAttributes, clamp, POSITION_WEIGHTS } from './ratings';
 import { nationRanking, playSummer } from './international';
+import { summerStep } from './summer';
 import { jobOffers, managerReputation, tidySelection } from './nationaljob';
 import { returnLoans } from './loans';
 import { finishBuilding, trainingFacilityBoost, youthFacilityBonus } from './facilities';
@@ -430,7 +431,11 @@ function rollover(state: GameState) {
   const nextQualified = qualifiers(state);
 
   // the summer's international tournaments, with this season's squads
-  for (const run of playSummer(state, rng)) {
+  // your live tournament (if you managed one this summer) is already played; the rest are simulated now
+  const lived = state.summer ? summerStep(state) : undefined;
+  const played = state.summer && lived?.run ? { id: state.summer.id, run: lived.run } : undefined;
+  state.summer = undefined;
+  for (const run of playSummer(state, rng, played)) {
     const t = run.tournament;
     const mine = run.userPlayers;
     addMessage(state, { category: 'media', from: 'International desk', subject: `${NATION[t.winner].name} win the ${t.name}`, body: [

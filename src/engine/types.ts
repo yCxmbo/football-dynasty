@@ -166,6 +166,8 @@ export interface GameState {
   internationals?: import('./international').Tournament[];
   /** The national team you manage alongside your club, if any. */
   nationalJob?: import('./nationaljob').NationalJob;
+  /** The summer tournament you're managing live, if any (your results so far). */
+  summer?: import('./summer').SummerState;
   /** Promises of more games made to unhappy players. */
   promises?: import('./media').PlayerPromise[];
   /** Your backroom staff by role, and candidates on the market. */

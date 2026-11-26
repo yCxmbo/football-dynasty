@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { realWorld } from '../data/real';
 import { newGame } from './game';
-import { groupTable, nationRanking, playTournament, summerTournaments } from './international';
+import { applyTournament, groupTable, nationRanking, playTournament, summerTournaments } from './international';
 import { NATION } from './nations';
 import { candidates, jobOffers, managerReputation, takeJob, toggleSelection } from './nationaljob';
 import { createRng } from './rng';
@@ -32,7 +32,9 @@ describe('international football', () => {
 
   it('plays a 48-team World Cup: 12 groups, a round of 32 and a champion', () => {
     const s = world();
-    const { tournament: t, userPlayers } = playTournament(s, createRng(3), 'wc', 2026);
+    const run = playTournament(s, createRng(3), 'wc', 2026);
+    const { tournament: t, userPlayers } = run;
+    applyTournament(s, run);
     expect(t.teams.length).toBe(48);
     expect(new Set(t.teams).size).toBe(48);
     expect(t.hosts).toEqual(['USA', 'MEX', 'CAN']);
@@ -85,6 +87,7 @@ describe('international football', () => {
     expect(job.squad).toContain(outsider.id);
     job.formation = '3-5-2';
     const run = playTournament(s, createRng(8), 'wc', 2026);
+    applyTournament(s, run);
     expect(run.userNation?.code).toBe('ENG');
     if (run.userNation!.reached !== 'Did not qualify') {
       expect(run.tournament.squads.ENG).toContain(outsider.id);

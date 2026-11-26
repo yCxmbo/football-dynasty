@@ -5,7 +5,7 @@ import { FREE_AGENT, type Currency, type GameState, type Player } from '../engin
 import { seasonLabel } from '../engine/types';
 import { toCur } from '../store';
 
-export type Screen = 'home' | 'inbox' | 'squad' | 'player' | 'tactics' | 'fixtures' | 'table' | 'match' | 'youth' | 'history' | 'settings' | 'transfers' | 'training' | 'scouting' | 'finances' | 'offer' | 'contract' | 'international' | 'career' | 'staff' | 'facilities';
+export type Screen = 'home' | 'inbox' | 'squad' | 'player' | 'tactics' | 'fixtures' | 'table' | 'match' | 'youth' | 'history' | 'settings' | 'transfers' | 'training' | 'scouting' | 'finances' | 'offer' | 'contract' | 'international' | 'career' | 'staff' | 'facilities' | 'nationalMatch';
 
 export const NAV = (unread: number) => [
   { id: 'home', label: 'Home', icon: 'home' }, { id: 'inbox', label: 'Inbox', icon: 'inbox', badge: unread || undefined },

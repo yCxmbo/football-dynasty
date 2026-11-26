@@ -24,6 +24,9 @@ import NewGame from './screens/NewGame';
 import International from './screens/International';
 import Career from './screens/Career';
 import Staff from './screens/Staff';
+import NationalMatch from './screens/NationalMatch';
+import { beginSummer, summerLabel, summerStep, summerTournamentFor } from './engine/summer';
+import { NATION } from './engine/nations';
 import FacilitiesScreen from './screens/FacilitiesScreen';
 import { answer } from './engine/media';
 import Placeholder from './screens/Placeholder';
@@ -115,6 +118,7 @@ export default function App() {
   };
 
   const over = seasonOver(g);
+  const summerReq = g.summer ? summerStep(g)?.request : undefined;
   const hasMatch = !!userFixture(g);
   /** Full time: store the user's match (with their substitutions) and play the rest of the slot. */
   const finishLive = () => {
@@ -130,6 +134,8 @@ export default function App() {
     : live
     ? (screen === 'match' ? <span style={{ color: 'var(--on-navy-muted)', fontSize: 13, fontWeight: 600 }}>Match in progress</span>
       : <FD.Button icon="play" onClick={() => setScreen('match')}>Back to match</FD.Button>)
+    : over && summerReq ? <FD.Button icon="play" onClick={() => go('nationalMatch')}>Play {NATION[summerReq.h]?.name} v {NATION[summerReq.a]?.name}</FD.Button>
+    : over && !g.summer && summerTournamentFor(g) ? <FD.Button icon="trophy" onClick={() => { update((d) => beginSummer(d)); go('international'); }}>Go to the {summerLabel(g)}</FD.Button>
     : over ? <FD.Button icon="trophy" onClick={() => void startSeason()}>Start {seasonLabel(g.year + 1)}</FD.Button>
     : (
       <div className="sim-actions">
@@ -149,10 +155,10 @@ export default function App() {
 
   const club = g.clubs[g.userClubId];
   const shownFx = liveFx0(g, live) ?? userFixture(g);
-  const slotLabel = over ? 'Season finished' : shownFx ? `${compInfo(g, shownFx.comp).name}, ${shownFx.round}` : currentSlot(g).week === 0 ? 'Pre-season' : `Week ${currentSlot(g).week}`;
+  const slotLabel = over ? (g.summer ? `Summer · ${summerLabel(g)}` : 'Season finished') : shownFx ? `${compInfo(g, shownFx.comp).name}, ${shownFx.round}` : currentSlot(g).week === 0 ? 'Pre-season' : `Week ${currentSlot(g).week}`;
   const liveFx = liveFx0(g, live);
   const unread = g.inbox.filter((m) => m.unread).length;
-  const navActive = screen === 'player' ? (param && g.players[param]?.clubId !== g.userClubId ? 'transfers' : 'squad') : screen === 'match' ? 'fixtures' : screen === 'offer' ? 'transfers' : screen === 'contract' ? 'squad' : screen;
+  const navActive = screen === 'nationalMatch' ? 'international' : screen === 'player' ? (param && g.players[param]?.clubId !== g.userClubId ? 'transfers' : 'squad') : screen === 'match' ? 'fixtures' : screen === 'offer' ? 'transfers' : screen === 'contract' ? 'squad' : screen;
 
   let body: JSX.Element;
   switch (screen) {
@@ -170,6 +176,7 @@ export default function App() {
     case 'tactics': body = <Tactics g={g} liveNote={!!live} onAutoRotate={(on) => update((d) => setAutoRotate(d, on))} onChange={(f: Formation, l: string[]) => update((d) => setTactics(d, f, l))} />; break;
     case 'fixtures': body = <Fixtures g={g} go={go} />; break;
     case 'table': body = <Table g={g} go={go} />; break;
+    case 'nationalMatch': body = <NationalMatch key={`${g.summer?.results.length}`} g={g} go={go} update={update} />; break;
     case 'facilities': body = <FacilitiesScreen g={g} update={update} />; break;
     case 'staff': body = <Staff g={g} update={update} />; break;
     case 'career': body = <Career g={g} go={go} update={update} />; break;

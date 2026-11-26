@@ -48,6 +48,7 @@ The game saves automatically in the browser (IndexedDB), and you can keep severa
   - Players win caps, goals and titles (shown on their profile); winners come back with high morale. Your inbox reports who went and how far they got.
   - The **International** screen has the world ranking, your internationals, every tournament's groups and knockout rounds, and a roll of honour.
   - **National team job:** manage a nation alongside your club. Federations hire on your reputation (club reputation plus trophies): the top five nations want 88, the top twelve 78, the top 25 66. Pick your 26 and a formation on International → National team; the tournament uses them. Your record, results and trophies count toward your career, and a top-16 nation that fails to qualify or goes out in the group stage dismisses you. Each new season your inbox lists the nations that would appoint you.
+  - **Live tournaments:** when the season ends and your nation has a tournament, *Go to the World Cup* (or Euro, Copa América…) opens it. Your matches are played live with team talks and substitutions (*Play match*), or *Sim my matches*; every other game is simulated around them. Your results are saved as you go, so a reload carries on where you left off. Start the new season once your nation is out or the final is played.
 - **Calendar:** dated slots for the whole season (league weekends, cup and continental midweeks, play-offs, finals). Shorter leagues are spread over the same season. Every match in the world is played, not just your league.
   - *Play match* plays your next game.
   - *Continue* skips days when you don't play.
@@ -133,6 +134,7 @@ src/
     staff.ts       backroom staff, their effects, hiring
     loans.ts       loans out and in, recalls, returns at season end
     career.ts      board confidence, the sack, offers, vacancies, moving clubs
+    summer.ts      the live tournament summer: pausing at your matches, resuming after a reload
     nationaljob.ts managing a national team: reputation, offers, squad selection
     international.ts national squads, World Cup / Euro / Copa América: qualification, draw, groups, knockouts
     competitions.ts data-driven calendar, leagues, cups, continental groups, knockouts, play-offs, promotion/relegation, qualification

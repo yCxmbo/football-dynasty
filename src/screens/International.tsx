@@ -7,6 +7,8 @@ import type { GameState } from '../engine/types';
 import { badgeUrl } from './badge';
 import type { Screen } from './shared';
 import NationalTeam from './NationalTeam';
+import { recordSummerResult, summerStep, type SummerStep } from '../engine/summer';
+import { createLive, runToEnd, toResult } from '../engine/live';
 
 const KNOWN_HOSTS: Record<string, string> = { 'FIFA World Cup 2026': 'USA, Mexico and Canada', 'FIFA World Cup 2030': 'Spain, Portugal and Morocco', 'FIFA World Cup 2034': 'Saudi Arabia', 'UEFA Euro 2028': 'the UK and Ireland', 'UEFA Euro 2032': 'Italy and Turkey', 'Africa Cup of Nations 2027': 'Kenya, Uganda and Tanzania', 'AFC Asian Cup 2027': 'Saudi Arabia' };
 const KO_ORDER = ['Final', 'Semi-final', 'Quarter-final', 'Round of 16', 'Round of 32'];
@@ -83,9 +85,71 @@ function TournamentView({ g, t, go }: { g: GameState; t: Tournament; go: (s: Scr
   );
 }
 
+const STAGES = ['Final', 'Semi-final', 'Quarter-final', 'Round of 16', 'Round of 32'];
+
+/** The tournament you're managing, as it unfolds. */
+function LiveTournament({ g, step, go, update }: { g: GameState; step: SummerStep; go: (s: Screen, id?: string) => void; update: (fn: (d: GameState) => void) => void }) {
+  const t = step.t, job = g.nationalJob, req = step.request;
+  const mine = (code: string) => code === job?.code;
+  const simRest = () => update((d) => {
+    for (let st = summerStep(d); st?.request; st = summerStep(d)) {
+      const r = st.request;
+      const lm = createLive(r.seed, r.home, r.away, r.venue, r.mods); runToEnd(lm);
+      recordSummerResult(d, toResult(lm, r.h, r.a).result);
+    }
+  });
+  const out = step.run ? step.run.userNation : undefined;
+  return (
+    <div className="pg-stack" style={{ gap: 16 }}>
+      <section className="pg-card intl-hero">
+        {job && <img className="club-badge club-badge--lg" src={flag(job.code)} alt="" />}
+        <div style={{ flex: 1 }}>
+          <p className="pg-h" style={{ margin: 0 }}>{t.name}</p>
+          {req ? (
+            <>
+              <h2 className="pg-title" style={{ margin: '2px 0' }}>{nationName(req.h)} v {nationName(req.a)}</h2>
+              <p className="hm-note" style={{ margin: 0 }}>{req.stage === 'Group' ? 'Group stage' : req.stage} · {req.venue}. Pick your 26 and formation on the {job ? nationName(job.code) : 'National team'} tab before kickoff.</p>
+            </>
+          ) : (
+            <>
+              <h2 className="pg-title" style={{ margin: '2px 0' }}>{t.winner ? `${nationName(t.winner)} win it` : 'Tournament over for you'}</h2>
+              <p className="hm-note" style={{ margin: 0 }}>{out ? `${nationName(out.code)}: ${out.reached === 'Did not qualify' ? 'did not qualify' : out.reached.toLowerCase()}.` : ''} Start the new season from the top bar when you're ready.</p>
+            </>
+          )}
+        </div>
+        {req && <div className="pg-row" style={{ gap: 'var(--space-2)' }}>
+          <FD.Button icon="play" onClick={() => go('nationalMatch')}>Play match</FD.Button>
+          <FD.Button variant="ghost" onClick={() => { if (window.confirm('Simulate the rest of your tournament without watching?')) simRest(); }}>Sim my matches</FD.Button>
+        </div>}
+      </section>
+      {STAGES.filter((st) => t.matches.some((m) => m.stage === st)).map((st) => (
+        <section key={st} className="pg-card">
+          <h2 className="pg-h">{st}</h2>
+          <table className="fd-mini cup-ties"><tbody>
+            {t.matches.filter((m) => m.stage === st).map((m, i) => (
+              <tr key={i} className={mine(m.h) || mine(m.a) ? 'fd-gold' : undefined}>
+                <td className="cup-home"><span className="club-cell club-cell--end">{nationName(m.h)}<img className="club-badge" src={flag(m.h)} alt="" /></span></td>
+                <td className="cup-score">{m.s[0]}–{m.s[1]}{m.p ? <span className="fd-muted"> ({m.p[0]}–{m.p[1]} p)</span> : null}</td>
+                <td><Nation code={m.a} /></td>
+              </tr>
+            ))}
+          </tbody></table>
+        </section>
+      ))}
+      <div className="cc-groups">
+        {t.groups.map((_, gi) => (
+          <FD.LeagueTable key={gi} compact title={`Group ${'ABCDEFGHIJKL'[gi]}`} zones={{ promotion: 2, promotionLabel: 'Knockout stage' }}
+            rows={groupTable(t, gi).map((r) => ({ clubId: r.code, club: nationName(r.code), p: r.p, w: r.w, d: r.d, l: r.l, gf: r.gf, ga: r.ga, pts: r.pts, form: [], isUser: mine(r.code) }))} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function International({ g, go, update }: { g: GameState; go: (s: Screen, id?: string) => void; update: (fn: (d: GameState) => void) => void }) {
   const past = (g.internationals ?? []).slice().reverse();
-  const [tab, setTab] = useState<string>(past[0]?.name ?? 'ranking');
+  const [tab, setTab] = useState<string>(g.summer ? 'live' : past[0]?.name ?? 'ranking');
+  const step = g.summer ? summerStep(g) : undefined;
   const ranking = useMemo(() => nationRanking(g, createRng(g.year * 100 + 7)), [g.year, g.internationals?.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const next = nextTournaments(g.year);
   const nextLabel = next.names.map((n) => `the ${n} ${next.year}${KNOWN_HOSTS[`${n} ${next.year}`] ? ` (in ${KNOWN_HOSTS[`${n} ${next.year}`]})` : ''}`).join(' and ');
@@ -104,13 +168,15 @@ export default function International({ g, go, update }: { g: GameState; go: (s:
       </div>
 
       <div className="fd-seg" role="tablist" aria-label="Tournaments" style={{ alignSelf: 'flex-start', flexWrap: 'wrap' }}>
+        {step && <button type="button" role="tab" aria-selected={tab === 'live'} className={'fd-seg__opt' + (tab === 'live' ? ' is-on' : '')} onClick={() => setTab('live')}>{step.t.name} · live</button>}
         <button type="button" role="tab" aria-selected={tab === 'ranking'} className={'fd-seg__opt' + (tab === 'ranking' ? ' is-on' : '')} onClick={() => setTab('ranking')}>World ranking</button>
         <button type="button" role="tab" aria-selected={tab === 'job'} className={'fd-seg__opt' + (tab === 'job' ? ' is-on' : '')} onClick={() => setTab('job')}>{g.nationalJob ? nationName(g.nationalJob.code) : 'National team'}</button>
         {past.map((t) => <button key={t.name} type="button" role="tab" aria-selected={tab === t.name} className={'fd-seg__opt' + (tab === t.name ? ' is-on' : '')} onClick={() => setTab(t.name)}>{t.name}</button>)}
         {past.length > 0 && <button type="button" role="tab" aria-selected={tab === 'honours'} className={'fd-seg__opt' + (tab === 'honours' ? ' is-on' : '')} onClick={() => setTab('honours')}>Roll of honour</button>}
       </div>
 
-      {current ? <TournamentView g={g} t={current} go={go} />
+      {tab === 'live' && step ? <LiveTournament g={g} step={step} go={go} update={update} />
+        : current ? <TournamentView g={g} t={current} go={go} />
         : tab === 'job' ? <NationalTeam g={g} go={go} update={update} ranking={ranking.map((q) => q.code)} />
         : tab === 'honours' ? (
           <section className="pg-card">

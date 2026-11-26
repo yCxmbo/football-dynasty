@@ -26,6 +26,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'big-signing', title: 'Statement signing', desc: 'Sign a player for 50M or more.', group: 'Club' },
   { id: 'big-sale', title: 'Cash in', desc: 'Sell a player for 50M or more.', group: 'Club' },
   { id: 'stadium', title: 'Cathedral', desc: 'Grow your stadium to 75,000 seats.', group: 'Club' },
+  { id: 'manager-season', title: 'Manager of the Season', desc: 'Be named Manager of the Season in a top flight.', group: 'Career' },
   { id: 'national', title: 'National hero', desc: 'Win a tournament with a national team.', group: 'Career' },
   { id: 'world-champion', title: 'World champion', desc: 'Win the FIFA World Cup as a manager.', group: 'Career' },
   { id: 'globetrotter', title: 'Globetrotter', desc: 'Manage clubs in three different countries.', group: 'Career' },

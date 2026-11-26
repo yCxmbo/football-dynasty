@@ -1,4 +1,4 @@
-import { awardsMessage, seasonAwards } from './awards';
+import { awardPremium, awardsMessage, seasonAwards } from './awards';
 import { formatDate } from './fixtures';
 import { available, fitFor, pickLineup, slotsOf, type Formation, type MatchMods } from './match';
 import { createLive, runToEnd, toResult, type LiveMatch } from './live';
@@ -506,7 +506,7 @@ function rollover(state: GameState) {
   for (const p of Object.values(state.players)) {
     develop(rng, p, p.career[0]?.apps ?? 0);
     p.age++;
-    p.value = valueFor(p.ability, p.potential, p.age);
+    p.value = Math.round(valueFor(p.ability, p.potential, p.age) * awardPremium(p, label));
   }
   for (const b of state.bids) if (b.status === 'open') b.status = 'expired';
   state.negotiations = {};

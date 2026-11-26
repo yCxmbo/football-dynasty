@@ -15,7 +15,7 @@ export interface NationalJob {
 /** Your standing as a manager: your club's reputation plus your trophies. */
 export function managerReputation(s: GameState) {
   const club = s.clubs[s.userClubId];
-  return Math.min(99, Math.round(club.reputation * 0.8 + Math.min(30, s.manager.trophies.length * 4) + Math.min(8, s.year - s.manager.since)));
+  return Math.min(99, Math.round(club.reputation * 0.8 + Math.min(30, s.manager.trophies.length * 4) + Math.min(9, (s.manager.awards?.length ?? 0) * 3) + Math.min(8, s.year - s.manager.since)));
 }
 
 /** Reputation a nation asks for, from its place in the world ranking. */

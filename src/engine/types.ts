@@ -204,7 +204,7 @@ export interface GameState {
   /** Swap starters under 70% condition for fresh players before each match. */
   autoRotate?: boolean;
   formation: Formation;
-  manager: { since: number; w: number; d: number; l: number; trophies: string[] };
+  manager: { since: number; w: number; d: number; l: number; trophies: string[]; /** Manager of the Season awards. */ awards?: string[] };
   /** Scouting knowledge 0–100 per player at other clubs (own players are always 100). */
   knowledge: Record<string, number>;
   scouting: string[]; // players being scouted (max 5)

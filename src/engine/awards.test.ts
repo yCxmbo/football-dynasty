@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { newGame, playMatchday, startNewSeason, totalMatchdays } from './game';
-import { TEAM_SLOTS, YOUNG_AGE } from './awards';
+import { TEAM_SLOTS, YOUNG_AGE, awardPremium } from './awards';
+import { valueFor } from './world';
 import { realWorld } from '../data/real';
 
 describe('season awards', () => {
@@ -19,6 +20,15 @@ describe('season awards', () => {
       expect(new Set(l.team.map((w) => w.id)).size).toBe(l.team.length);
       if (l.young) expect(l.young.age).toBeLessThanOrEqual(YOUNG_AGE);
       expect(l.scorer!.goals).toBe(goals[l.scorer!.id]);
+      expect(l.manager, l.league).toBeTruthy();
+      expect(l.manager!.you).toBe(l.manager!.clubId === 'eng-arsenal');
+    }
+    // winners are in high spirits and worth more for the coming season
+    const w = s.players[a.ball[0].id];
+    if (w) {
+      expect(w.morale).toBe('high');
+      expect(w.value).toBe(Math.round(valueFor(w.ability, w.potential, w.age) * awardPremium(w, '2025/26')));
+      expect(awardPremium(w, '2025/26')).toBeGreaterThanOrEqual(1.25);
     }
     expect(a.ball.length).toBe(3);
     expect(new Set(a.ball.map((w) => w.id)).size).toBe(3);
@@ -27,6 +37,7 @@ describe('season awards', () => {
     const top = s.players[a.ball[0].id];
     if (top) expect(top.awards).toContain('Golden Ball 2025/26');
     expect(s.inbox.some((m) => m.from === 'Football awards' && m.body.some((b) => b.startsWith('Golden Ball:')))).toBe(true);
+    console.log(a.leagues.map((l) => `${l.league}: ${l.manager?.club} ${l.manager?.pos}/${l.manager?.expected}`).join('; '));
     console.log(a.ball.map((w) => `${w.name} ${w.club} ${w.rating} ${w.goals}`), a.boy?.name, a.leagues.slice(0, 3).map((l) => [l.pots?.name, l.young?.name, l.scorer?.name, l.scorer?.goals]));
   }, 180_000);
 });

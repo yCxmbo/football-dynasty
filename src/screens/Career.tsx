@@ -140,6 +140,12 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
         ))}
       </section>
 
+      {g.manager.awards?.length ? (
+        <section className="pg-card intl-line">
+          <h2 className="pg-h" style={{ margin: 0 }}>Your awards</h2>
+          {g.manager.awards.map((x, i) => <span key={i} className="aw-chip aw-chip--gold">{x}</span>)}
+        </section>
+      ) : null}
       <section className="pg-card">
         <h2 className="pg-h">Clubs managed</h2>
         <table className="fd-mini"><thead><tr><th>Club</th><th>Seasons</th><th className="fd-num">W</th><th className="fd-num">D</th><th className="fd-num">L</th><th className="fd-num">Trophies</th><th>Left</th></tr></thead><tbody>

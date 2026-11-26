@@ -83,6 +83,7 @@ export function buildComps(s: GameState) {
     const size = continentalSize(n, k) || 16;
     comps[k.id] = { id: k.id, name: k.name, short: k.short ?? k.name, kind: 'continental', rank: k.rank, size, rounds: continentalRounds(size) };
   }
+  comps.friendly = { id: 'friendly', name: 'Friendly', short: 'Friendly', kind: 'friendly', rounds: ['Friendly'] };
   s.comps = comps;
 }
 
@@ -330,7 +331,7 @@ export function advanceCups(s: GameState, rng: Rng, slot: Slot): string[] {
   const news: string[] = [];
   for (const e of slot.entries) {
     const c = compInfo(s, e.comp);
-    if (c.kind === 'league') continue;
+    if (c.kind === 'league' || c.kind === 'friendly') continue;
     const cup = (s.cups[c.id] ??= { round: 0, alive: [], exits: {} } as CupState);
     const played = s.fixtures.filter((f) => f.comp === c.id && f.round === e.round && f.result);
     if (!played.length) continue;

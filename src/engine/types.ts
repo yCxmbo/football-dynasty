@@ -98,7 +98,7 @@ export interface Club {
 
 export type CompId = string;
 export interface CompInfo {
-  id: string; name: string; short: string; kind: 'league' | 'cup' | 'continental' | 'super' | 'playoff' | 'title';
+  id: string; name: string; short: string; kind: 'league' | 'cup' | 'continental' | 'super' | 'playoff' | 'title' | 'friendly';
   country?: string; tier?: number; rounds?: string[]; leagueId?: string; rank?: number; size?: number; main?: boolean;
 }
 
@@ -171,6 +171,10 @@ export interface GameState {
   /** Your coaching style, and the season you last changed it. */
   managerStyle?: import('./style').ManagerStyle;
   styleChanged?: number;
+  /** Pre-season: friendly offers, friendlies played this summer, and what each arranged one pays. */
+  friendlyOffers?: import('./friendlies').FriendlyOffer[];
+  preseason?: number;
+  friendlyFees?: Record<string, number>;
   /** Head-to-head records of every derby, and derbies you have won. */
   derbies?: Record<string, import('./rivalries').DerbyRecord>;
   derbyWins?: number;

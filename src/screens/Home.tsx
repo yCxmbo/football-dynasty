@@ -1,14 +1,22 @@
 import { FD } from '../ds';
+import { formatDate } from '../engine/fixtures';
 import { boardTarget, currentDate, leagueTable, nextUserFixture, ordinal, seasonOver } from '../engine/game';
 import { compInfo, cupResult, topLeague, withThe } from '../engine/competitions';
 import type { GameState } from '../engine/types';
 import { fixtureCardProps, leagueLabel, zonesFor } from './comp-ui';
 import { toCur } from '../store';
 import { boardConfidence, confidenceWord } from '../engine/career';
+import { MAX_FRIENDLIES, arrangeFriendly, canArrange, friendliesArranged } from '../engine/friendlies';
 import type { Screen } from './shared';
 import { bidsFor } from './shared-transfers';
 
-export default function Home({ g, go, onPlay }: { g: GameState; go: (s: Screen, id?: string) => void; onPlay: () => void }) {
+/** Date of your first competitive game (friendlies come before it). */
+function seasonStart(g: GameState) {
+  const f = g.fixtures.filter((x) => x.comp !== 'friendly' && (x.homeId === g.userClubId || x.awayId === g.userClubId)).sort((a, b) => a.matchday - b.matchday)[0];
+  return f ? formatDate(f.date) : currentDate(g);
+}
+
+export default function Home({ g, go, onPlay, update }: { g: GameState; go: (s: Screen, id?: string) => void; onPlay: () => void; update: (fn: (d: GameState) => void) => void }) {
   const cur = g.currency;
   const club = g.clubs[g.userClubId];
   const table = leagueTable(g);
@@ -34,7 +42,7 @@ export default function Home({ g, go, onPlay }: { g: GameState; go: (s: Screen, 
   ].slice(0, 5);
   const unread = g.inbox.filter((m) => m.unread).slice(0, 3);
   const greeting = over ? 'The season is over' : pos === 1 && played > 0 ? 'Top of the league, boss' : `Good morning, ${g.managerName.startsWith('The ') ? g.managerName.toLowerCase() : g.managerName.split(' ')[0]}`;
-  const lead = played === 0 ? `A new season in ${withThe(leagueLabel(g, club.league))} starts ${currentDate(g)}. The board wants ${target.text}.`
+  const lead = played === 0 ? `A new season in ${withThe(leagueLabel(g, club.league))} starts ${seasonStart(g)}. The board wants ${target.text}.`
     : over ? `You finished ${ordinal(pos)}. Read the board's review, then start the new season.`
     : `${ordinal(pos)} after ${played} ${played === 1 ? 'match' : 'matches'}, ${pos === 1 ? `${table[0].pts - table[1].pts} ${table[0].pts - table[1].pts === 1 ? 'point' : 'points'} clear` : `${table[0].pts - table[pos - 1].pts} points off the top`}.`;
 
@@ -46,6 +54,21 @@ export default function Home({ g, go, onPlay }: { g: GameState; go: (s: Screen, 
           <h2 className="pg-h">Next match</h2>
           {next ? <FD.FixtureCard {...fixtureCardProps(g, next)} action={isNow ? <FD.Button size="sm" icon="play" onClick={onPlay}>Play match</FD.Button> : <FD.Button size="sm" variant="secondary" icon="sim" onClick={onPlay}>Continue to it</FD.Button>} />
             : <div className="pg-card hm-note">{over ? 'No more league matches this season.' : 'No match this week.'}</div>}
+          {g.matchday === 1 && ((g.friendlyOffers?.length ?? 0) > 0 || friendliesArranged(g).length > 0) && <>
+            <h2 className="pg-h">Pre-season friendlies</h2>
+            <div className="pg-card hm-pre">
+              <p className="hm-note" style={{ margin: 0 }}>Arrange up to {MAX_FRIENDLIES} before the first game: they don't count for stats, each one sharpens the team for the opening weeks, and tours pay well and raise your profile abroad.</p>
+              {friendliesArranged(g).sort((a, b) => a.matchday - b.matchday).map((f) => (
+                <div key={f.id} className="hm-pre__row"><span><strong>{f.round}</strong> · {g.clubs[f.homeId === g.userClubId ? f.awayId : f.homeId].name}</span><span className="fd-muted">{FD.formatMoney(toCur(g.friendlyFees?.[f.id] ?? 0, cur), cur)} · arranged</span></div>
+              ))}
+              {canArrange(g) && (g.friendlyOffers ?? []).map((o) => (
+                <div key={o.clubId} className="hm-pre__row">
+                  <span><strong>{o.kind === 'tour' ? `${o.region} tour` : 'Home friendly'}</strong> · {g.clubs[o.clubId].name}</span>
+                  <span className="hm-pre__act"><span className="fd-muted">{FD.formatMoney(toCur(o.fee, cur), cur)}</span><FD.Button size="sm" variant="secondary" onClick={() => update((d) => { arrangeFriendly(d, o.clubId); })}>Arrange</FD.Button></span>
+                </div>
+              ))}
+            </div>
+          </>}
           {last && <>
             <h2 className="pg-h">Last result</h2>
             <FD.FixtureCard {...fixtureCardProps(g, last)} action={<FD.Button size="sm" variant="ghost" onClick={() => go('match', last.id)}>Match report</FD.Button>} />

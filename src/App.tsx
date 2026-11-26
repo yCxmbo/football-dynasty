@@ -144,14 +144,14 @@ export default function App() {
 
   const club = g.clubs[g.userClubId];
   const shownFx = liveFx0(g, live) ?? userFixture(g);
-  const slotLabel = over ? (g.summer ? `Summer · ${summerLabel(g)}` : 'Season finished') : shownFx ? `${compInfo(g, shownFx.comp).name}, ${shownFx.round}` : currentSlot(g).week === 0 ? 'Pre-season' : `Week ${currentSlot(g).week}`;
+  const slotLabel = over ? (g.summer ? `Summer · ${summerLabel(g)}` : 'Season finished') : shownFx ? (shownFx.comp === 'friendly' ? `Pre-season · ${shownFx.round}` : `${compInfo(g, shownFx.comp).name}, ${shownFx.round}`) : currentSlot(g).week === 0 ? 'Pre-season' : `Week ${currentSlot(g).week}`;
   const liveFx = liveFx0(g, live);
   const unread = g.inbox.filter((m) => m.unread).length;
   const navActive = screen === 'nationalMatch' ? 'international' : screen === 'player' ? (param && g.players[param]?.clubId !== g.userClubId ? 'transfers' : 'squad') : screen === 'match' ? 'fixtures' : screen === 'offer' ? 'transfers' : screen === 'contract' ? 'squad' : screen;
 
   let body: JSX.Element;
   switch (screen) {
-    case 'home': body = <Home g={g} go={go} onPlay={play} />; break;
+    case 'home': body = <Home g={g} go={go} onPlay={play} update={update} />; break;
     case 'squad': body = <Squad g={g} go={go} />; break;
     case 'player': body = <PlayerScreen g={g} id={param} go={go} act={{
       promote: (id) => update((d) => promote(d, id)), scout: (id) => update((d) => { startScouting(d, id); }),

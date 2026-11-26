@@ -69,7 +69,7 @@ describe('season', () => {
       const draws = fx.filter((f) => f.result!.score[0] === f.result!.score[1]).length;
       expect(t.reduce((p, r) => p + r.pts, 0)).toBe((fx.length - draws) * 3 + draws * 2);
     }
-    for (const c of Object.values(s.comps)) if (c.kind !== 'league') expect(s.cups[c.id]?.winner, c.id).toBeTruthy();
+    for (const c of Object.values(s.comps)) if (c.kind !== 'league' && c.kind !== 'friendly') expect(s.cups[c.id]?.winner, c.id).toBeTruthy();
     expect(s.fixtures.filter((f) => f.ko).every((f) => f.result!.winnerId)).toBe(true);
 
     const top = leagueTableOf(s, 'eng1').slice(-3).map((r) => r.clubId);
@@ -136,7 +136,7 @@ describe('worlds', () => {
     expect(Object.values(s.comps).some((c) => c.kind === 'cup' && c.country === 'mex')).toBe(false);
     const n = totalMatchdays(s);
     for (let i = 0; i < n; i++) playMatchday(s);
-    for (const c of Object.values(s.comps)) if (c.kind !== 'league') expect(s.cups[c.id]?.winner, c.id).toBeTruthy();
+    for (const c of Object.values(s.comps)) if (c.kind !== 'league' && c.kind !== 'friendly') expect(s.cups[c.id]?.winner, c.id).toBeTruthy();
     // the league phase sent eight to the round of 16 and sixteen to the play-off
     expect(s.fixtures.filter((f) => f.comp === 'ucl' && f.round === 'Knockout play-off').length).toBe(8);
     expect(s.fixtures.filter((f) => f.comp === 'ucl' && f.round === 'Round of 16').length).toBe(8);

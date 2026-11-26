@@ -6,6 +6,7 @@ import { nationRanking, playSummer } from './international';
 import { summerStep } from './summer';
 import { jobOffers, managerReputation, tidySelection } from './nationaljob';
 import { returnLoans } from './loans';
+import { afterFriendly, makeFriendlyOffers, sharpness } from './friendlies';
 import { afterDerby, derbyName, REAL_RIVALRIES } from './rivalries';
 import { moraleBonus, styleTilt, talkMultiplier, youthDevelopmentBoost, youthIntakeBonus } from './style';
 import { recordSeason, recordTransfer } from './records';
@@ -58,6 +59,7 @@ export function newGame(opts: NewGameOpts): GameState {
   career(state);
   initStaff(state, rng);
   if (opts.style) state.managerStyle = opts.style;
+  makeFriendlyOffers(state, rng);
   for (const p of Object.values(players)) p.caStart = p.ability;
   state.ledger.balanceHistory.push(clubs[opts.userClubId].balance);
   const club = clubs[opts.userClubId];
@@ -174,8 +176,9 @@ function setupFor(state: GameState, f: Fixture) {
   const hx = xiFor(state, f.homeId), ax = xiFor(state, f.awayId);
   const H = state.clubs[f.homeId], A = state.clubs[f.awayId];
   const tilt = { ...styleTilt(state), talk: talkMultiplier(state) };
+  const sharp = sharpness(state, state.calendar[f.matchday - 1]?.week ?? 0);
   const derby = derbyName(state, f.homeId, f.awayId);
-  const mods: MatchMods = { derby, homeBoost: uh ? te.matchBoost : 1, awayBoost: ua ? te.matchBoost : 1, homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1, neutral: f.neutral, knockout: f.ko };
+  const mods: MatchMods = { derby, homeBoost: uh ? te.matchBoost * sharp : 1, awayBoost: ua ? te.matchBoost * sharp : 1, homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1, neutral: f.neutral, knockout: f.ko };
   return {
     home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: (uh ? state.formation : '4-3-3') as Formation, name: H.name, user: uh, ...(uh ? { tilt } : {}) },
     away: { xi: ax, bench: benchFor(state, f.awayId, ax), formation: (ua ? state.formation : '4-3-3') as Formation, name: A.name, user: ua, ...(ua ? { tilt } : {}) },
@@ -236,9 +239,9 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     if (f.ko) result.winnerId = winnerOf(f);
     for (const [id, c] of Object.entries(conditions)) if (state.players[id]) state.players[id].condition = c;
     applyResult(state, f, rng);
-    afterDerby(state, f);
+    if (f.comp !== 'friendly') afterDerby(state, f);
     if (derbyName(state, f.homeId, f.awayId)) derbyHomes.add(f.homeId);
-    if (compInfo(state, f.comp).kind === 'league') homeIds.add(f.homeId); else cupGate(state, f);
+    if (compInfo(state, f.comp).kind === 'league') homeIds.add(f.homeId); else if (f.comp !== 'friendly') cupGate(state, f);
     if (!uh && !ua) slim(f);
   }
   const days = state.calendar[md] ? Math.round((Date.parse(state.calendar[md].date) - Date.parse(slot.date)) / 86400000) : 30;
@@ -286,7 +289,13 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     if (slot.week === win.summerUntil || slot.week === win.januaryTo) state.negotiations = {};
   }
   const uf = state.fixtures.find((f) => f.matchday === md && involves(f, state.userClubId));
-  if (uf) { postMatchMessages(state, uf); pressAfterMatch(state, createRng((state.rngState ^ 0x9e37) >>> 0), uf); afterMatch(state, uf); }
+  if (uf && uf.comp === 'friendly') {
+    const { earned, tour } = afterFriendly(state, uf);
+    const r = uf.result!, home = uf.homeId === state.userClubId;
+    addMessage(state, { category: 'match', from: 'Club media', subject: `${uf.round}: ${state.clubs[uf.homeId].name} ${r.score[0]}–${r.score[1]} ${state.clubs[uf.awayId].name}`, body: [
+      `${home ? 'A run-out at home' : `On tour against ${state.clubs[uf.homeId].name}`}: the players are sharper for it.`,
+      `The club earned ${Math.round(earned / 1e5) / 10}M${tour ? ', and the tour has raised our profile abroad' : ''}.`] });
+  } else if (uf) { postMatchMessages(state, uf); pressAfterMatch(state, createRng((state.rngState ^ 0x9e37) >>> 0), uf); afterMatch(state, uf); }
   for (const line of cupNews) if (line.includes(state.clubs[state.userClubId].name) || line.startsWith('Continental')) addMessage(state, { category: 'media', from: 'Football news', subject: line, body: [line] });
   if (seasonOver(state)) seasonEndMessage(state);
   return uf;
@@ -294,9 +303,12 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
 
 function applyResult(state: GameState, f: Fixture, rng: ReturnType<typeof createRng>) {
   const r = f.result!;
+  const friendly = f.comp === 'friendly';
   for (const pr of [...r.ratings.home, ...r.ratings.away]) {
     const p = state.players[pr.playerId];
     if (!p) continue;
+    // friendlies don't count: only a knock can carry over
+    if (friendly) { if (pr.injured) p.injuredFor = 1 + rng.int(0, 2); continue; }
     p.current.apps++; p.current.goals += pr.goals; p.current.assists += pr.assists; p.current.ratingSum += pr.rating;
     if (pr.card === 'yellow') { p.yellowCards++; if (p.yellowCards % 5 === 0) p.suspendedFor = 2; }
     if (pr.card === 'red') p.suspendedFor = 2; // counts down once after this slot → misses 1
@@ -515,6 +527,8 @@ function rollover(state: GameState) {
   for (const c of Object.values(state.clubs)) refillSquad(state, rng, c);
   youthIntake(state, rng);
   refreshPool(state, rng);
+  state.preseason = 0; state.friendlyFees = {};
+  makeFriendlyOffers(state, rng);
   const opened = finishBuilding(state);
   if (opened) addMessage(state, { category: 'board', from: 'The board', role: state.clubs[state.userClubId].name, subject: 'The new stands are open', body: [opened] });
   state.qualified = nextQualified;

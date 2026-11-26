@@ -5,6 +5,7 @@ import type { Rng } from './rng';
 import type { Club, Player, Squad } from './types';
 import { nationCode } from './nations';
 import { reserveNames } from './namepools';
+import { assignReleaseClauses } from './contracts';
 import { makeAttributes, makePlayer, valueFor, wageFor, SQUAD_TEMPLATE } from './world';
 
 export const WORLD_FORMAT = 'football-dynasty-world';
@@ -208,5 +209,6 @@ export function buildWorld(def: WorldDef, rng: Rng, year: number, userCountry: s
     const best = squad.filter((p) => p.squad === 'First team').sort((a, b) => b.ability - a.ability)[0];
     if (best) best.captain = true;
   }
+  assignReleaseClauses(clubs, players, rng);
   return { clubs, players, nextId: n };
 }

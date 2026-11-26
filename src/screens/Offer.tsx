@@ -20,6 +20,7 @@ export default function Offer({ g, id, go, submit }: { g: GameState; id?: string
   return (
     <div className="pg-stack">
       <WindowBanner g={g} />
+      {!signed && p.releaseClause && <p className="pg-card loan-note">Release clause: {FD.formatMoney(c(p.releaseClause), cur)}. Offer at least that, all up front, and {g.clubs[p.clubId]?.name} can't refuse: only the player has to agree.</p>}
       {signed ? (
         <div className="pg-card pg-row" style={{ justifyContent: 'space-between' }}>
           <span><strong className="fd-ok">Done deal.</strong> {neg?.lastResponse?.message}</span>

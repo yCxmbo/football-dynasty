@@ -2,6 +2,7 @@ import { noteJoined } from './index';
 import { scoutPerMatchday } from './staff';
 import { afterTransfer } from './achievements';
 import { recordTransfer } from './records';
+import { honourPreContract, preContracts, triggerClauses, wantsOut } from './contracts';
 /* Transfers, scouting and contracts. Pure functions over GameState (mutating the draft). */
 import { clamp } from './ratings';
 import { currentWeek } from './competitions';
@@ -130,8 +131,10 @@ export function makeOffer(s: GameState, playerId: string, o: OfferTerms): OfferO
   if (dueNow > club.transferBudget) return save(neg, { status: 'rejected', message: 'The board refuses: the money due now is more than your transfer budget.' });
   if (o.wage > wageRoom) return save(neg, { status: 'rejected', message: 'The board refuses: this wage would take you over the wage budget.' });
 
-  // 1. selling club
-  if (!isFree(p)) {
+  // 1. selling club (a release clause paid in full, up front, can't be refused)
+  const clauseMet = !!p.releaseClause && o.fee >= p.releaseClause && o.upfront >= 100;
+  if (p.preContract) return save(neg, { status: 'rejected', message: `${p.name} has already agreed to join ${clubName(s, p.preContract)} in the summer.` });
+  if (!isFree(p) && !clauseMet) {
     neg.attempts++;
     const ask = askingPrice(s, p);
     const eff = effectiveFee(o, p.value);
@@ -205,6 +208,8 @@ export function aiBids(s: GameState, seed: number) {
     return;
   }
   const rng = createRng(seed);
+  triggerClauses(s, rng);
+  if (currentWeek(s) >= windows(s).januaryFrom) preContracts(s, rng);
   const mine = userSquad(s).filter((p) => p.squad === 'First team' && !p.loan && !s.bids.some((b) => b.playerId === p.id && b.status === 'open'));
   for (const p of mine) {
     const listed = s.transferListed.includes(p.id);
@@ -244,6 +249,8 @@ export function renewContract(s: GameState, playerId: string, wage: number, year
   const p = s.players[playerId];
   if (!p || p.clubId !== s.userClubId) return 'Not your player.';
   if (p.age >= 32 && years > 2) return `${p.name} only wants up to 2 years at this age.`;
+  if (p.preContract) return `${p.name} has signed a pre-contract with ${clubName(s, p.preContract)} and is leaving in the summer.`;
+  if (wantsOut(s, p)) return `${p.name} won't sign. He wants to see out his contract and move on${p.morale === 'low' ? ': he is unhappy here' : ' to a bigger club'}.`;
   const want = wageDemand(s, p, true);
   const club = s.clubs[s.userClubId];
   if (wage - p.wage > club.wageBudget - wageBill(s)) return 'The board refuses: the raise would take you over the wage budget.';
@@ -268,6 +275,10 @@ export function expireContracts(s: GameState) {
     if (p.clubId !== s.userClubId) {
       const r = rankAt(s, p, p.clubId);
       if (r <= 16 && p.age <= 32) { p.contractEnd = s.year + (p.age >= 30 ? 1 : 3); continue; }
+    } else if (honourPreContract(s, p)) {
+      inbox(s, { category: 'transfers', from: 'Director of football', subject: `${p.name} joins ${clubName(s, p.clubId)}`, body: [`${p.name}'s contract has run out and he has joined ${clubName(s, p.clubId)} on the pre-contract he signed.`] });
+      s.lineup = s.lineup.filter((id) => id !== p.id);
+      continue;
     } else {
       inbox(s, { category: 'transfers', from: 'Director of football', subject: `${p.name} leaves on a free transfer`, body: [`${p.name}'s contract has run out and he has left the club.`] });
       s.lineup = s.lineup.filter((id) => id !== p.id);

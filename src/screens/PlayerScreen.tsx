@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { FD } from '../ds';
+import { wantsOut } from '../engine/contracts';
+import { toCur } from '../store';
 import { canLoanOut, loanDestinations, loanIn, loanInVerdict, loanOut, recall } from '../engine/loans';
 import { badgeUrl } from './badge';
 import { leagueScale, youthScale } from '../engine/game';
@@ -47,6 +49,13 @@ export default function PlayerScreen({ g, id, go, act, update }: { g: GameState;
       <FD.PlayerProfile player={profileData(g, p, g.currency)} currency={g.currency} scale={youth ? youthScale() : leagueScale(g)} actions={actions} />
       {p.loan && (
         <p className="pg-card loan-note">{ours ? `On loan at ${g.clubs[p.clubId].name} until the summer · ${p.current.apps} apps, ${p.current.goals} goals this season` : `On loan from ${g.clubs[p.loan.from]?.name ?? 'another club'} until the summer`}</p>
+      )}
+      {(p.releaseClause || p.preContract || (mine && wantsOut(g, p))) && (
+        <p className="pg-card loan-note">
+          {p.releaseClause ? `Release clause: ${FD.formatMoney(toCur(p.releaseClause, g.currency), g.currency)}${mine ? ' (any club paying it in full can take him)' : ' (pay it in full, up front, and his club cannot refuse)'}. ` : ''}
+          {p.preContract ? `Has agreed to join ${g.clubs[p.preContract]?.name} on a free in the summer. ` : ''}
+          {!p.preContract && mine && wantsOut(g, p) ? 'In the last year of his contract and wants to move on: he won\'t renew.' : ''}
+        </p>
       )}
       {note && <p className="fd-warn" role="status">{note}</p>}
       {loanOpen && mine && !borrowed && !canLoanOut(g, p) && (() => {

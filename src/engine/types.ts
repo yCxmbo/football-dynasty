@@ -49,6 +49,8 @@ export interface Player {
   joined?: number;
   /** Generated at the start to complete a squad of named players: never above his nation's usual level for international selection. */
   filler?: boolean;
+  /** Agreed to join this club on a free when his contract ends. */
+  preContract?: string;
   /** On loan: the owning club, the season it ends, and the squad he returns to. */
   loan?: import('./loans').Loan;
   /** International career: caps, goals and tournaments won. */

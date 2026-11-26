@@ -46,6 +46,7 @@ The game saves automatically in the browser (localStorage, compressed with lz-st
   - National teams pick the best 26 of their nationality anywhere in the world, so your players get called up. Nations with few players in the world get depth players at their usual level. Qualifying follows confederation places, with some luck.
   - Players win caps, goals and titles (shown on their profile); winners come back with high morale. Your inbox reports who went and how far they got.
   - The **International** screen has the world ranking, your internationals, every tournament's groups and knockout rounds, and a roll of honour.
+  - **National team job:** manage a nation alongside your club. Federations hire on your reputation (club reputation plus trophies): the top five nations want 88, the top twelve 78, the top 25 66. Pick your 26 and a formation on International → National team; the tournament uses them. Your record, results and trophies count toward your career, and a top-16 nation that fails to qualify or goes out in the group stage dismisses you. Each new season your inbox lists the nations that would appoint you.
 - **Calendar:** dated slots for the whole season (league weekends, cup and continental midweeks, play-offs, finals). Shorter leagues are spread over the same season. Every match in the world is played, not just your league.
   - *Play match* plays your next game.
   - *Continue* skips days when you don't play.
@@ -114,6 +115,7 @@ src/
     builtin.ts     the fictional world and the template world file
     nations.ts     national teams: confederations, strength, colours, nationalities for generated players
     namepools.ts   invented names that fit each nationality
+    nationaljob.ts managing a national team: reputation, offers, squad selection
     international.ts national squads, World Cup / Euro / Copa América: qualification, draw, groups, knockouts
     competitions.ts data-driven calendar, leagues, cups, continental groups, knockouts, play-offs, promotion/relegation, qualification
     game.ts        game state: playing calendar slots, season end, development, youth, promotion

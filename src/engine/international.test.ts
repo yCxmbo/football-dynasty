@@ -3,6 +3,7 @@ import { realWorld } from '../data/real';
 import { newGame } from './game';
 import { groupTable, nationRanking, playTournament, summerTournaments } from './international';
 import { NATION } from './nations';
+import { candidates, jobOffers, managerReputation, takeJob, toggleSelection } from './nationaljob';
 import { createRng } from './rng';
 
 const world = () => newGame({ seed: 11, userClubId: 'eng-arsenal', managerName: 'T', currency: 'EUR', world: realWorld(), source: 'real' });
@@ -58,5 +59,30 @@ describe('international football', () => {
     expect(copa.teams.length).toBe(16);
     expect(copa.teams.filter((c) => NATION[c].confed === 'CONMEBOL').length).toBe(10);
     expect(copa.matches.length).toBe(24 + 7);
+  });
+
+  it('a club manager can take a national team job, pick the squad, and the tournament uses it', () => {
+    const s = world();
+    const ranking = nationRanking(s, createRng(1)).map((q) => q.code);
+    const offers = jobOffers(s, ranking);
+    expect(managerReputation(s)).toBeGreaterThan(50);
+    expect(offers.length).toBeGreaterThan(0);
+    expect(offers.every((o) => o.rank > 5)).toBe(true); // the very top nations want a proven winner
+    takeJob(s, 'ENG');
+    const job = s.nationalJob!;
+    expect(job.squad.length).toBe(26);
+    // swap the weakest outfield pick for a much lesser player: he goes to the tournament
+    const outsider = candidates(s, 'ENG').filter((p) => p.pos !== 'GK' && !job.squad.includes(p.id))[30];
+    toggleSelection(s, job.squad[job.squad.length - 1]);
+    toggleSelection(s, outsider.id);
+    expect(job.squad).toContain(outsider.id);
+    job.formation = '3-5-2';
+    const run = playTournament(s, createRng(8), 'wc', 2026);
+    expect(run.userNation?.code).toBe('ENG');
+    if (run.userNation!.reached !== 'Did not qualify') {
+      expect(run.tournament.squads.ENG).toContain(outsider.id);
+      expect(job.w + job.d + job.l).toBeGreaterThanOrEqual(3);
+    }
+    expect(job.tournaments.length).toBe(1);
   });
 });

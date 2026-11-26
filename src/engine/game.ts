@@ -2,7 +2,8 @@ import { formatDate } from './fixtures';
 import { available, fitFor, pickLineup, slotsOf, type Formation, type MatchMods } from './match';
 import { createLive, runToEnd, toResult, type LiveMatch } from './live';
 import { POS_GROUP, abilityFromAttributes, clamp, POSITION_WEIGHTS } from './ratings';
-import { playSummer } from './international';
+import { nationRanking, playSummer } from './international';
+import { jobOffers, managerReputation, tidySelection } from './nationaljob';
 import { NATION, nationCode } from './nations';
 import { createRng } from './rng';
 import { makePlayer, valueFor, wageFor, SQUAD_TEMPLATE } from './world';
@@ -389,7 +390,27 @@ function rollover(state: GameState) {
       ...(mine.length ? [`${mine.length} of our players went: ${mine.map((p) => `${p.name} (${NATION[p.nation].name}, ${p.reached.toLowerCase()})`).join(', ')}.`] : ['None of our players were called up.']),
       ...mine.filter((p) => p.reached === 'Winners').map((p) => `${p.name} is a champion with ${NATION[p.nation].name}!`),
     ] });
+    const un = run.userNation;
+    if (un && state.nationalJob) {
+      const nation = NATION[un.code].name;
+      if (un.reached === 'Winners') state.manager.trophies.push(t.name);
+      const verdict = un.reached === 'Winners' ? `You won the ${t.name} with ${nation}!`
+        : un.reached === 'Did not qualify' ? `${nation} failed to qualify for the ${t.name}.`
+        : un.reached === 'Runners-up' ? `${nation} lost the final of the ${t.name}.`
+        : un.reached === 'Group stage' ? `${nation} went out in the group stage of the ${t.name}.`
+        : `${nation} reached the ${un.reached.toLowerCase()} of the ${t.name}.`;
+      // a big nation that goes out early (or misses out) dismisses its manager
+      const rank = nationRanking(state, createRng(state.year)).findIndex((q) => q.code === un.code) + 1;
+      const sacked = (un.reached === 'Did not qualify' || un.reached === 'Group stage') && rank <= 16;
+      addMessage(state, { category: 'board', from: `${nation} FA`, role: 'National team', subject: sacked ? `${nation} dismiss you` : `${t.name}: ${un.reached}`, body: [
+        verdict,
+        `Your record with ${nation}: ${state.nationalJob.w} won, ${state.nationalJob.d} drawn, ${state.nationalJob.l} lost.`,
+        sacked ? 'The federation expected much more and has ended your contract. Other nations may still call.' : 'The federation would like you to stay on.',
+      ] });
+      if (sacked) state.nationalJob = undefined;
+    }
   }
+  tidySelection(state);
 
   for (const p of Object.values(state.players)) {
     if (p.current.apps) p.career.unshift({ season: label, club: state.clubs[p.clubId]?.name ?? 'Free agent', apps: p.current.apps, goals: p.current.goals, rating: Math.round((p.current.ratingSum / p.current.apps) * 100) / 100, honour: honours[p.clubId] });
@@ -446,6 +467,12 @@ function rollover(state: GameState) {
     `Your transfer budget is ${m(money.transferBudget)} and the wage budget is ${Math.round(money.wageBudget / 1000)}k a week.`,
     ...Object.values(state.comps).filter((c) => c.kind === 'continental' && (state.qualified[c.id] ?? []).includes(us.id)).map((c) => `We have qualified for ${withThe(c.name)}.`),
     ...(money.balance < 0 ? ['The club is in debt. The board has cut the transfer budget and expects you to sell before buying.'] : [])] });
+  if (!state.nationalJob) {
+    const offers = jobOffers(state, nationRanking(state, createRng(state.year * 100 + 7)).map((q) => q.code));
+    if (offers.length) addMessage(state, { category: 'board', from: 'International football', subject: 'National teams would talk to you', body: [
+      `With your reputation (${managerReputation(state)}), these national teams would appoint you alongside your club job: ${offers.map((o) => NATION[o.code].name).join(', ')}.`,
+      'See International → National team to take a job, pick your squad and formation.'] });
+  }
 }
 
 /** CA moves toward PA for young players, declines after 30; attributes follow. */

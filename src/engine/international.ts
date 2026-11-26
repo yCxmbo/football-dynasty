@@ -1,6 +1,6 @@
 /* International football: national-team squads from the world's players, and the summer tournaments
    (World Cup, Euro, Copa América) played between seasons with the same match engine as club football. */
-import { pickLineup } from './match';
+import { pickLineup, type Formation } from './match';
 import { createLive, runToEnd, toResult } from './live';
 import { NATION, NATIONS, type Confed } from './nations';
 import type { Rng } from './rng';
@@ -44,7 +44,7 @@ export const tournamentName = (id: TournamentId) => SPECS[id].name;
 /* ---------- national squads ---------- */
 const DEPTH: Array<[Player['pos'], number]> = [['GK', 3], ['CB', 4], ['LB', 2], ['RB', 2], ['DM', 2], ['CM', 3], ['AM', 2], ['LW', 2], ['RW', 2], ['ST', 4]];
 
-export interface NationalSquad { code: string; players: Player[]; xi: Player[]; bench: Player[]; strength: number; called: string[] }
+export interface NationalSquad { code: string; players: Player[]; xi: Player[]; bench: Player[]; strength: number; called: string[]; formation: Formation }
 
 function byNation(s: GameState) {
   const m = new Map<string, Player[]>();
@@ -56,7 +56,7 @@ function byNation(s: GameState) {
 }
 
 /** Best 26: the world's players of that nationality plus generated depth players where there are too few good ones. */
-function nationalSquad(code: string, pool: Player[], rng: Rng, year: number): NationalSquad {
+function nationalSquad(code: string, pool: Player[], rng: Rng, year: number, pick?: { ids: string[]; formation: Formation }): NationalSquad {
   const n = NATION[code];
   const base = n.ovr * 2 - 10;
   const depth: Player[] = [];
@@ -69,16 +69,19 @@ function nationalSquad(code: string, pool: Player[], rng: Rng, year: number): Na
   // squad fillers from the world's start play at their nation's usual level at most
   const cap = base + 6;
   const capped = pool.map((p) => (p.filler && p.ability > cap ? { ...p, ability: cap } : p));
-  const all = [...capped, ...depth].sort((a, b) => b.ability - a.ability);
+  // your selection goes in first (if you manage this nation); the best of the rest fill the 26
+  const chosen = new Set(pick?.ids ?? []);
+  const all = [...capped, ...depth].sort((a, b) => (chosen.has(b.id) ? 1 : 0) - (chosen.has(a.id) ? 1 : 0) || b.ability - a.ability);
   const gks = all.filter((p) => p.pos === 'GK').slice(0, 3);
   const outfield = all.filter((p) => p.pos !== 'GK').slice(0, 23);
   // fresh for the summer, and everyone counts as first team for selection
   const players = [...gks, ...outfield].map((p) => ({ ...p, condition: 100, squad: 'First team' as const, suspendedFor: 0 }));
-  const ids = pickLineup(players, '4-3-3');
+  const formation = pick?.formation ?? '4-3-3';
+  const ids = pickLineup(players, formation);
   const xi = ids.map((id) => players.find((p) => p.id === id)!).filter(Boolean);
   const bench = players.filter((p) => !ids.includes(p.id)).slice(0, 12);
   const strength = xi.reduce((a, p) => a + p.ability, 0) / Math.max(1, xi.length);
-  return { code, players, xi, bench, strength, called: players.filter((p) => !p.id.startsWith('nt-')).map((p) => p.id) };
+  return { code, players, xi, bench, strength, formation, called: players.filter((p) => !p.id.startsWith('nt-')).map((p) => p.id) };
 }
 
 /** Strength of every nation now (average ability of its best XI), strongest first. */
@@ -113,13 +116,18 @@ function bracket(n: number): number[] {
   return order;
 }
 
-export interface TournamentRun { tournament: Tournament; messages: string[]; userPlayers: Array<{ id: string; name: string; nation: string; reached: string }> }
+export interface TournamentRun { tournament: Tournament; messages: string[]; userPlayers: Array<{ id: string; name: string; nation: string; reached: string }>; /** Your national team, if you manage one that could take part. */ userNation?: { code: string; reached: string } }
 
 export function playTournament(s: GameState, rng: Rng, id: TournamentId, year: number): TournamentRun {
   const spec = SPECS[id];
   const pools = byNation(s);
   const squads = new Map<string, NationalSquad>();
-  const squadOf = (code: string) => { let q = squads.get(code); if (!q) { q = nationalSquad(code, pools.get(code) ?? [], rng, s.year); squads.set(code, q); } return q; };
+  const job = s.nationalJob;
+  const squadOf = (code: string) => {
+    let q = squads.get(code);
+    if (!q) { q = nationalSquad(code, pools.get(code) ?? [], rng, s.year, job?.code === code ? { ids: job.squad, formation: job.formation } : undefined); squads.set(code, q); }
+    return q;
+  };
 
   // qualification: hosts, then the strongest of each confederation with some luck (the qualifiers)
   const known = HOSTS[`${id}-${year}`];
@@ -158,10 +166,14 @@ export function playTournament(s: GameState, rng: Rng, id: TournamentId, year: n
   const play = (h: string, a: string, stage: string, g?: number) => {
     const H = squadOf(h), A = squadOf(a);
     const homeAdv = hosts.includes(h) && !hosts.includes(a);
-    const lm = createLive(rng.int(0, 2 ** 30), { xi: H.xi, bench: H.bench, formation: '4-3-3', name: NATION[h].name }, { xi: A.xi, bench: A.bench, formation: '4-3-3', name: NATION[a].name },
+    const lm = createLive(rng.int(0, 2 ** 30), { xi: H.xi, bench: H.bench, formation: H.formation, name: NATION[h].name }, { xi: A.xi, bench: A.bench, formation: A.formation, name: NATION[a].name },
       homeAdv ? `${NATION[h].name} home stadium` : 'Neutral venue', { neutral: !homeAdv, knockout: stage !== 'Group', homeBoost: (homeAdv ? 1.04 : 1) * edge(H.strength), awayBoost: edge(A.strength) });
     runToEnd(lm);
     const { result } = toResult(lm, h, a);
+    if (job && (h === job.code || a === job.code)) {
+      const [us, them] = h === job.code ? result.score : [result.score[1], result.score[0]];
+      if (us > them) job.w++; else if (us < them) job.l++; else job.d++;
+    }
     const m: IntlMatch = { h, a, s: result.score, stage, ...(g !== undefined ? { g } : {}), ...(result.pens ? { p: result.pens } : {}) };
     t.matches.push(m);
     for (const [side, code, sq] of [['home', h, H], ['away', a, A]] as const) {
@@ -233,7 +245,12 @@ export function playTournament(s: GameState, rng: Rng, id: TournamentId, year: n
     ...(t.topScorer ? [`Golden Boot: ${t.topScorer.name} (${NATION[t.topScorer.nation].name}), ${t.topScorer.goals} goals.`] : []),
     ...(t.bestPlayer ? [`Player of the tournament: ${t.bestPlayer.name} (${NATION[t.bestPlayer.nation].name}).`] : []),
   ];
-  return { tournament: t, messages, userPlayers };
+  let userNation: TournamentRun['userNation'];
+  if (job && spec.confeds[NATION[job.code].confed] !== undefined) {
+    userNation = { code: job.code, reached: reached.get(job.code) ?? 'Did not qualify' };
+    job.tournaments.push({ name: t.name, reached: userNation.reached });
+  }
+  return { tournament: t, messages, userPlayers, userNation };
 }
 
 /** Plays this summer's tournaments and stores them. Returns news for the inbox. */

@@ -6,6 +6,7 @@ import { createRng } from '../engine/rng';
 import type { GameState } from '../engine/types';
 import { badgeUrl } from './badge';
 import type { Screen } from './shared';
+import NationalTeam from './NationalTeam';
 
 const KNOWN_HOSTS: Record<string, string> = { 'FIFA World Cup 2026': 'USA, Mexico and Canada', 'FIFA World Cup 2030': 'Spain, Portugal and Morocco', 'FIFA World Cup 2034': 'Saudi Arabia', 'UEFA Euro 2028': 'the UK and Ireland', 'UEFA Euro 2032': 'Italy and Turkey' };
 const KO_ORDER = ['Final', 'Semi-final', 'Quarter-final', 'Round of 16', 'Round of 32'];
@@ -82,7 +83,7 @@ function TournamentView({ g, t, go }: { g: GameState; t: Tournament; go: (s: Scr
   );
 }
 
-export default function International({ g, go }: { g: GameState; go: (s: Screen, id?: string) => void }) {
+export default function International({ g, go, update }: { g: GameState; go: (s: Screen, id?: string) => void; update: (fn: (d: GameState) => void) => void }) {
   const past = (g.internationals ?? []).slice().reverse();
   const [tab, setTab] = useState<string>(past[0]?.name ?? 'ranking');
   const ranking = useMemo(() => nationRanking(g, createRng(g.year * 100 + 7)), [g.year, g.internationals?.length]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -104,11 +105,13 @@ export default function International({ g, go }: { g: GameState; go: (s: Screen,
 
       <div className="fd-seg" role="tablist" aria-label="Tournaments" style={{ alignSelf: 'flex-start', flexWrap: 'wrap' }}>
         <button type="button" role="tab" aria-selected={tab === 'ranking'} className={'fd-seg__opt' + (tab === 'ranking' ? ' is-on' : '')} onClick={() => setTab('ranking')}>World ranking</button>
+        <button type="button" role="tab" aria-selected={tab === 'job'} className={'fd-seg__opt' + (tab === 'job' ? ' is-on' : '')} onClick={() => setTab('job')}>{g.nationalJob ? nationName(g.nationalJob.code) : 'National team'}</button>
         {past.map((t) => <button key={t.name} type="button" role="tab" aria-selected={tab === t.name} className={'fd-seg__opt' + (tab === t.name ? ' is-on' : '')} onClick={() => setTab(t.name)}>{t.name}</button>)}
         {past.length > 0 && <button type="button" role="tab" aria-selected={tab === 'honours'} className={'fd-seg__opt' + (tab === 'honours' ? ' is-on' : '')} onClick={() => setTab('honours')}>Roll of honour</button>}
       </div>
 
       {current ? <TournamentView g={g} t={current} go={go} />
+        : tab === 'job' ? <NationalTeam g={g} go={go} update={update} ranking={ranking.map((q) => q.code)} />
         : tab === 'honours' ? (
           <section className="pg-card">
             <table className="fd-mini"><thead><tr><th>Tournament</th><th>Winners</th><th>Runners-up</th><th>Golden Boot</th></tr></thead><tbody>

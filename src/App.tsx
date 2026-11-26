@@ -161,7 +161,7 @@ export default function App() {
     case 'tactics': body = <Tactics g={g} liveNote={!!live} onAutoRotate={(on) => update((d) => setAutoRotate(d, on))} onChange={(f: Formation, l: string[]) => update((d) => setTactics(d, f, l))} />; break;
     case 'fixtures': body = <Fixtures g={g} go={go} />; break;
     case 'table': body = <Table g={g} go={go} />; break;
-    case 'international': body = <International g={g} go={go} />; break;
+    case 'international': body = <International g={g} go={go} update={update} />; break;
     case 'match': body = <Match key={live?.fixtureId ?? param} g={g} id={live?.fixtureId ?? param} live={live} setLive={setLive} go={go} onFinish={finishLive} />; break;
     case 'youth': body = <Youth g={g} go={go} onPromote={(id) => update((d) => promote(d, id))} />; break;
     case 'history': body = <History g={g} />; break;

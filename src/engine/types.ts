@@ -160,6 +160,8 @@ export interface GameState {
   qualified: Record<string, string[]>;
   /** Summer tournaments played so far (World Cup, Euro, Copa América). */
   internationals?: import('./international').Tournament[];
+  /** The national team you manage alongside your club, if any. */
+  nationalJob?: import('./nationaljob').NationalJob;
   inbox: InboxMessage[];
   history: Record<string, SeasonRecord[]>; // by club id
   trophies: Record<string, Trophy[]>; // by club id

@@ -23,6 +23,8 @@ export interface LiveMatch {
   rng: number; minute: number; done: boolean; neutral: boolean; knockout: boolean; venue: string;
   home: LiveSide; away: LiveSide;
   score: [number, number]; pens?: [number, number]; events: MatchEvent[]; order: number;
+  /** Team talks given by the user (before kickoff, at half-time). */
+  talks?: { pre?: TalkTone; ht?: TalkTone };
   stats: { shots: [number, number]; onTarget: [number, number]; xg: [number, number]; corners: [number, number]; fouls: [number, number]; possession: number; passAcc: [number, number] };
   players: Record<string, Snap>; perf: Record<string, Perf>;
   /** Which side each squad member belongs to. */
@@ -263,3 +265,42 @@ export function toResult(lm: LiveMatch, homeId: string, awayId: string): { resul
 }
 
 const count = (lm: LiveMatch, key: SideKey, c: 'yellow' | 'red') => Object.entries(lm.perf).filter(([id, p]) => lm.sideOf[id] === key && p.card === c).length;
+
+/* ---------- team talks ---------- */
+export type TalkTone = 'encourage' | 'demand' | 'calm';
+export const TALKS: Array<{ tone: TalkTone; label: string }> = [
+  { tone: 'encourage', label: 'Encourage: “Go out and enjoy it”' },
+  { tone: 'demand', label: 'Demand more: “I expect a reaction”' },
+  { tone: 'calm', label: 'Keep calm: “Stick to the plan”' },
+];
+
+/** Whether the match is waiting for the user's team talk (kickoff or half-time). */
+export function talkDue(lm: LiveMatch, key: SideKey) {
+  if (!lm[key].user || lm.done) return null;
+  if (lm.minute === 0 && !lm.talks?.pre) return 'pre' as const;
+  if (lm.minute === 45 && !lm.talks?.ht) return 'ht' as const;
+  return null;
+}
+
+/** Gives a team talk: the effect depends on the situation, and the players' reaction goes into the commentary. */
+export function teamTalk(lm: LiveMatch, key: SideKey, tone: TalkTone | 'skip') {
+  const when = talkDue(lm, key);
+  if (!when) return;
+  (lm.talks ??= {})[when] = tone === 'skip' ? 'calm' : tone;
+  if (tone === 'skip') return;
+  const us = lm[key], them = lm[key === 'home' ? 'away' : 'home'];
+  const avg = (s: LiveSide) => { const ids = s.xi.filter((x): x is string => !!x); return ids.reduce((a, id) => a + lm.players[id].ability, 0) / Math.max(1, ids.length); };
+  const diff = when === 'pre' ? (avg(us) - avg(them)) / 10 : (key === 'home' ? lm.score[0] - lm.score[1] : lm.score[1] - lm.score[0]);
+  const situation = diff > 0.5 ? 'ahead' : diff < -0.5 ? 'behind' : 'level';
+  // what works: calm when on top, a demand when behind, encouragement when it's even (or as underdogs before kickoff)
+  const table: Record<string, Record<TalkTone, number>> = {
+    ahead: { calm: 0.03, encourage: 0.01, demand: -0.015 },
+    level: { calm: 0, encourage: 0.025, demand: 0.015 },
+    behind: when === 'pre' ? { calm: 0.005, encourage: 0.03, demand: -0.02 } : { calm: -0.01, encourage: 0.015, demand: 0.035 },
+  };
+  const rng = createRng(lm.rng ^ 0x7a1c);
+  const effect = table[situation][tone] + rng.normal(0, 0.006);
+  us.boost = Math.round(us.boost * (1 + effect) * 10000) / 10000;
+  const reaction = effect > 0.02 ? 'The players look fired up.' : effect > 0.005 ? 'The players respond well.' : effect > -0.005 ? 'The players seem unmoved.' : 'The message doesn’t land; heads drop in the dressing room.';
+  push(lm, { minute: lm.minute, type: 'whistle', side: key, text: `${when === 'pre' ? 'Team talk' : 'Half-time team talk'} (${tone === 'encourage' ? 'encourage' : tone === 'demand' ? 'demand more' : 'keep calm'}): ${reaction}` });
+}

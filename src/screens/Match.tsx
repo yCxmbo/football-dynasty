@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FD } from '../ds';
 import { compInfo } from '../engine/competitions';
-import { MAX_SUBS, ratingOf, substitute, tick, type LiveMatch } from '../engine/live';
+import { MAX_SUBS, ratingOf, substitute, tick, type LiveMatch, TALKS, talkDue, teamTalk } from '../engine/live';
 import { slotsOf } from '../engine/match';
 import type { GameState, MatchStats } from '../engine/types';
 import type { Screen } from './shared';
@@ -19,9 +19,11 @@ export default function Match({ g, id, live, setLive, go, onFinish }: {
   const [speed, setSpeed] = useState<string>('2');
   const [subOpen, setSubOpen] = useState(false);
   const lm = live?.lm;
+  const userKey = f && f.homeId === g.userClubId ? 'home' : 'away';
+  const talk = isLive && lm ? talkDue(lm, userKey) : null;
 
   useEffect(() => {
-    if (!isLive || !lm || lm.done || speed === 'pause' || subOpen) return;
+    if (!isLive || !lm || lm.done || speed === 'pause' || subOpen || talk) return;
     const t = setTimeout(() => setLive((prev) => {
       if (!prev) return prev;
       const next = structuredClone(prev.lm);
@@ -29,7 +31,7 @@ export default function Match({ g, id, live, setLive, go, onFinish }: {
       return { ...prev, lm: next };
     }), TICK_MS[speed] ?? 300);
     return () => clearTimeout(t);
-  }, [isLive, lm, speed, subOpen, setLive]);
+  }, [isLive, lm, speed, subOpen, talk, setLive]);
 
   const view = useMemo(() => {
     if (!f) return null;
@@ -83,6 +85,20 @@ export default function Match({ g, id, live, setLive, go, onFinish }: {
         onSubstitute={() => setSubOpen(true)}
         onContinue={() => (isLive ? onFinish() : go('fixtures'))}
       />
+      {talk && isLive && lm && (
+        <div className="sub-backdrop" role="dialog" aria-modal="true" aria-label="Team talk">
+          <div className="pg-card talk-panel">
+            <h2 className="pg-title" style={{ fontSize: 24, lineHeight: '28px', margin: 0 }}>{talk === 'pre' ? 'Team talk before kickoff' : `Half-time team talk · ${lm.score[0]}–${lm.score[1]}`}</h2>
+            <p className="hm-note" style={{ margin: 0 }}>What works depends on the moment: keep calm when you're on top, demand more when you're behind, encourage when it's even. The players' reaction shows in the commentary.</p>
+            <div className="talk-options">
+              {TALKS.map((t) => (
+                <FD.Button key={t.tone} variant="secondary" onClick={() => setLive((prev) => { if (!prev) return prev; const next = structuredClone(prev.lm); teamTalk(next, userKey, t.tone); return { ...prev, lm: next }; })}>{t.label}</FD.Button>
+              ))}
+              <FD.Button variant="ghost" onClick={() => setLive((prev) => { if (!prev) return prev; const next = structuredClone(prev.lm); teamTalk(next, userKey, 'skip'); return { ...prev, lm: next }; })}>Say nothing</FD.Button>
+            </div>
+          </div>
+        </div>
+      )}
       {subOpen && isLive && lm && side && (
         <SubPanel lm={lm} sideKey={view.key as 'home' | 'away'} onClose={() => setSubOpen(false)}
           onSub={(off, on) => {

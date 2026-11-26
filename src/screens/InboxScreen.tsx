@@ -2,7 +2,7 @@ import { FD } from '../ds';
 import type { GameState } from '../engine/types';
 import type { Screen } from './shared';
 
-export default function InboxScreen({ g, selectedId, onOpen, onBid, go }: { g: GameState; selectedId?: string; onOpen: (id: string) => void; onBid: (bidId: string, accept: boolean) => void; go: (s: Screen, id?: string) => void }) {
+export default function InboxScreen({ g, selectedId, onOpen, onBid, onAnswer, go }: { g: GameState; selectedId?: string; onOpen: (id: string) => void; onBid: (bidId: string, accept: boolean) => void; onAnswer: (messageId: string, option: number) => void; go: (s: Screen, id?: string) => void }) {
   if (!g.inbox.length) return <div className="pg-empty">No messages yet.</div>;
   const messages = g.inbox.map((m) => {
     const bid = m.bidId ? g.bids.find((b) => b.id === m.bidId) : undefined;
@@ -12,9 +12,11 @@ export default function InboxScreen({ g, selectedId, onOpen, onBid, go }: { g: G
       actions.push(<FD.Button key="a" size="sm" icon="transfers" onClick={() => onBid(bid!.id, true)}>Accept bid</FD.Button>);
       actions.push(<FD.Button key="r" size="sm" variant="secondary" onClick={() => onBid(bid!.id, false)}>Reject</FD.Button>);
     }
+    const ask = m.choice && m.choice.answered === undefined && m.choice.options.length > 0;
+    if (ask) m.choice!.options.forEach((o, i) => actions.push(<FD.Button key={`c${i}`} size="sm" variant={i === 0 ? 'primary' : 'secondary'} onClick={() => onAnswer(m.id, i)}>{o}</FD.Button>));
     if (m.playerId && g.players[m.playerId]) actions.push(<FD.Button key="v" size="sm" variant="ghost" onClick={() => go('player', m.playerId)}>View player</FD.Button>);
     const status = bid && !open ? [`This bid was ${bid.status}.`] : [];
-    return { ...m, body: [...m.body, ...status], needsReply: open, actions: actions.length ? actions : undefined };
+    return { ...m, body: [...m.body, ...status], needsReply: open || ask, actions: actions.length ? actions : undefined };
   });
   return (
     <div>

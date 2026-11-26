@@ -5,6 +5,7 @@ import { POS_GROUP, abilityFromAttributes, clamp, POSITION_WEIGHTS } from './rat
 import { nationRanking, playSummer } from './international';
 import { jobOffers, managerReputation, tidySelection } from './nationaljob';
 import { returnLoans } from './loans';
+import { pressAfterMatch, weeklyMood } from './media';
 import { developmentBoost, initStaff, injuryLengthFactor, moraleRecoveryChance, recoveryBonus, refreshPool, youthPotentialBonus } from './staff';
 import { career, makeOffers, midSeasonVerdict, seasonVerdict, vacanciesAfterSeason } from './career';
 import { NATION, nationCode } from './nations';
@@ -238,6 +239,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
   if (leagueWeek) {
     financeWeek(state, leagueIds, homeIds, positions);
     for (const p of squadOf(state, state.userClubId)) if (p.morale === 'low' && rng.chance(moraleRecoveryChance(state))) p.morale = 'ok';
+    weeklyMood(state, rng, slot.week);
     for (const msg of trainingWeek(rng, state, squadOf(state, state.userClubId))) addMessage(state, { category: 'training', from: 'Head coach', role: 'Training ground', subject: 'Training update', body: [msg] });
     // about five development steps a season, whatever the league length (small steps would round away)
     const every = Math.max(4, Math.round(state.leagueWeeks / 5.5));
@@ -271,7 +273,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     if (slot.week === win.summerUntil || slot.week === win.januaryTo) state.negotiations = {};
   }
   const uf = state.fixtures.find((f) => f.matchday === md && involves(f, state.userClubId));
-  if (uf) postMatchMessages(state, uf);
+  if (uf) { postMatchMessages(state, uf); pressAfterMatch(state, createRng((state.rngState ^ 0x9e37) >>> 0), uf); }
   for (const line of cupNews) if (line.includes(state.clubs[state.userClubId].name) || line.startsWith('Continental')) addMessage(state, { category: 'media', from: 'Football news', subject: line, body: [line] });
   if (seasonOver(state)) seasonEndMessage(state);
   return uf;

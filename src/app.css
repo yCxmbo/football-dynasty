@@ -166,3 +166,4 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .careers { display: flex; flex-direction: column; gap: var(--space-2); }
 .careers td { vertical-align: middle; }
 .st__block { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4) 0; border-top: 1px solid var(--line); }
+.career-out { border-color: var(--danger, #e5484d); display: flex; flex-direction: column; gap: 6px; }

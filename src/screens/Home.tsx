@@ -4,6 +4,7 @@ import { compInfo, cupResult, topLeague, withThe } from '../engine/competitions'
 import type { GameState } from '../engine/types';
 import { fixtureCardProps, leagueLabel, zonesFor } from './comp-ui';
 import { toCur } from '../store';
+import { boardConfidence, confidenceWord } from '../engine/career';
 import type { Screen } from './shared';
 import { bidsFor } from './shared-transfers';
 
@@ -20,8 +21,8 @@ export default function Home({ g, go, onPlay }: { g: GameState; go: (s: Screen, 
   const cups = Object.values(g.comps).filter((c) => c.kind === 'cup' || c.kind === 'continental').map((c) => ({ c: c.id, r: cupResult(g, c.id, club.id) })).filter((x) => x.r);
   void topLeague;
   const over = seasonOver(g);
-  const conf = played === 0 ? 70 : Math.max(5, Math.min(98, 100 - (pos - target.pos) * 12 - (pos > target.pos ? 10 : 0)));
-  const confWord = conf >= 80 ? 'Very pleased' : conf >= 60 ? 'Satisfied' : conf >= 40 ? 'Concerned' : 'Losing patience';
+  const conf = boardConfidence(g, target);
+  const confWord = confidenceWord(conf);
   const mine = Object.values(g.players).filter((p) => p.clubId === g.userClubId);
   const alerts = [
     ...bidsFor(g).map(({ b, p }) => ({ icon: 'transfers', tone: 'fd-ok', t: `Bid for ${p.name}`, s: `${g.clubs[b.fromClubId].name} offer ${FD.formatMoney(toCur(b.fee, cur), cur)}`, id: p.id, screen: 'scouting' as Screen })),

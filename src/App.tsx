@@ -22,6 +22,7 @@ import { runToEnd } from './engine/live';
 import { summerTournaments, tournamentName } from './engine/international';
 import NewGame from './screens/NewGame';
 import International from './screens/International';
+import Career from './screens/Career';
 import Placeholder from './screens/Placeholder';
 import PlayerScreen from './screens/PlayerScreen';
 import Settings from './screens/Settings';
@@ -67,7 +68,7 @@ export default function App() {
       if (lm) { setLive({ fixtureId: fx.id, lm }); setScreen('match'); setParam(fx.id); }
       return;
     }
-    update((d) => { do { playMatchday(d); } while (!seasonOver(d) && !userFixture(d)); });
+    update((d) => { do { playMatchday(d); } while (!seasonOver(d) && !userFixture(d) && !d.career?.sacked); });
     go('home');
   };
 
@@ -81,7 +82,7 @@ export default function App() {
     setSim('Simulating…');
     await new Promise((r) => setTimeout(r, 20));
     let steps = 0;
-    while (!seasonOver(d) && !stopSim.current) {
+    while (!seasonOver(d) && !stopSim.current && !d.career?.sacked) {
       const hadMatch = !!userFixture(d);
       playMatchday(d);
       steps++;
@@ -95,7 +96,7 @@ export default function App() {
     }
     setGame(d);
     setSim(null);
-    go('home');
+    go(d.career?.sacked ? 'career' : 'home');
   };
 
   /** Season rollover, including any summer tournament, behind the progress box. */
@@ -107,7 +108,7 @@ export default function App() {
     startNewSeason(d);
     setGame(d);
     setSim(null);
-    go(t.length ? 'international' : 'home');
+    go(d.career?.sacked ? 'career' : t.length ? 'international' : 'home');
   };
 
   const over = seasonOver(g);
@@ -121,7 +122,9 @@ export default function App() {
     setLive(null);
     go('home');
   };
-  const primary = live
+  const outOfWork = !!g.career?.sacked;
+  const primary = outOfWork ? <span style={{ color: 'var(--on-navy-muted)', fontSize: 13, fontWeight: 600 }}>Out of work</span>
+    : live
     ? (screen === 'match' ? <span style={{ color: 'var(--on-navy-muted)', fontSize: 13, fontWeight: 600 }}>Match in progress</span>
       : <FD.Button icon="play" onClick={() => setScreen('match')}>Back to match</FD.Button>)
     : over ? <FD.Button icon="trophy" onClick={() => void startSeason()}>Start {seasonLabel(g.year + 1)}</FD.Button>
@@ -164,6 +167,7 @@ export default function App() {
     case 'tactics': body = <Tactics g={g} liveNote={!!live} onAutoRotate={(on) => update((d) => setAutoRotate(d, on))} onChange={(f: Formation, l: string[]) => update((d) => setTactics(d, f, l))} />; break;
     case 'fixtures': body = <Fixtures g={g} go={go} />; break;
     case 'table': body = <Table g={g} go={go} />; break;
+    case 'career': body = <Career g={g} go={go} update={update} />; break;
     case 'international': body = <International g={g} go={go} update={update} />; break;
     case 'match': body = <Match key={live?.fixtureId ?? param} g={g} id={live?.fixtureId ?? param} live={live} setLive={setLive} go={go} onFinish={finishLive} />; break;
     case 'youth': body = <Youth g={g} go={go} onPromote={(id) => update((d) => promote(d, id))} />; break;
@@ -172,6 +176,8 @@ export default function App() {
     case 'settings': body = <Settings g={g} theme={theme} setTheme={setTheme} setCurrency={(c) => update((d) => { d.currency = c; })} onNewCareer={() => { leave(); setScreen('home'); }} careers={careers} activeId={activeId} onLoad={(id) => { void loadCareer(id); setScreen('home'); }} onDelete={(id) => void deleteCareer(id)} onImport={async (t) => { const e = await importSave(t); if (!e) go('home'); return e; }} />; break;
     default: body = <Placeholder id={screen} />;
   }
+  // out of work: only the career screen until you take a new job
+  if (outOfWork && !live) body = <Career g={g} go={go} update={update} />;
 
   return (
     <FD.AppFrame

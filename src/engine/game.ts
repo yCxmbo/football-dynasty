@@ -4,6 +4,7 @@ import { createLive, runToEnd, toResult, type LiveMatch } from './live';
 import { POS_GROUP, abilityFromAttributes, clamp, POSITION_WEIGHTS } from './ratings';
 import { nationRanking, playSummer } from './international';
 import { jobOffers, managerReputation, tidySelection } from './nationaljob';
+import { career, makeOffers, midSeasonVerdict, seasonVerdict, vacanciesAfterSeason } from './career';
 import { NATION, nationCode } from './nations';
 import { createRng } from './rng';
 import { makePlayer, valueFor, wageFor, SQUAD_TEMPLATE } from './world';
@@ -44,6 +45,7 @@ export function newGame(opts: NewGameOpts): GameState {
   setupSeason(state, rng);
   state.rngState = rng.state();
   state.lineup = pickLineup(squadOf(state, opts.userClubId));
+  career(state);
   for (const p of Object.values(players)) p.caStart = p.ability;
   state.ledger.balanceHistory.push(clubs[opts.userClubId].balance);
   const club = clubs[opts.userClubId];
@@ -192,7 +194,7 @@ function slim(f: Fixture) {
 /** Plays every fixture in the current calendar slot. Returns the user's fixture (with result), if any. */
 /** Plays every fixture in the current calendar slot. Pass the user's live match to use its result (with their substitutions). */
 export function playMatchday(state: GameState, live?: { fixtureId: string; lm: LiveMatch }): Fixture | undefined {
-  if (seasonOver(state)) return undefined;
+  if (seasonOver(state) || state.career?.sacked) return undefined;
   return withSquadIndex(state, () => playSlot(state, live));
 }
 
@@ -241,6 +243,15 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
       }
     }
     if (slot.week === state.leagueWeeks) setupPlayoffs(state);
+    // a board that has lost all faith acts before the season is out
+    if (slot.week % 4 === 0 && state.clubs[state.userClubId].league && midSeasonVerdict(state, boardTarget(state, state.userClubId), slot.week)) {
+      const c = career(state);
+      c.sacked = true;
+      c.offers = makeOffers(state, rng, c.vacancies, 'sacked');
+      addMessage(state, { category: 'board', from: 'The board', role: state.clubs[state.userClubId].name, subject: 'You have been sacked', body: [
+        `Results have fallen far short of the target (${boardTarget(state, state.userClubId).text}). The board has decided to make a change, effective immediately.`,
+        `${c.offers.length} club${c.offers.length === 1 ? '' : 's'} would give you a new start. Choose one on the Career screen to carry on.`] });
+    }
   }
   state.rngState = rng.state();
   state.matchday++;
@@ -376,6 +387,29 @@ function rollover(state: GameState) {
     if (!w) continue;
     award(state, w, c.name, c.kind === 'continental' ? 'continental' : c.kind === 'super' ? 'super' : 'cup', label);
     if (c.kind !== 'super') honours[w] = honours[w] ? `${honours[w]}, ${c.name}` : c.name;
+  }
+  // the board's verdict on your season, vacancies elsewhere, and offers
+  {
+    const c = career(state);
+    const us = state.clubs[state.userClubId];
+    if (us.league) {
+      const target = boardTarget(state, us.id);
+      const t = leagueTableOf(state, us.league);
+      const pos = t.findIndex((r) => r.clubId === us.id) + 1;
+      const won = Object.values(state.comps).filter((x) => x.kind !== 'league' && x.kind !== 'playoff' && state.cups[x.id]?.winner === us.id).length;
+      const sacked = seasonVerdict(state, target, { pos, champion: pos === 1, promoted: moves[us.id]?.dir === 'promoted', relegated: moves[us.id]?.dir === 'relegated', trophies: won });
+      c.vacancies = vacanciesAfterSeason(state, rng, (id) => boardTarget(state, id));
+      c.offers = sacked ? makeOffers(state, rng, c.vacancies, 'sacked') : c.trust >= 60 ? makeOffers(state, rng, c.vacancies, 'good') : [];
+      if (sacked) {
+        c.sacked = true;
+        addMessage(state, { category: 'board', from: 'The board', role: us.name, subject: 'You have been sacked', body: [
+          `Finishing ${ordinal(pos)} against a target of ${target.text} was not good enough. The board has ended your contract.`,
+          `${c.offers.length} club${c.offers.length === 1 ? '' : 's'} would give you a new start, and ${c.vacancies.length} clubs are looking for a manager. Choose your next job on the Career screen.`] });
+      } else if (c.offers.length) {
+        addMessage(state, { category: 'board', from: 'Your agent', subject: `${c.offers.length} club${c.offers.length === 1 ? '' : 's'} want you`, body: [
+          ...c.offers.map((o) => o.note), 'You can accept on the Career screen until the end of next season, or stay where you are.'] });
+      }
+    }
   }
   const tables = Object.fromEntries(state.world.leagues.map((l) => [l.id, leagueTableOf(state, l.id)]));
   const money = seasonFinances(state, tables);
@@ -628,6 +662,7 @@ export function migrate(state: GameState): GameState {
   state.knowledge ??= {}; state.scouting ??= []; state.shortlist ??= []; state.transferListed ??= [];
   state.bids ??= []; state.negotiations ??= {}; state.installments ??= [];
   state.training ??= defaultTraining(); state.ledger ??= emptyLedger(); state.autoRotate ??= true;
+  career(state);
   return state;
 }
 

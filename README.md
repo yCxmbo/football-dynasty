@@ -67,6 +67,11 @@ The game saves automatically in the browser (IndexedDB), and you can keep severa
 - **Tactics:** 4-3-3, 4-4-2, 4-2-3-1 or 3-5-2; click two players to swap; out-of-position players perform worse.
 - **Academy:** youth players have silver stars; promoting one to the first team gives a professional contract and gold stars.
 - **Season end:** player development (young players grow toward potential, veterans decline), retirements, a youth intake, the board's review, and club history (trophy cabinet, season-by-season record, records, hall of fame, your manager career).
+- **Manager career:**
+  - The board's confidence carries over between seasons. Miss your target badly (or get relegated) and you're sacked at season end; a collapse mid-season can cost you the job before then.
+  - Out of work, you choose your next club from offers (smaller clubs, any country) or apply for vacancies: clubs that changed manager after their own poor season. Your chance depends on your reputation against the club's.
+  - A good season brings offers from bigger clubs. You can also resign.
+  - Moving abroad works too: the new club gets an academy, and your career record lists every club with its seasons, results and trophies (Career screen).
 - **Inbox:** board, media, medical, youth, league and transfer messages; bids can be accepted or rejected from the inbox.
 - **Transfers:**
   - Two windows: pre-season through league week 4, and three weeks in mid-season.
@@ -115,6 +120,7 @@ src/
     builtin.ts     the fictional world and the template world file
     nations.ts     national teams: confederations, strength, colours, nationalities for generated players
     namepools.ts   invented names that fit each nationality
+    career.ts      board confidence, the sack, offers, vacancies, moving clubs
     nationaljob.ts managing a national team: reputation, offers, squad selection
     international.ts national squads, World Cup / Euro / Copa América: qualification, draw, groups, knockouts
     competitions.ts data-driven calendar, leagues, cups, continental groups, knockouts, play-offs, promotion/relegation, qualification

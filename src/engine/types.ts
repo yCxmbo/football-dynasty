@@ -162,6 +162,8 @@ export interface GameState {
   internationals?: import('./international').Tournament[];
   /** The national team you manage alongside your club, if any. */
   nationalJob?: import('./nationaljob').NationalJob;
+  /** Your career across clubs: board trust, offers, vacancies, past clubs. */
+  career?: import('./career').CareerState;
   inbox: InboxMessage[];
   history: Record<string, SeasonRecord[]>; // by club id
   trophies: Record<string, Trophy[]>; // by club id

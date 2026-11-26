@@ -22,7 +22,7 @@ export function moraleOf(p: Player) { return p.morale; }
 /** Player → design-system SquadTable row (money converted to the chosen currency). */
 export function squadRow(p: Player, cur: Currency, year: number, selected?: boolean) {
   return {
-    id: p.id, number: p.number, name: p.name, pos: p.pos, age: p.age, ability: p.ability, potential: p.potential,
+    id: p.id, number: p.number, name: p.loan ? `${p.name} (loan)` : p.name, pos: p.pos, age: p.age, ability: p.ability, potential: p.potential,
     knowledge: 100, morale: p.morale, wage: toCur(p.wage, cur), contractEnd: p.contractEnd + 1, captain: p.captain,
     squad: p.squad, contractType: p.contractType, selected,
     status: p.injuredFor > 0 ? 'injured' : p.suspendedFor > 0 ? 'suspended' : p.squad === 'First team' && p.contractEnd <= year ? 'expiring' : undefined,

@@ -157,7 +157,7 @@ export default function App() {
     case 'squad': body = <Squad g={g} go={go} />; break;
     case 'player': body = <PlayerScreen g={g} id={param} go={go} act={{
       promote: (id) => update((d) => promote(d, id)), scout: (id) => update((d) => { startScouting(d, id); }),
-      shortlist: (id) => update((d) => toggleShortlist(d, id)), transferList: (id) => update((d) => toggleTransferList(d, id)) }} />; break;
+      shortlist: (id) => update((d) => toggleShortlist(d, id)), transferList: (id) => update((d) => toggleTransferList(d, id)) }} update={update} />; break;
     case 'transfers': body = <Transfers g={g} go={go} update={update} />; break;
     case 'scouting': body = <Scouting g={g} go={go} update={update} />; break;
     case 'offer': body = <Offer g={g} id={param} go={go} submit={(id: string, o: OfferTerms) => update((d) => { makeOffer(d, id, o); })} />; break;

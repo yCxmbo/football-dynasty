@@ -118,6 +118,7 @@ export function makeOffer(s: GameState, playerId: string, o: OfferTerms): OfferO
   const p = s.players[playerId];
   if (!p || p.clubId === s.userClubId) return { status: 'rejected', message: 'This player is already at your club.' };
   if (!windowOpen(s)) return { status: 'rejected', message: windowLabel(s) };
+  if (p.loan) return { status: 'rejected', message: `${p.name} is on loan at ${clubName(s, p.clubId)} from ${clubName(s, p.loan.from)}. Try again when he returns.` };
   const neg = (s.negotiations[playerId] ??= { attempts: 0 });
   if (neg.blockedUntilWindow) return { status: 'rejected', message: `${clubName(s, p.clubId)} have ended talks until the next window.` };
   const club = s.clubs[s.userClubId];
@@ -199,7 +200,7 @@ export function aiBids(s: GameState, seed: number) {
     return;
   }
   const rng = createRng(seed);
-  const mine = userSquad(s).filter((p) => p.squad === 'First team' && !s.bids.some((b) => b.playerId === p.id && b.status === 'open'));
+  const mine = userSquad(s).filter((p) => p.squad === 'First team' && !p.loan && !s.bids.some((b) => b.playerId === p.id && b.status === 'open'));
   for (const p of mine) {
     const listed = s.transferListed.includes(p.id);
     if (!rng.chance(listed ? 0.45 : 0.03)) continue;

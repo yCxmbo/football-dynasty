@@ -5,6 +5,7 @@ import type { GameState, Squad as SquadName } from '../engine/types';
 import { toCur } from '../store';
 import { squadRow, type Screen } from './shared';
 import { leagueLabel } from './comp-ui';
+import { loanedOut } from '../engine/loans';
 
 export default function Squad({ g, go }: { g: GameState; go: (s: Screen, id?: string) => void }) {
   const [tab, setTab] = useState<SquadName>('First team');
@@ -28,6 +29,20 @@ export default function Squad({ g, go }: { g: GameState; go: (s: Screen, id?: st
       </div>
       <p className="pg-h">Stars compared to: {tab === 'First team' ? leagueLabel(g, g.clubs[g.userClubId].league) : 'youth level'} · click a player for the full profile</p>
       <FD.SquadTable key={tab} players={list.map((p) => squadRow(p, g.currency, g.year))} currency={g.currency} scale={scale} onSelect={(p: { id: string }) => go('player', p.id)} />
+      {tab === 'First team' && loanedOut(g).length > 0 && (
+        <section className="pg-card" style={{ marginTop: 16 }}>
+          <h2 className="pg-h">Out on loan</h2>
+          <table className="fd-mini"><thead><tr><th>Player</th><th>Pos</th><th className="fd-num">Age</th><th>Club</th><th className="fd-num">Apps</th><th className="fd-num">Gls</th></tr></thead><tbody>
+            {loanedOut(g).map((p) => (
+              <tr key={p.id}>
+                <td><button className="pg-link" style={{ textDecoration: 'none' }} onClick={() => go('player', p.id)}>{p.name}</button></td>
+                <td className="fd-muted">{p.pos}</td><td className="fd-num">{p.age}</td>
+                <td>{g.clubs[p.clubId]?.name}</td><td className="fd-num">{p.current.apps}</td><td className="fd-num">{p.current.goals}</td>
+              </tr>
+            ))}
+          </tbody></table>
+        </section>
+      )}
     </div>
   );
 }

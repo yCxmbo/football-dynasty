@@ -4,6 +4,7 @@ import { createLive, runToEnd, toResult, type LiveMatch } from './live';
 import { POS_GROUP, abilityFromAttributes, clamp, POSITION_WEIGHTS } from './ratings';
 import { nationRanking, playSummer } from './international';
 import { jobOffers, managerReputation, tidySelection } from './nationaljob';
+import { returnLoans } from './loans';
 import { career, makeOffers, midSeasonVerdict, seasonVerdict, vacanciesAfterSeason } from './career';
 import { NATION, nationCode } from './nations';
 import { createRng } from './rng';
@@ -447,11 +448,12 @@ function rollover(state: GameState) {
   tidySelection(state);
 
   for (const p of Object.values(state.players)) {
-    if (p.current.apps) p.career.unshift({ season: label, club: state.clubs[p.clubId]?.name ?? 'Free agent', apps: p.current.apps, goals: p.current.goals, rating: Math.round((p.current.ratingSum / p.current.apps) * 100) / 100, honour: honours[p.clubId] });
+    if (p.current.apps) p.career.unshift({ season: label, club: `${state.clubs[p.clubId]?.name ?? 'Free agent'}${p.loan ? ' (loan)' : ''}`, apps: p.current.apps, goals: p.current.goals, rating: Math.round((p.current.ratingSum / p.current.apps) * 100) / 100, honour: honours[p.clubId] });
     if (p.career.length > 12) p.career.length = 12;
     p.current = { apps: 0, goals: 0, assists: 0, ratingSum: 0 };
     p.yellowCards = 0; p.suspendedFor = 0;
   }
+  returnLoans(state);
   expireContracts(state);
   for (const p of Object.values(state.players)) {
     develop(rng, p, p.career[0]?.apps ?? 0);

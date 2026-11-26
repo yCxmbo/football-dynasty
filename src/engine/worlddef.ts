@@ -168,12 +168,16 @@ export function buildWorld(def: WorldDef, rng: Rng, year: number, userCountry: s
     const need: Record<string, number> = {};
     for (const pos of SQUAD_TEMPLATE) need[pos] = (need[pos] ?? 0) + 1;
     for (const p of mine) if (need[p.pos]) need[p.pos]--;
-    const level = 60 + c.reputation * 1.15;
+    // next to named players, generated ones are the supporting cast: a full named XI gets backups below
+    // its weakest regular; a partly named squad gets players around its middle, never above it
+    const named = mine.map((p) => p.ability).sort((x, y) => y - x);
+    const cap = named.length >= 11 ? named[10] - 4 : named.length >= 5 ? named[Math.floor(named.length / 2)] : 200;
+    const level = Math.min(60 + c.reputation * 1.15, cap - (named.length >= 11 ? 6 : 0));
     let i = 0;
     for (const [pos, count] of Object.entries(need)) for (let k = 0; k < count; k++, i++) {
-      const starter = i % 2 === 0;
+      const starter = i % 2 === 0 && named.length < 11;
       const age = clamp(Math.round(rng.normal(26, 4)), 18, 35);
-      const ca = clamp(Math.round(rng.normal(level - (starter ? 0 : 12), 9)), 45, 190);
+      const ca = clamp(Math.min(cap, Math.round(rng.normal(level - (starter ? 0 : 12), 9))), 45, 190);
       const growth = age < 22 ? rng.int(15, 55) : age < 26 ? rng.int(3, 25) : rng.int(0, 6);
       const p = makePlayer(rng, { id: `p${n++}`, clubId: c.id, pos: pos as Position, ca, pa: clamp(ca + growth, ca, 200), age, squad: 'First team', number: 0, year, reputation: c.reputation, country: c.country });
       p.number = numberFor(c.id);

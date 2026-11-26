@@ -5,8 +5,10 @@ import { POS_GROUP, abilityFromAttributes, clamp, POSITION_WEIGHTS } from './rat
 import { nationRanking, playSummer } from './international';
 import { jobOffers, managerReputation, tidySelection } from './nationaljob';
 import { returnLoans } from './loans';
+import { developmentBoost, initStaff, injuryLengthFactor, moraleRecoveryChance, recoveryBonus, refreshPool, youthPotentialBonus } from './staff';
 import { career, makeOffers, midSeasonVerdict, seasonVerdict, vacanciesAfterSeason } from './career';
 import { NATION, nationCode } from './nations';
+import { reserveNames } from './namepools';
 import { createRng } from './rng';
 import { makePlayer, valueFor, wageFor, SQUAD_TEMPLATE } from './world';
 import type { Club, CompId, Currency, Fixture, GameState, InboxMessage, Player, SeasonRecord, Trophy } from './types';
@@ -47,6 +49,7 @@ export function newGame(opts: NewGameOpts): GameState {
   state.rngState = rng.state();
   state.lineup = pickLineup(squadOf(state, opts.userClubId));
   career(state);
+  initStaff(state, rng);
   for (const p of Object.values(players)) p.caStart = p.ability;
   state.ledger.balanceHistory.push(clubs[opts.userClubId].balance);
   const club = clubs[opts.userClubId];
@@ -181,8 +184,9 @@ export function startUserMatch(state: GameState): LiveMatch | undefined {
 /** Condition regained per day off: natural fitness helps, age and hard training slow it. */
 export function recoveryPerDay(state: GameState, p: Player) {
   const base = 5.5 + (p.attributes['Natural Fitness'] - 10) * 0.35 - Math.max(0, p.age - 30) * 0.3;
-  const intensity = p.clubId === state.userClubId ? (state.training.intensity === 'high' ? -1.2 : state.training.intensity === 'low' ? 1.2 : 0) : 0;
-  return Math.max(2.5, base + intensity);
+  const mine = p.clubId === state.userClubId;
+  const intensity = mine ? (state.training.intensity === 'high' ? -1.2 : state.training.intensity === 'low' ? 1.2 : 0) : 0;
+  return Math.max(2.5, base + intensity + (mine ? recoveryBonus(state) : 0));
 }
 
 /** Keeps full match detail only for the user's games so saves stay small. */
@@ -233,6 +237,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
   const cupNews = advanceCups(state, rng, slot);
   if (leagueWeek) {
     financeWeek(state, leagueIds, homeIds, positions);
+    for (const p of squadOf(state, state.userClubId)) if (p.morale === 'low' && rng.chance(moraleRecoveryChance(state))) p.morale = 'ok';
     for (const msg of trainingWeek(rng, state, squadOf(state, state.userClubId))) addMessage(state, { category: 'training', from: 'Head coach', role: 'Training ground', subject: 'Training update', body: [msg] });
     // about five development steps a season, whatever the league length (small steps would round away)
     const every = Math.max(4, Math.round(state.leagueWeeks / 5.5));
@@ -240,7 +245,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
       for (const p of Object.values(state.players)) {
         if (p.clubId === FREE_AGENT) continue;
         const mine = p.clubId === state.userClubId;
-        developStep(rng, p, 0.6 / Math.floor(state.leagueWeeks / every), mine ? te.development : 1, mine ? state.training.focus[p.id] : undefined);
+        developStep(rng, p, 0.6 / Math.floor(state.leagueWeeks / every), mine ? te.development * developmentBoost(state) : 1, mine ? state.training.focus[p.id] : undefined);
       }
     }
     if (slot.week === state.leagueWeeks) setupPlayoffs(state);
@@ -280,7 +285,7 @@ function applyResult(state: GameState, f: Fixture, rng: ReturnType<typeof create
     p.current.apps++; p.current.goals += pr.goals; p.current.assists += pr.assists; p.current.ratingSum += pr.rating;
     if (pr.card === 'yellow') { p.yellowCards++; if (p.yellowCards % 5 === 0) p.suspendedFor = 2; }
     if (pr.card === 'red') p.suspendedFor = 2; // counts down once after this slot → misses 1
-    if (pr.injured) p.injuredFor = 1 + rng.int(1, 4) + Math.round(p.hidden.injuryProneness / 8);
+    if (pr.injured) p.injuredFor = Math.max(1, Math.round((1 + rng.int(1, 4) + Math.round(p.hidden.injuryProneness / 8)) * (p.clubId === state.userClubId ? injuryLengthFactor(state) : 1)));
     if (pr.rating >= 7.5) p.morale = 'high'; else if (pr.rating < 6) p.morale = p.morale === 'high' ? 'ok' : 'low';
   }
 }
@@ -483,6 +488,7 @@ function rollover(state: GameState) {
   pruneFreeAgents(state);
   for (const c of Object.values(state.clubs)) refillSquad(state, rng, c);
   youthIntake(state, rng);
+  refreshPool(state, rng);
   state.qualified = nextQualified;
   buildComps(state);
   state.calendar = makeCalendar(state, state.year);
@@ -621,7 +627,7 @@ function youthIntake(state: GameState, rng: ReturnType<typeof createRng>) {
     const names: string[] = [];
     for (let i = 0; i < n; i++) {
       const pos = rng.pick(['GK', 'CB', 'LB', 'RB', 'DM', 'CM', 'AM', 'LW', 'RW', 'ST'] as const);
-      const pa = clamp(Math.round(rng.normal(115 + c.reputation * 0.35, 20)), 70, 195);
+      const pa = clamp(Math.round(rng.normal(115 + c.reputation * 0.35 + (c.id === state.userClubId ? youthPotentialBonus(state) : 0), 20)), 70, 195);
       const p = makePlayer(rng, { id: `p${state.nextId++}`, clubId: c.id, pos, ca: rng.int(40, 70), pa, age: rng.int(15, 16), squad: 'U18', number: freeNumber(state, c.id), year: state.year, reputation: c.reputation, country: c.country });
       state.players[p.id] = p; noteJoined(state, p); names.push(`${p.name} (${p.pos})`);
     }
@@ -660,11 +666,13 @@ export function bestLineup(state: GameState, formation: Formation = state.format
 
 /** Fills fields added after v0.2 so older saves keep working. (v1 saves can't be converted: see store.ts.) */
 export function migrate(state: GameState): GameState {
+  if (state.world.source !== 'builtin') reserveNames(Object.values(state.players).filter((p) => !p.filler && !p.id.startsWith('nt-')).map((p) => p.name));
   for (const p of Object.values(state.players)) if (p.nationality && p.nationality.length > 3) p.nationality = nationCode(p.nationality) ?? p.nationality;
   state.knowledge ??= {}; state.scouting ??= []; state.shortlist ??= []; state.transferListed ??= [];
   state.bids ??= []; state.negotiations ??= {}; state.installments ??= [];
   state.training ??= defaultTraining(); state.ledger ??= emptyLedger(); state.autoRotate ??= true;
   career(state);
+  if (!state.staff) initStaff(state, createRng(state.rngState ^ 0x5eed));
   return state;
 }
 

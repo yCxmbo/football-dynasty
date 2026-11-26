@@ -1,6 +1,7 @@
 /* Training: the user's weekly plan changes development speed, injury risk, morale and match sharpness. */
 import { POS_GROUP, POSITION_WEIGHTS, abilityFromAttributes, clamp } from './ratings';
 import type { Rng } from './rng';
+import { trainingInjuryFactor } from './staff';
 import type { Day, GameState, Intensity, Player, SessionType, Training } from './types';
 
 export const DAYS: Day[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -82,7 +83,7 @@ export function trainingWeek(rng: Rng, s: GameState, squad: Player[]): string[] 
   const e = effects(s.training);
   const out: string[] = [];
   const fit = squad.filter((p) => p.injuredFor === 0 && p.squad === 'First team');
-  if (fit.length && rng.chance(e.trainingInjury)) {
+  if (fit.length && rng.chance(e.trainingInjury * trainingInjuryFactor(s))) {
     const p = rng.weighted(fit, (x) => x.hidden.injuryProneness);
     p.injuredFor = rng.int(1, 3);
     out.push(`${p.name} picked up a knock in training and will miss ${p.injuredFor} ${p.injuredFor === 1 ? 'match' : 'matches'}.`);

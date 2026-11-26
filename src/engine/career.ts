@@ -8,6 +8,7 @@ import { createRng, type Rng } from './rng';
 import { clamp, type Position } from './ratings';
 import type { GameState, Squad } from './types';
 import { makePlayer } from './world';
+import { initStaff } from './staff';
 
 export interface ClubSpell { clubId: string; club: string; from: number; to?: number; w: number; d: number; l: number; trophies: number; left?: 'sacked' | 'resigned' | 'moved'; start: { w: number; d: number; l: number; trophies: number } }
 export interface CareerState {
@@ -127,6 +128,7 @@ export function moveTo(s: GameState, rng: Rng, clubId: string, left: ClubSpell['
   s.transferListed = []; s.negotiations = {}; s.installments = []; s.training.focus = {};
   for (const b of s.bids) if (b.status === 'open') b.status = 'expired';
   ensureYouth(s, rng, clubId);
+  initStaff(s, rng); // staff belong to the club: you inherit theirs
   const squad = Object.values(s.players).filter((p) => p.clubId === clubId);
   s.lineup = pickLineup(squad, s.formation);
 }

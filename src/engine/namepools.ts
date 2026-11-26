@@ -68,8 +68,16 @@ const GROUP: Record<string, string> = {
   THA: 'sea', VIE: 'sea', IDN: 'sea', MAS: 'sea', IND: 'sea', KEN: 'eaf', UGA: 'eaf', TAN: 'eaf',
 };
 
-/** A made-up name that fits the nationality (a FIFA code). */
+/** Names of real people in the loaded world, which generated names must not copy. */
+const taken = new Set<string>();
+export function reserveNames(names: Iterable<string>) { for (const n of names) taken.add(n); }
+
+/** A made-up name that fits the nationality (a FIFA code), never one of a real player in the world. */
 export function nameFor(rng: Rng, nationality: string) {
   const [first, last] = P[GROUP[nationality] ?? 'en'];
-  return `${rng.pick(first)} ${rng.pick(last)}`;
+  for (let i = 0; i < 8; i++) {
+    const name = `${rng.pick(first)} ${rng.pick(last)}`;
+    if (!taken.has(name)) return name;
+  }
+  return `${rng.pick(first)} ${rng.pick(last)}-${rng.pick(last)}`;
 }

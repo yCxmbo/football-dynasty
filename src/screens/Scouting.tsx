@@ -1,6 +1,7 @@
 import { FD } from '../ds';
 import { bidsFor } from './shared-transfers';
-import { MAX_SCOUTING, SCOUT_PER_MATCHDAY, clubName, knowledgeOf, respondToBid, stopScouting, toggleShortlist, toggleTransferList, windowOpen } from '../engine/transfers';
+import { scoutPerMatchday } from '../engine/staff';
+import { MAX_SCOUTING, clubName, knowledgeOf, respondToBid, stopScouting, toggleShortlist, toggleTransferList, windowOpen } from '../engine/transfers';
 import type { GameState } from '../engine/types';
 import { toCur } from '../store';
 import type { Screen } from './shared';
@@ -13,7 +14,7 @@ export default function Scouting({ g, go, update }: { g: GameState; go: (s: Scre
   const bids = bidsFor(g);
   return (
     <div className="pg-stack">
-      <div className="pg-head" style={{ marginBottom: 0 }}><div><h1 className="pg-title">Scouting</h1><p className="pg-sub">Your scouts can follow {MAX_SCOUTING} players at a time. Each matchday adds {SCOUT_PER_MATCHDAY}% knowledge; at 100% you get a full report.</p></div></div>
+      <div className="pg-head" style={{ marginBottom: 0 }}><div><h1 className="pg-title">Scouting</h1><p className="pg-sub">Your scouts can follow {MAX_SCOUTING} players at a time. Each matchday adds {scoutPerMatchday(g)}% knowledge (your chief scout is rated {g.staff?.scout?.rating ?? 10}/20); at 100% you get a full report.</p></div></div>
       <WindowBanner g={g} />
       <section>
         <h2 className="pg-h">Scouting now ({scouting.length}/{MAX_SCOUTING})</h2>

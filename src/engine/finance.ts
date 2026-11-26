@@ -25,6 +25,7 @@ export function attendance(c: Club, leaguePos: number, clubs: number) {
 
 export { wageBillOf } from './index';
 import { wageBillOf } from './index';
+import { staffWageBill } from './staff';
 
 /** One league round of money for clubs in the leagues playing this slot. Each round carries 52 / rounds weeks of costs. */
 export function financeWeek(s: GameState, leagueIds: Set<string>, homeIds: Set<string>, positions: Record<string, number>) {
@@ -35,7 +36,8 @@ export function financeWeek(s: GameState, leagueIds: Set<string>, homeIds: Set<s
     const w = 52 / leagueRounds(n);
     const gate = homeIds.has(c.id) ? attendance(c, positions[c.id] ?? n, n) * ticketPrice(c) : 0;
     const income = { gate, tv: l.tv, sponsorship: Math.round(sponsorshipPerWeek(c) * w), merchandise: Math.round(merchandisePerWeek(c) * w) };
-    const wages = Math.round(wageBillOf(s, c.id) * w), staff = Math.round(staffPerWeek(c) * w);
+    // your own backroom staff are on the books by name; other clubs' staff are a cost by reputation
+    const wages = Math.round(wageBillOf(s, c.id) * w), staff = Math.round((c.id === s.userClubId ? staffPerWeek(c) * 0.5 + staffWageBill(s) : staffPerWeek(c)) * w);
     c.balance += income.gate + income.tv + income.sponsorship + income.merchandise - wages - staff;
     if (c.id === s.userClubId) {
       const L = s.ledger;

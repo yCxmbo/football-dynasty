@@ -1,4 +1,5 @@
 import { noteJoined } from './index';
+import { scoutPerMatchday } from './staff';
 /* Transfers, scouting and contracts. Pure functions over GameState (mutating the draft). */
 import { clamp } from './ratings';
 import { currentWeek } from './competitions';
@@ -284,7 +285,7 @@ export function scoutingTick(s: GameState) {
   for (const id of [...s.scouting]) {
     const p = s.players[id];
     if (!p) { stopScouting(s, id); continue; }
-    const k = Math.min(100, (s.knowledge[id] ?? BASE_KNOWLEDGE) + SCOUT_PER_MATCHDAY);
+    const k = Math.min(100, (s.knowledge[id] ?? BASE_KNOWLEDGE) + scoutPerMatchday(s));
     s.knowledge[id] = k;
     if (k >= 100) {
       stopScouting(s, id);

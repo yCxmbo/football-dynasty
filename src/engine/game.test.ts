@@ -150,6 +150,15 @@ describe('worlds', () => {
     expect(clubsInLeague(s, 'esp1').length).toBe(20);
     expect(clubsInLeague(s, 'esp2').length).toBe(22);
   }, 120_000);
+  it('generated players and staff never take a real player\'s name', () => {
+    const w = realWorld();
+    const real = new Set(w.players!.map((p) => p.name));
+    const s = newGame({ seed: 12, userClubId: 'eng-newcastle', managerName: 'T', currency: 'EUR', world: w, source: 'real' });
+    const generated = Object.values(s.players).filter((p) => p.filler || p.squad !== 'First team');
+    expect(generated.length).toBeGreaterThan(1000);
+    expect(generated.filter((p) => real.has(p.name))).toEqual([]);
+    expect((s.staffPool ?? []).filter((m) => real.has(m.name))).toEqual([]);
+  });
   it('the template validates and starts a game', () => {
     const w = templateWorld();
     expect(validateWorld(w).ok).toBe(true);

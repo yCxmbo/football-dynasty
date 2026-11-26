@@ -164,6 +164,9 @@ export interface GameState {
   internationals?: import('./international').Tournament[];
   /** The national team you manage alongside your club, if any. */
   nationalJob?: import('./nationaljob').NationalJob;
+  /** Your backroom staff by role, and candidates on the market. */
+  staff?: Partial<Record<import('./staff').StaffRole, import('./staff').StaffMember>>;
+  staffPool?: import('./staff').StaffMember[];
   /** Your career across clubs: board trust, offers, vacancies, past clubs. */
   career?: import('./career').CareerState;
   inbox: InboxMessage[];

@@ -80,6 +80,7 @@ The game saves automatically in the browser (IndexedDB), and you can keep severa
   - The player then decides on your contract: wage, length, squad role and contract type.
   - The board blocks deals over the transfer or wage budget. Fees paid in instalments come out of your balance each matchday.
 - **Loans:** while a window is open, send young or fringe players to a club where they'd start in their position (the profile lists who would take them; the borrowing club pays the wages, and the games help them develop), recall them, or ask to borrow other clubs' fringe players who would play for you. Loans end in the summer. Your loanees are listed under the squad.
+- **Staff:** an assistant manager, first-team coach, fitness coach, physio, chief scout and youth coach, each rated 1–20 (10 is average). Better staff speed up development, recovery and scouting, shorten injuries, improve the youth intake and lift low morale; the Staff screen shows what each one does now. Hire from a pool of candidates that refreshes each summer (the best won't join small clubs; the outgoing holder is paid eight weeks' wages). Staff belong to the club: change clubs and you inherit theirs.
 - **Scouting:** other clubs' players are 25% known at first, so their attributes show as ranges and their stars as estimates. Scout up to 5 players at a time (+25% knowledge per matchday). At 100% you get a full report.
 - **Selling:** transfer-list players to attract bids, and other clubs sometimes bid for unlisted players too. Accepting a bid sends 60% of the fee to your transfer budget.
 - **Contracts:** contracts run out at season end. Renew players from their profile (they ask for a raise, and players over 32 sign for 2 years at most). Players who aren't renewed leave as free agents, whom any club can sign without a fee. You get a reminder about expiring contracts when the January window opens.
@@ -121,6 +122,7 @@ src/
     builtin.ts     the fictional world and the template world file
     nations.ts     national teams: confederations, strength, colours, nationalities for generated players
     namepools.ts   invented names that fit each nationality
+    staff.ts       backroom staff, their effects, hiring
     loans.ts       loans out and in, recalls, returns at season end
     career.ts      board confidence, the sack, offers, vacancies, moving clubs
     nationaljob.ts managing a national team: reputation, offers, squad selection

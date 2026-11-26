@@ -23,6 +23,7 @@ import { summerTournaments, tournamentName } from './engine/international';
 import NewGame from './screens/NewGame';
 import International from './screens/International';
 import Career from './screens/Career';
+import Staff from './screens/Staff';
 import Placeholder from './screens/Placeholder';
 import PlayerScreen from './screens/PlayerScreen';
 import Settings from './screens/Settings';
@@ -167,6 +168,7 @@ export default function App() {
     case 'tactics': body = <Tactics g={g} liveNote={!!live} onAutoRotate={(on) => update((d) => setAutoRotate(d, on))} onChange={(f: Formation, l: string[]) => update((d) => setTactics(d, f, l))} />; break;
     case 'fixtures': body = <Fixtures g={g} go={go} />; break;
     case 'table': body = <Table g={g} go={go} />; break;
+    case 'staff': body = <Staff g={g} update={update} />; break;
     case 'career': body = <Career g={g} go={go} update={update} />; break;
     case 'international': body = <International g={g} go={go} update={update} />; break;
     case 'match': body = <Match key={live?.fixtureId ?? param} g={g} id={live?.fixtureId ?? param} live={live} setLive={setLive} go={go} onFinish={finishLive} />; break;

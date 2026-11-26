@@ -4,6 +4,7 @@ import { abilityFromAttributes, clamp, type Position } from './ratings';
 import type { Rng } from './rng';
 import type { Club, Player, Squad } from './types';
 import { nationCode } from './nations';
+import { reserveNames } from './namepools';
 import { makeAttributes, makePlayer, valueFor, wageFor, SQUAD_TEMPLATE } from './world';
 
 export const WORLD_FORMAT = 'football-dynasty-world';
@@ -111,6 +112,7 @@ const youthCountry = (def: WorldDef, c: ClubDef, userCountry: string) => !!c.lea
 
 /** Turns a world definition into clubs and players. Missing players are generated from club reputation. */
 export function buildWorld(def: WorldDef, rng: Rng, year: number, userCountry: string) {
+  reserveNames((def.players ?? []).map((p) => p.name));
   const clubs: Record<string, Club> = {};
   const players: Record<string, Player> = {};
   let n = 1;

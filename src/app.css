@@ -180,3 +180,23 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .fac-pips { display: inline-flex; gap: 4px; }
 .fac-pips span { width: 18px; height: 8px; border-radius: 2px; background: var(--line-strong); }
 .fac-pips span.is-on { background: var(--gold); }
+
+/* Phones: wide tables scroll inside their card instead of pushing the page sideways; cards shrink to fit. */
+.pg-stack > *, .pg-grid2 > *, .hm-grid > *, .hm-col > *, .fac-grid > *, .cc-groups > * { min-width: 0; }
+@media (max-width: 760px) {
+  .fd-main .pg-card, .fd-main .fd-league, .fd-main article { max-width: 100%; min-width: 0; box-sizing: border-box; }
+  .fd-main table { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .fd-main table > thead, .fd-main table > tbody { display: table; width: 100%; min-width: max-content; }
+  .fd-main .pg-row { flex-wrap: wrap; }
+  .fd-main .intl-hero { flex-wrap: wrap; }
+  .fd-main .fd-seg { flex-wrap: wrap; }
+}
+@media (max-width: 760px) {
+  .fn-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .fn-row .fn-meter { display: none; }
+  .tg-devs { grid-template-columns: minmax(0, 1fr); }
+  .tg-devs .fd-input--select { min-width: 0; width: 100%; margin-left: 0; }
+}
+/* the header is navy in both themes: secondary buttons there use light ink */
+.fd-topbar .fd-btn--secondary { color: var(--on-navy); border-color: color-mix(in srgb, var(--on-navy) 35%, transparent); background: transparent; }
+.fd-topbar .fd-btn--secondary:hover { background: color-mix(in srgb, var(--on-navy) 10%, transparent); }

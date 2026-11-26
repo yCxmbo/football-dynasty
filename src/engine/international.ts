@@ -6,6 +6,7 @@ import { NATION, NATIONS, type Confed } from './nations';
 import type { Rng } from './rng';
 import type { GameState, MatchResult, Player } from './types';
 import { makePlayer } from './world';
+import { styleTilt, talkMultiplier } from './style';
 
 export type TournamentId = 'wc' | 'euro' | 'copa' | 'afcon' | 'asian';
 export interface IntlMatch { h: string; a: string; s: [number, number]; p?: [number, number]; stage: string; g?: number }
@@ -129,8 +130,8 @@ export interface TournamentRun {
 /** Your nation's next match, to be played live: everything createLive needs. */
 export interface UserMatchRequest {
   seed: number; h: string; a: string; stage: string; venue: string; mods: MatchMods;
-  home: { xi: Player[]; bench: Player[]; formation: Formation; name: string; user?: boolean };
-  away: { xi: Player[]; bench: Player[]; formation: Formation; name: string; user?: boolean };
+  home: { xi: Player[]; bench: Player[]; formation: Formation; name: string; user?: boolean; tilt?: { atk: number; def: number; talk: number } };
+  away: { xi: Player[]; bench: Player[]; formation: Formation; name: string; user?: boolean; tilt?: { atk: number; def: number; talk: number } };
   /** The tournament so far (for display). */ t: Tournament;
 }
 
@@ -194,8 +195,9 @@ export function* tournamentSteps(s: GameState, rng: Rng, id: TournamentId, year:
     const homeAdv = hosts.includes(h) && !hosts.includes(a);
     const seed = rng.int(0, 2 ** 30);
     const userSide = job && (h === job.code || a === job.code) ? job.code : undefined;
-    const home = { xi: H.xi, bench: H.bench, formation: H.formation, name: NATION[h].name, user: userSide === h };
-    const away = { xi: A.xi, bench: A.bench, formation: A.formation, name: NATION[a].name, user: userSide === a };
+    const tilt = { ...styleTilt(s), talk: talkMultiplier(s) };
+    const home = { xi: H.xi, bench: H.bench, formation: H.formation, name: NATION[h].name, user: userSide === h, ...(userSide === h ? { tilt } : {}) };
+    const away = { xi: A.xi, bench: A.bench, formation: A.formation, name: NATION[a].name, user: userSide === a, ...(userSide === a ? { tilt } : {}) };
     const venue = homeAdv ? `${NATION[h].name} home stadium` : 'Neutral venue';
     const mods: MatchMods = { neutral: !homeAdv, knockout: stage !== 'Group', homeBoost: (homeAdv ? 1.04 : 1) * edge(H.strength), awayBoost: edge(A.strength) };
     let result: MatchResult;

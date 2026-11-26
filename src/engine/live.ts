@@ -18,7 +18,7 @@ export const snap = (p: Player): Snap => ({
 
 interface Perf { base: number; goals: number; assists: number; saves: number; card?: 'yellow' | 'red'; onAt: number; offAt?: number; injured?: boolean }
 type SideKey = 'home' | 'away';
-export interface LiveSide { formation: Formation; xi: Array<string | null>; bench: string[]; subsUsed: number; boost: number; injury: number; user: boolean; name: string }
+export interface LiveSide { formation: Formation; xi: Array<string | null>; bench: string[]; subsUsed: number; boost: number; injury: number; user: boolean; name: string; /** Style tilt: attack and defence multipliers. */ atk?: number; def?: number; /** Team talks count this much more. */ talk?: number }
 export interface LiveMatch {
   rng: number; minute: number; done: boolean; neutral: boolean; knockout: boolean; venue: string;
   home: LiveSide; away: LiveSide;
@@ -38,14 +38,14 @@ const surname = (n: string) => { const i = n.indexOf(' '); return i < 0 ? n : n.
 /** Tired players play worse: full strength above 85%, about −10% at 55%. */
 export const conditionFactor = (c: number) => (c >= 85 ? 1 : 0.7 + c * 0.0035);
 
-export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; formation: Formation; name: string; user?: boolean }, away: typeof home, venue: string, mods: MatchMods = {}): LiveMatch {
+export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; formation: Formation; name: string; user?: boolean; tilt?: { atk: number; def: number; talk: number } }, away: typeof home, venue: string, mods: MatchMods = {}): LiveMatch {
   const rng = createRng(seed);
   const players: Record<string, Snap> = {}, perf: Record<string, Perf> = {};
   const sideOf: Record<string, SideKey> = {};
   for (const p of [...home.xi, ...home.bench]) { players[p.id] = snap(p); sideOf[p.id] = 'home'; }
   for (const p of [...away.xi, ...away.bench]) { players[p.id] = snap(p); sideOf[p.id] = 'away'; }
   for (const p of [...home.xi, ...away.xi]) perf[p.id] = { base: 6.3 + rng.normal(0, 0.3), goals: 0, assists: 0, saves: 0, onAt: 0 };
-  const side = (s: typeof home, boost = 1, injury = 1): LiveSide => ({ formation: s.formation, xi: s.xi.map((p) => p.id), bench: s.bench.map((p) => p.id), subsUsed: 0, boost, injury, user: !!s.user, name: s.name });
+  const side = (s: typeof home, boost = 1, injury = 1): LiveSide => ({ formation: s.formation, xi: s.xi.map((p) => p.id), bench: s.bench.map((p) => p.id), subsUsed: 0, boost, injury, user: !!s.user, name: s.name, ...(s.tilt ? { atk: s.tilt.atk, def: s.tilt.def, talk: s.tilt.talk } : {}) });
   return {
     rng: rng.state(), minute: 0, done: false, neutral: !!mods.neutral, knockout: !!mods.knockout, venue,
     home: side(home, mods.homeBoost, mods.homeInjury), away: side(away, mods.awayBoost, mods.awayInjury),
@@ -120,8 +120,9 @@ export function tick(lm: LiveMatch) {
   const H = strength(lm, lm.home), A = strength(lm, lm.away);
   const reds = (s: LiveSide) => s.xi.filter((x) => !x).length;
   const redH = Math.pow(0.82, reds(lm.home)), redA = Math.pow(0.82, reds(lm.away));
-  const attH = ((H.attack * 0.6 + H.mid * 0.4) / (A.defence * 0.7 + A.gk * 0.3 || 1)) * redH / redA;
-  const attA = ((A.attack * 0.6 + A.mid * 0.4) / (H.defence * 0.7 + H.gk * 0.3 || 1)) * redA / redH;
+  const tH = lm.home, tA = lm.away;
+  const attH = (((H.attack * 0.6 + H.mid * 0.4) * (tH.atk ?? 1)) / ((A.defence * 0.7 + A.gk * 0.3) * (tA.def ?? 1) || 1)) * redH / redA;
+  const attA = (((A.attack * 0.6 + A.mid * 0.4) * (tA.atk ?? 1)) / ((H.defence * 0.7 + H.gk * 0.3) * (tH.def ?? 1) || 1)) * redA / redH;
   const xg90 = [clamp(1.32 * Math.pow(attH, 2.6) * (lm.neutral ? 1 : 1.12), 0.15, 4.5), clamp(1.32 * Math.pow(attA, 2.6), 0.15, 4.5)] as const;
   lm.stats.possession += clamp(50 + (H.mid - A.mid) * 0.45 + rng.normal(2, 6), 25, 75);
   lm.stats.passAcc[0] += clamp(72 + (H.mid - 100) * 0.25 + rng.normal(0, 3), 55, 95);
@@ -299,7 +300,7 @@ export function teamTalk(lm: LiveMatch, key: SideKey, tone: TalkTone | 'skip') {
     behind: when === 'pre' ? { calm: 0.005, encourage: 0.03, demand: -0.02 } : { calm: -0.01, encourage: 0.015, demand: 0.035 },
   };
   const rng = createRng(lm.rng ^ 0x7a1c);
-  const effect = table[situation][tone] + rng.normal(0, 0.006);
+  const effect = (table[situation][tone] + rng.normal(0, 0.006)) * (us.talk ?? 1);
   us.boost = Math.round(us.boost * (1 + effect) * 10000) / 10000;
   const reaction = effect > 0.02 ? 'The players look fired up.' : effect > 0.005 ? 'The players respond well.' : effect > -0.005 ? 'The players seem unmoved.' : 'The message doesn’t land; heads drop in the dressing room.';
   push(lm, { minute: lm.minute, type: 'whistle', side: key, text: `${when === 'pre' ? 'Team talk' : 'Half-time team talk'} (${tone === 'encourage' ? 'encourage' : tone === 'demand' ? 'demand more' : 'keep calm'}): ${reaction}` });

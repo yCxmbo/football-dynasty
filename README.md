@@ -69,6 +69,7 @@ The game saves automatically in the browser (IndexedDB), and you can keep severa
 - **Tactics:** 4-3-3, 4-4-2, 4-2-3-1 or 3-5-2; click two players to swap; out-of-position players perform worse.
 - **Academy:** youth players have silver stars; promoting one to the first team gives a professional contract and gold stars.
 - **Season end:** player development (young players grow toward potential, veterans decline), retirements, a youth intake, the board's review, and club history (trophy cabinet, season-by-season record, records, hall of fame, your manager career).
+- **Coaching style:** pick one when you start (changeable once a season on the Career screen): *Attacking* (more chances, a little more conceded), *Defensive* (the reverse), *Youth developer* (players 21 and under develop 15% faster, better intakes), *Motivator* (team talks count 50% more, unhappy players recover sooner) or *Balanced*. It applies to your national team too.
 - **Manager career:**
   - The board's confidence carries over between seasons. Miss your target badly (or get relegated) and you're sacked at season end; a collapse mid-season can cost you the job before then.
   - Out of work, you choose your next club from offers (smaller clubs, any country) or apply for vacancies: clubs that changed manager after their own poor season. Your chance depends on your reputation against the club's.
@@ -136,6 +137,7 @@ src/
     media.ts       press conferences, transfer requests, promises
     staff.ts       backroom staff, their effects, hiring
     loans.ts       loans out and in, recalls, returns at season end
+    style.ts       coaching styles and their effects
     records.ts     all-time world records
     achievements.ts career milestones and when they unlock
     career.ts      board confidence, the sack, offers, vacancies, moving clubs

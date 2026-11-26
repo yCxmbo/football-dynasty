@@ -6,6 +6,7 @@ import { nationRanking, playSummer } from './international';
 import { summerStep } from './summer';
 import { jobOffers, managerReputation, tidySelection } from './nationaljob';
 import { returnLoans } from './loans';
+import { moraleBonus, styleTilt, talkMultiplier, youthDevelopmentBoost, youthIntakeBonus } from './style';
 import { recordSeason, recordTransfer } from './records';
 import { afterMatch, afterSeason, afterTournament } from './achievements';
 import { finishBuilding, trainingFacilityBoost, youthFacilityBonus } from './facilities';
@@ -30,7 +31,7 @@ import { builtinWorld } from './builtin';
 
 export type { TableRow };
 
-export interface NewGameOpts { seed: number; userClubId: string; managerName: string; currency: Currency; year?: number; world?: WorldDef; source?: 'builtin' | 'real' | 'import' }
+export interface NewGameOpts { seed: number; userClubId: string; managerName: string; currency: Currency; year?: number; world?: WorldDef; source?: 'builtin' | 'real' | 'import'; style?: import('./style').ManagerStyle }
 
 export function newGame(opts: NewGameOpts): GameState {
   const def = opts.world ?? builtinWorld();
@@ -55,6 +56,7 @@ export function newGame(opts: NewGameOpts): GameState {
   state.lineup = pickLineup(squadOf(state, opts.userClubId));
   career(state);
   initStaff(state, rng);
+  if (opts.style) state.managerStyle = opts.style;
   for (const p of Object.values(players)) p.caStart = p.ability;
   state.ledger.balanceHistory.push(clubs[opts.userClubId].balance);
   const club = clubs[opts.userClubId];
@@ -170,10 +172,11 @@ function setupFor(state: GameState, f: Fixture) {
   const uh = f.homeId === state.userClubId, ua = f.awayId === state.userClubId;
   const hx = xiFor(state, f.homeId), ax = xiFor(state, f.awayId);
   const H = state.clubs[f.homeId], A = state.clubs[f.awayId];
+  const tilt = { ...styleTilt(state), talk: talkMultiplier(state) };
   const mods: MatchMods = { homeBoost: uh ? te.matchBoost : 1, awayBoost: ua ? te.matchBoost : 1, homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1, neutral: f.neutral, knockout: f.ko };
   return {
-    home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: (uh ? state.formation : '4-3-3') as Formation, name: H.name, user: uh },
-    away: { xi: ax, bench: benchFor(state, f.awayId, ax), formation: (ua ? state.formation : '4-3-3') as Formation, name: A.name, user: ua },
+    home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: (uh ? state.formation : '4-3-3') as Formation, name: H.name, user: uh, ...(uh ? { tilt } : {}) },
+    away: { xi: ax, bench: benchFor(state, f.awayId, ax), formation: (ua ? state.formation : '4-3-3') as Formation, name: A.name, user: ua, ...(ua ? { tilt } : {}) },
     venue: H.stadium, mods,
   };
 }
@@ -243,7 +246,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
   for (const e of slot.entries) if (isLeague(state, e.comp)) setupSplit(state, e.comp, Number(e.round.replace('Matchday ', '')));
   if (leagueWeek) {
     financeWeek(state, leagueIds, homeIds, positions);
-    for (const p of squadOf(state, state.userClubId)) if (p.morale === 'low' && rng.chance(moraleRecoveryChance(state))) p.morale = 'ok';
+    for (const p of squadOf(state, state.userClubId)) if (p.morale === 'low' && rng.chance(moraleRecoveryChance(state) + moraleBonus(state))) p.morale = 'ok';
     weeklyMood(state, rng, slot.week);
     for (const msg of trainingWeek(rng, state, squadOf(state, state.userClubId))) addMessage(state, { category: 'training', from: 'Head coach', role: 'Training ground', subject: 'Training update', body: [msg] });
     // about five development steps a season, whatever the league length (small steps would round away)
@@ -252,7 +255,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
       for (const p of Object.values(state.players)) {
         if (p.clubId === FREE_AGENT) continue;
         const mine = p.clubId === state.userClubId;
-        developStep(rng, p, 0.6 / Math.floor(state.leagueWeeks / every), mine ? te.development * developmentBoost(state) * trainingFacilityBoost(state) : 1, mine ? state.training.focus[p.id] : undefined);
+        developStep(rng, p, 0.6 / Math.floor(state.leagueWeeks / every), mine ? te.development * developmentBoost(state) * trainingFacilityBoost(state) * youthDevelopmentBoost(state, p.age) : 1, mine ? state.training.focus[p.id] : undefined);
       }
     }
     if (slot.week === state.leagueWeeks) setupPlayoffs(state);
@@ -648,7 +651,7 @@ function youthIntake(state: GameState, rng: ReturnType<typeof createRng>) {
     const names: string[] = [];
     for (let i = 0; i < n; i++) {
       const pos = rng.pick(['GK', 'CB', 'LB', 'RB', 'DM', 'CM', 'AM', 'LW', 'RW', 'ST'] as const);
-      const pa = clamp(Math.round(rng.normal(115 + c.reputation * 0.35 + (c.id === state.userClubId ? youthPotentialBonus(state) + youthFacilityBonus(state) : 0), 20)), 70, 195);
+      const pa = clamp(Math.round(rng.normal(115 + c.reputation * 0.35 + (c.id === state.userClubId ? youthPotentialBonus(state) + youthFacilityBonus(state) + youthIntakeBonus(state) : 0), 20)), 70, 195);
       const p = makePlayer(rng, { id: `p${state.nextId++}`, clubId: c.id, pos, ca: rng.int(40, 70), pa, age: rng.int(15, 16), squad: 'U18', number: freeNumber(state, c.id), year: state.year, reputation: c.reputation, country: c.country });
       state.players[p.id] = p; noteJoined(state, p); names.push(`${p.name} (${p.pos})`);
     }

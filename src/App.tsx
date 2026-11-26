@@ -59,7 +59,7 @@ export default function App() {
     return <main className="ng ng--loading"><img className="ng__crest" src={`${import.meta.env.BASE_URL}crest-512.png`} alt="Football Dynasty" /><p className="hm-note" role="status">Loading your career…</p></main>;
   }
   if (!g) {
-    return <NewGame oldSave={oldSave} careers={careers} onLoad={(id) => { void loadCareer(id); setScreen('home'); }} onDelete={(id) => void deleteCareer(id)} onImport={async (t) => { const e = await importSave(t); if (!e) setScreen('home'); return e; }} onStart={({ clubId, name, currency, world, source }) => { setGame(newGame({ seed: Math.floor(Math.random() * 2 ** 31), userClubId: clubId, managerName: name, currency, world, source })); setScreen('home'); }} />;
+    return <NewGame oldSave={oldSave} careers={careers} onLoad={(id) => { void loadCareer(id); setScreen('home'); }} onDelete={(id) => void deleteCareer(id)} onImport={async (t) => { const e = await importSave(t); if (!e) setScreen('home'); return e; }} onStart={({ clubId, name, currency, world, source, style }) => { setGame(newGame({ seed: Math.floor(Math.random() * 2 ** 31), userClubId: clubId, managerName: name, currency, world, source, style })); setScreen('home'); }} />;
   }
 
   const go = (s: Screen, id?: string) => {

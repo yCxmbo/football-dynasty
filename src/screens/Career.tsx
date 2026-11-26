@@ -3,6 +3,7 @@ import { FD } from '../ds';
 import { acceptOffer, applyChance, applyForJob, boardConfidence, career, clubLine, confidenceWord, currentSpell, resign } from '../engine/career';
 import { boardTarget } from '../engine/game';
 import { ACHIEVEMENTS } from '../engine/achievements';
+import { STYLES, setStyle, styleOf } from '../engine/style';
 import { managerReputation } from '../engine/nationaljob';
 import { seasonLabel, type GameState } from '../engine/types';
 import { badgeUrl } from './badge';
@@ -66,6 +67,15 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
           <FD.Button variant="ghost" onClick={() => { if (window.confirm(`Resign as ${club.name} manager? You'll have to find a new club before playing on.`)) update((d) => resign(d)); }}>Resign</FD.Button>
         </section>
       )}
+
+      <section className="pg-card">
+        <h2 className="pg-h">Coaching style</h2>
+        <div className="fd-seg" role="radiogroup" aria-label="Coaching style" style={{ flexWrap: 'wrap' }}>
+          {STYLES.map((st) => <button key={st.id} type="button" role="radio" aria-checked={styleOf(g) === st.id} disabled={g.styleChanged === g.year && styleOf(g) !== st.id} className={'fd-seg__opt' + (styleOf(g) === st.id ? ' is-on' : '')}
+            onClick={() => { if (styleOf(g) !== st.id && window.confirm(`Switch to ${st.title}? You can change your style once a season.`)) update((d) => { setStyle(d, st.id); }); }}>{st.title}</button>)}
+        </div>
+        <p className="hm-note" style={{ marginBottom: 0 }}>{STYLES.find((x) => x.id === styleOf(g))!.text}{g.styleChanged === g.year ? ' Changed this season.' : ' You can change it once a season.'}</p>
+      </section>
 
       <section className="pg-card">
         <h2 className="pg-h">Offers</h2>

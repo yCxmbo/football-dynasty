@@ -5,11 +5,12 @@ import { validateWorld, type ClubDef, type LeagueDef, type Validation, type Worl
 import type { Currency } from '../engine/types';
 import { realWorld } from '../data/real';
 import { badgeUrl } from './badge';
+import { STYLES, type ManagerStyle } from '../engine/style';
 import Careers from './Careers';
 import type { Career } from '../store';
 
 type Source = 'real' | 'builtin' | 'import';
-export interface StartOpts { clubId: string; name: string; currency: Currency; world: WorldDef; source: Source }
+export interface StartOpts { clubId: string; name: string; currency: Currency; world: WorldDef; source: Source; style: ManagerStyle }
 
 const SOURCES: Array<[Source, string, string]> = [
   ['real', 'Real world', '15 countries with their real leagues and competitions, real players from 2025/26, and club names close to the real ones.'],
@@ -55,6 +56,7 @@ export default function NewGame({ onStart, oldSave, careers = [], onLoad, onDele
   const [name, setName] = useState('');
   const [currency, setCurrency] = useState<Currency>('EUR');
   const [busy, setBusy] = useState(false);
+  const [style, setStyleChoice] = useState<ManagerStyle>('balanced');
 
   const countryId = playable.some((k) => k.id === country) ? country : playable[0]?.id;
   const leagues = world ? world.leagues.filter((l) => l.country === countryId).sort((a, b) => a.tier - b.tier) : [];
@@ -101,6 +103,12 @@ export default function NewGame({ onStart, oldSave, careers = [], onLoad, onDele
           <FD.Field label="Your name"><div className="fd-input"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Manager name" aria-label="Your name" maxLength={40} /></div></FD.Field>
           <FD.Field label="Currency"><FD.CurrencyToggle value={currency} onChange={setCurrency} /></FD.Field>
         </div>
+
+        <h2 className="pg-h">Your style</h2>
+        <div className="fd-seg" role="radiogroup" aria-label="Coaching style" style={{ alignSelf: 'flex-start', flexWrap: 'wrap' }}>
+          {STYLES.map((st) => <button key={st.id} type="button" role="radio" aria-checked={style === st.id} className={'fd-seg__opt' + (style === st.id ? ' is-on' : '')} onClick={() => setStyleChoice(st.id)}>{st.title}</button>)}
+        </div>
+        <p className="hm-note" style={{ marginTop: 0 }}>{STYLES.find((x) => x.id === style)!.text} You can change it once a season.</p>
 
         <h2 className="pg-h">Choose a world</h2>
         <div className="ng__worlds" role="radiogroup" aria-label="World">
@@ -156,7 +164,7 @@ export default function NewGame({ onStart, oldSave, careers = [], onLoad, onDele
             </div>
             <div className="pg-row" style={{ justifyContent: 'flex-end' }}>
               {busy && <span className="hm-note" role="status">Building the world and its squads…</span>}
-              <FD.Button icon="play" disabled={!clubId || busy} onClick={() => { if (!clubId) return; setBusy(true); setTimeout(() => onStart({ clubId, name: name.trim() || 'The Boss', currency, world, source }), 30); }}>Start career</FD.Button>
+              <FD.Button icon="play" disabled={!clubId || busy} onClick={() => { if (!clubId) return; setBusy(true); setTimeout(() => onStart({ clubId, name: name.trim() || 'The Boss', currency, world, source, style }), 30); }}>Start career</FD.Button>
             </div>
           </>
         )}

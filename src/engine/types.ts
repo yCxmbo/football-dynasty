@@ -168,6 +168,9 @@ export interface GameState {
   internationals?: import('./international').Tournament[];
   /** The national team you manage alongside your club, if any. */
   nationalJob?: import('./nationaljob').NationalJob;
+  /** Your coaching style, and the season you last changed it. */
+  managerStyle?: import('./style').ManagerStyle;
+  styleChanged?: number;
   /** All-time records across the world. */
   records?: import('./records').Records;
   /** Achievements unlocked, with the season. */

@@ -49,7 +49,7 @@ export const ARGENTINA: RCountry = {
 };
 
 export const USA: RCountry = {
-  id: 'usa', name: 'United States', superCup: 'Campeones Cup',
+  id: 'usa', name: 'United States', superCup: false,
   cups: [{ id: 'usa-cup', name: 'U.S. Open Cup', tiers: [1], main: true }],
   leagues: [{ id: 'usa1', name: 'Major League Soccer', short: 'MLS', tier: 1, promote: 0, relegate: 0, tv: 320_000, clubs: [
     c('miami', 'Miami Herons', 'MIA', 66, ['#F7B5CD', '#231F20'], 'Fort Lauderdale Park', 21550, [
@@ -76,7 +76,7 @@ export const USA: RCountry = {
 
 export const MEXICO: RCountry = {
   id: 'mex', name: 'Mexico', superCup: 'Campeón de Campeones',
-  cups: [{ id: 'mex-cup', name: 'Copa MX', tiers: [1], main: true }],
+  cups: [],
   leagues: [{ id: 'mex1', name: 'Liga MX', short: 'Liga MX', tier: 1, promote: 0, relegate: 0, tv: 240_000, clubs: [
     c('america', 'Mexico City Eagles', 'AME', 68, ['#FFD200', '#002F6C'], 'Aztec Park', 83264, [['Luis Malagón', 'GK', 28, 74, 'MEX'], ['Álvaro Fidalgo', 'CM', 28, 75, 'ESP'], ['Alejandro Zendejas', 'RW', 27, 73, 'USA'], ['Brian Rodríguez', 'LW', 25, 73, 'URU']]),
     c('chivas', 'Guadalajara Goats', 'GDL', 62, ['#E30613', '#FFFFFF'], 'Akron Park', 48071, [['Raúl Rangel', 'GK', 25, 72, 'MEX'], ['Roberto Alvarado', 'RW', 26, 73, 'MEX'], ['Javier Hernández', 'ST', 37, 68, 'MEX']]),

@@ -1,6 +1,6 @@
 import { FD } from '../ds';
 import { boardTarget, currentDate, leagueTable, nextUserFixture, ordinal, seasonOver } from '../engine/game';
-import { compInfo, cupResult, topLeague } from '../engine/competitions';
+import { compInfo, cupResult, topLeague, withThe } from '../engine/competitions';
 import type { GameState } from '../engine/types';
 import { fixtureCardProps, leagueLabel, zonesFor } from './comp-ui';
 import { toCur } from '../store';
@@ -33,7 +33,7 @@ export default function Home({ g, go, onPlay }: { g: GameState; go: (s: Screen, 
   ].slice(0, 5);
   const unread = g.inbox.filter((m) => m.unread).slice(0, 3);
   const greeting = over ? 'The season is over' : pos === 1 && played > 0 ? 'Top of the league, boss' : `Good morning, ${g.managerName.startsWith('The ') ? g.managerName.toLowerCase() : g.managerName.split(' ')[0]}`;
-  const lead = played === 0 ? `A new season in the ${leagueLabel(g, club.league)} starts ${currentDate(g)}. The board wants ${target.text}.`
+  const lead = played === 0 ? `A new season in ${withThe(leagueLabel(g, club.league))} starts ${currentDate(g)}. The board wants ${target.text}.`
     : over ? `You finished ${ordinal(pos)}. Read the board's review, then start the new season.`
     : `${ordinal(pos)} after ${played} ${played === 1 ? 'match' : 'matches'}, ${pos === 1 ? `${table[0].pts - table[1].pts} ${table[0].pts - table[1].pts === 1 ? 'point' : 'points'} clear` : `${table[0].pts - table[pos - 1].pts} points off the top`}.`;
 

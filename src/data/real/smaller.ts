@@ -66,7 +66,7 @@ export const NETHERLANDS: RCountry = {
 };
 
 export const BELGIUM: RCountry = {
-  id: 'bel', name: 'Belgium', superCup: 'Belgian Super Cup',
+  id: 'bel', name: 'Belgium', superCup: false,
   cups: [{ id: 'bel-cup', name: 'Belgian Cup', tiers: [1], main: true }],
   leagues: [{ id: 'bel1', name: 'Belgian Pro League', short: 'Pro League', tier: 1, promote: 0, relegate: 0, tv: 200_000, clubs: [
     c('anderlecht', 'Brussels Purple & White', 'AND', 66, ['#4C2683', '#FFFFFF'], 'Lotto Park', 21500, [
@@ -117,7 +117,7 @@ export const TURKEY: RCountry = {
 };
 
 export const SCOTLAND: RCountry = {
-  id: 'sco', name: 'Scotland', superCup: 'Scottish Super Cup',
+  id: 'sco', name: 'Scotland', superCup: false,
   cups: [{ id: 'sco-cup', name: 'Scottish Cup', tiers: [1], main: true }, { id: 'sco-lc', name: 'Scottish League Cup', tiers: [1] }],
   leagues: [{ id: 'sco1', name: 'Scottish Premiership', short: 'Premiership', tier: 1, promote: 0, relegate: 0, tv: 120_000, clubs: [
     c('aberdeen', 'Granite City Dons', 'ABE', 50, ['#E30613', '#FFFFFF'], 'Pittodrie Park', 20866, [['Dimitar Mitov', 'GK', 28, 72, 'BUL'], ['Kevin Nisbet', 'ST', 28, 70, 'SCO']]),

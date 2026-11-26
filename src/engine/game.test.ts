@@ -112,6 +112,19 @@ describe('worlds', () => {
     expect(s.comps.ucl.size).toBe(32);
     expect(s.comps.uel.size).toBe(32);
   });
+  it('a real-world season crowns a winner in every competition, and only real cups are played', () => {
+    const s = newGame({ seed: 9, userClubId: 'mex-america', managerName: 'T', currency: 'USD', world: realWorld(), source: 'real' });
+    expect(s.comps['sc-sco']).toBeUndefined();
+    expect(s.comps['sc-bel']).toBeUndefined();
+    expect(s.comps['sc-usa']).toBeUndefined();
+    expect(s.comps['sc-mex'].name).toBe('Campeón de Campeones');
+    expect(Object.values(s.comps).some((c) => c.kind === 'cup' && c.country === 'mex')).toBe(false);
+    const n = totalMatchdays(s);
+    for (let i = 0; i < n; i++) playMatchday(s);
+    for (const c of Object.values(s.comps)) if (c.kind !== 'league') expect(s.cups[c.id]?.winner, c.id).toBeTruthy();
+    startNewSeason(s);
+    expect(s.comps['sc-mex'].name).toBe('Campeón de Campeones');
+  }, 120_000);
   it('the template validates and starts a game', () => {
     const w = templateWorld();
     expect(validateWorld(w).ok).toBe(true);

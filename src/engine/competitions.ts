@@ -18,6 +18,9 @@ export const userLeague = (s: GameState) => s.clubs[s.userClubId].league;
 export const leagueRounds = (n: number) => 2 * (n - 1);
 
 /** Knockout round names for a number of entrants; a first round thins the field to a power of two. */
+/** "the Premier League" but "LaLiga", "Serie A", "Liga MX", "MLS": names used in English without an article. */
+export const withThe = (name: string) => (/^(LaLiga|Serie |Ligue |Liga |Major League Soccer|MLS)/.test(name) ? name : `the ${name}`);
+
 export function cupRoundNames(entrants: number): string[] {
   const p = 2 ** Math.floor(Math.log2(Math.max(2, entrants)));
   const out: string[] = [];
@@ -43,8 +46,10 @@ export function buildComps(s: GameState) {
   }
   for (const c of s.world.cups) comps[c.id] = { id: c.id, name: c.name, short: c.name, kind: 'cup', country: c.country, rounds: cupRoundNames(cupEntrants(s, c.id).length), main: c.main };
   for (const country of s.world.countries) {
-    if (!topLeague(s, country.id) || !s.world.cups.some((c) => c.country === country.id && c.main)) continue;
-    comps[`sc-${country.id}`] = { id: `sc-${country.id}`, name: country.superCup ?? `${country.name} Super Cup`, short: country.superCup ?? 'Super Cup', kind: 'super', country: country.id, rounds: ['Final'] };
+    // a named super cup always runs; an unnamed one needs a main cup; false means none
+    if (country.superCup === false || !topLeague(s, country.id)) continue;
+    if (!country.superCup && !s.world.cups.some((c) => c.country === country.id && c.main)) continue;
+    comps[`sc-${country.id}`] = { id: `sc-${country.id}`, name: country.superCup || `${country.name} Super Cup`, short: country.superCup || 'Super Cup', kind: 'super', country: country.id, rounds: ['Final'] };
   }
   const usedFillers = new Set(Object.values(s.qualified).flat());
   for (const k of s.world.continental) {
@@ -264,7 +269,7 @@ export function advanceCups(s: GameState, rng: Rng, slot: Slot): string[] {
       cup.winner = winnerOf(f); cup.runnerUp = loserOf(f);
       cup.exits[cup.winner] = 'Winners'; cup.exits[cup.runnerUp] = 'Final';
       cup.alive = [cup.winner];
-      news.push(`${s.clubs[cup.winner].name} win the ${c.name}!`);
+      news.push(`${s.clubs[cup.winner].name} win ${withThe(c.name)}!`);
       continue;
     }
     const rounds = c.rounds!;

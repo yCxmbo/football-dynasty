@@ -8,7 +8,7 @@ import { makeAttributes, makePlayer, valueFor, wageFor, SQUAD_TEMPLATE } from '.
 export const WORLD_FORMAT = 'football-dynasty-world';
 export const WORLD_VERSION = 1;
 
-export interface CountryDef { id: string; name: string; /** Name of the season-opening super cup (champions v cup winners). */ superCup?: string }
+export interface CountryDef { id: string; name: string; /** Name of the season-opening super cup (champions v main cup winners, or v runners-up without a main cup). false: no super cup. */ superCup?: string | false }
 export interface LeagueDef {
   id: string; name: string; short?: string; country: string; tier: number;
   /** Automatic promotion places (0 for a country's top league). */ promote: number;

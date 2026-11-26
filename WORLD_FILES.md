@@ -17,7 +17,7 @@ Only import names and data you have the right to use.
   "version": 1,
   "name": "My world",
   "startYear": 2026,
-  "countries": [ { "id": "eng", "name": "England" } ],
+  "countries": [ { "id": "eng", "name": "England", "superCup": "Community Shield" } ],
   "leagues": [ … ],
   "cups": [ … ],
   "continental": [ … ],
@@ -25,6 +25,8 @@ Only import names and data you have the right to use.
   "players": [ … ]
 }
 ```
+
+A country's optional `superCup` names its season opener: the league champions against the main cup winners (or the runners-up if the country has no main cup). Without a name, countries with a main cup get a "Super Cup"; `false` means none.
 
 Ids are short strings you choose. They must be unique and are how everything refers to everything else.
 

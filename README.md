@@ -34,7 +34,7 @@ The game saves automatically in the browser (localStorage, compressed with lz-st
   | --- | --- |
   | Domestic cups (FA Cup, Copa del Rey, Coppa Italia, DFB-Pokal, Coupe de France…) | Knockout. With an awkward number of clubs, the lowest-ranked play a first round and the rest get byes. Neutral semi-finals (main cups) and final. |
   | EFL Cup and Scottish League Cup | Knockout, neutral final. |
-  | Super cups (Community Shield, Supercopa de España, Supercoppa Italiana, DFL-Supercup, Trophée des Champions…) | League champions against the main cup winners, before the season. |
+  | Super cups (Community Shield, Supercopa de España, Supercoppa Italiana, DFL-Supercup, Trophée des Champions…) | League champions against the main cup winners (Mexico: against the runners-up), before the season. Only countries that really have one. |
   | UEFA Champions League | 32 clubs: the top of each European league plus clubs from the rest of Europe. 8 groups of four, then round of 16, quarter-finals, semi-finals and a neutral final. |
   | UEFA Europa League | 32 clubs: the next places in each league plus cup winners. |
   | Copa Libertadores | 16 clubs from Brazil, Argentina and the rest of South America. |

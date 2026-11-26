@@ -11,8 +11,7 @@ import { defaultTraining, developStep, effects, trainingWeek } from './training'
 import { cupGate, emptyLedger, financeWeek, seasonFinances } from './finance';
 import {
   advanceCups, buildComps, clubsInLeague, compInfo, cupResult, currentSlot, currentWeek, leagueDef, leagueTableOf, makeCalendar,
-  promotionsAndRelegations, qualifiers, setupPlayoffs, setupSeason, winnerOf, type TableRow,
-} from './competitions';
+  promotionsAndRelegations, qualifiers, setupPlayoffs, setupSeason, winnerOf, type TableRow, withThe } from './competitions';
 import { buildWorld, type WorldDef } from './worlddef';
 import { squadOf, withSquadIndex } from './index';
 import { builtinWorld } from './builtin';
@@ -49,9 +48,9 @@ export function newGame(opts: NewGameOpts): GameState {
   const cont = Object.values(state.comps).filter((c) => c.kind === 'continental' && (state.qualified[c.id] ?? []).includes(club.id));
   addMessage(state, { category: 'board', from: 'The board', role: club.name, subject: `Welcome to ${club.name}`, body: [
     `Welcome, ${opts.managerName}. The board is delighted to have you at ${club.stadium}.`,
-    `We play in the ${leagueName(state, club.league)}. Our expectation this season: ${target.text}.`,
+    `We play in ${withThe(leagueName(state, club.league))}. Our expectation this season: ${target.text}.`,
     `Your transfer budget is ${Math.round(club.transferBudget / 1e5) / 10}M.`,
-    ...cont.map((c) => `We are in the ${c.name} this season.`),
+    ...cont.map((c) => `We are in ${withThe(c.name)} this season.`),
   ] });
   return state;
 }
@@ -285,9 +284,9 @@ function postMatchMessages(state: GameState, f: Fixture) {
   if (comp.kind === 'league') {
     const t = leagueTableOf(state, f.comp);
     const pos = t.findIndex((r) => r.clubId === us.id) + 1;
-    line2 = `They are ${ordinal(pos)} in the ${comp.name} after ${t[pos - 1]?.p ?? 0} matches.`;
-  } else if (f.round === 'Final') line2 = won ? `${us.name} win the ${comp.name}!` : `Heartbreak in the ${comp.name} final.`;
-  else line2 = won ? `${us.name} are through in the ${comp.name}.` : `${us.name} are out of the ${comp.name} (${f.round.toLowerCase()}).`;
+    line2 = `They are ${ordinal(pos)} in ${withThe(comp.name)} after ${t[pos - 1]?.p ?? 0} matches.`;
+  } else if (f.round === 'Final') line2 = won ? `${us.name} win ${withThe(comp.name)}!` : `Heartbreak in ${withThe(comp.name)} final.`;
+  else line2 = won ? `${us.name} are through in ${withThe(comp.name)}.` : `${us.name} are out of ${withThe(comp.name)} (${f.round.toLowerCase()}).`;
   addMessage(state, { category: 'media', from: `${us.name.split(' ')[0]} Gazette`, subject: `${word === 'win' ? 'Fans celebrate' : word === 'draw' ? 'Honours even in' : 'Frustration after'} ${gf}\u2013${ga}${pens} ${word} ${userHome || f.neutral ? 'against' : 'at'} ${them.name}`,
     body: [`${comp.name}, ${f.round}: ${us.name} ${gf > ga ? 'beat' : gf === ga ? 'drew with' : 'lost to'} ${them.name} ${gf}\u2013${ga}${pens}.`, line2] });
   const mine = userHome ? r.ratings.home : r.ratings.away;
@@ -315,8 +314,8 @@ function seasonEndMessage(state: GameState) {
   const mv = promotionsAndRelegations(state).moves[us.id];
   const ok = pos <= target.pos || mv?.dir === 'promoted';
   addMessage(state, { category: 'board', from: 'The board', role: us.name, subject: pos === 1 ? 'Champions! The board is overjoyed' : mv?.dir === 'promoted' ? 'Promoted! The board is delighted' : mv?.dir === 'relegated' ? 'Relegated. A painful day for the club' : ok ? 'Season review: target met' : 'Season review: below expectations',
-    body: [`We finished ${ordinal(pos)} in the ${leagueName(state, us.league)}. The target was ${target.text}.`,
-      mv ? `Next season we play in the ${leagueName(state, mv.to)}.${mv.dir === 'relegated' ? ' The board expects an immediate return.' : ''}` : ok ? 'The board is pleased with your work.' : 'The board expects improvement next season.',
+    body: [`We finished ${ordinal(pos)} in ${withThe(leagueName(state, us.league))}. The target was ${target.text}.`,
+      mv ? `Next season we play in ${withThe(leagueName(state, mv.to))}.${mv.dir === 'relegated' ? ' The board expects an immediate return.' : ''}` : ok ? 'The board is pleased with your work.' : 'The board expects improvement next season.',
       'Start the new season from the home screen when you are ready.'] });
 }
 
@@ -423,11 +422,11 @@ export function startNewSeason(state: GameState) {
   const us = state.clubs[state.userClubId];
   const target = boardTarget(state, us.id);
   const m = (n: number) => `${Math.round(n / 1e5) / 10}M`;
-  addMessage(state, { category: 'board', from: 'The board', role: us.name, subject: `New season: ${seasonLabel(state.year)} in the ${leagueName(state, us.league)}`, body: [
+  addMessage(state, { category: 'board', from: 'The board', role: us.name, subject: `New season: ${seasonLabel(state.year)} in ${withThe(leagueName(state, us.league))}`, body: [
     `${userMove === 'promoted' ? 'Welcome to a higher level! ' : userMove === 'relegated' ? 'A new start after relegation. ' : ''}The board's target: ${target.text}.`,
     `Prize money last season: ${m(money.prize)}. Club reputation ${money.repChange > 0 ? 'rose' : money.repChange < 0 ? 'fell' : 'held steady'} (${us.reputation}).`,
     `Your transfer budget is ${m(money.transferBudget)} and the wage budget is ${Math.round(money.wageBudget / 1000)}k a week.`,
-    ...Object.values(state.comps).filter((c) => c.kind === 'continental' && (state.qualified[c.id] ?? []).includes(us.id)).map((c) => `We have qualified for the ${c.name}.`),
+    ...Object.values(state.comps).filter((c) => c.kind === 'continental' && (state.qualified[c.id] ?? []).includes(us.id)).map((c) => `We have qualified for ${withThe(c.name)}.`),
     ...(money.balance < 0 ? ['The club is in debt. The board has cut the transfer budget and expects you to sell before buying.'] : [])] });
 }
 

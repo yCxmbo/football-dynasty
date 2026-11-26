@@ -84,6 +84,7 @@ The game saves automatically in the browser (IndexedDB), and you can keep severa
 - **Derbies:** 62 real rivalries, from El Clásico, the Old Firm and the Superclásico to the Black Country derby and El Tráfico. Derbies are labelled on fixtures, sell out, are more heated (more fouls and cards), and matter more: a win lifts the squad and the board's trust, a defeat costs some. Every derby's head-to-head record is on the Records screen.
 - **Achievements:** 24 milestones in four groups (results, trophies, club, career): from your first win to the treble, a World Cup with a national team, a dynasty of five titles, or managing in three countries. Each unlocks once with its season, arrives in the inbox, and shows on the Career screen.
 - **World records:** the Records screen keeps all-time records across the world since your career began: most top-flight and continental titles, all-time top scorers (retired players keep their place), most goals in a season, most points by a champion, and record transfers.
+- **Season awards:** at the end of every season each top flight names its Player of the Season, Young Player of the Season (21 and under), top scorer and a Team of the Season (4-3-3), and the world names the Golden Ball (top three) and the Golden Boy. Winners carry their awards on their profiles, your inbox highlights your own players, and the Records screen shows the latest season and every past Golden Ball and Golden Boy.
 - **Tips for new players:** the first time you open each main screen, a short tip explains what it's for and what to try. Dismiss each with *Got it*, or *Hide all tips*; Settings → *Show tips again* brings them back. Remembered per browser.
 - **Inbox:** board, media, medical, youth, league and transfer messages; bids can be accepted or rejected from the inbox.
 - **Transfers:**
@@ -147,6 +148,7 @@ src/
     rivalries.ts   named derbies, their effects and head-to-head records
     style.ts       coaching styles and their effects
     records.ts     all-time world records
+    awards.ts      end-of-season awards
     achievements.ts career milestones and when they unlock
     career.ts      board confidence, the sack, offers, vacancies, moving clubs
     summer.ts      the live tournament summer: pausing at your matches, resuming after a reload

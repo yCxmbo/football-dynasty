@@ -86,6 +86,13 @@ export default function PlayerScreen({ g, id, go, act, update }: { g: GameState;
             : <span className="fd-muted">An even temperament: nothing stands out.</span>
         ) : <span className="fd-muted">Scout him to learn his character.</span>}
       </section>
+      {p.awards?.length ? (
+        <section className="pg-card intl-line">
+          <h2 className="pg-h" style={{ margin: 0 }}>Awards</h2>
+          {p.awards.slice(0, 12).map((x, i) => <span key={i} className={'aw-chip' + (/^Golden/.test(x) ? ' aw-chip--gold' : '')}>{x}</span>)}
+          {p.awards.length > 12 ? <span className="fd-muted">and {p.awards.length - 12} more</span> : null}
+        </section>
+      ) : null}
       <section className="pg-card intl-line">
         <h2 className="pg-h" style={{ margin: 0 }}>International · {nationName(p.nationality)}</h2>
         <span>{intl?.caps ? `${intl.caps} cap${intl.caps === 1 ? '' : 's'}, ${intl.goals} goal${intl.goals === 1 ? '' : 's'} at tournaments` : 'No tournament appearances yet'}</span>

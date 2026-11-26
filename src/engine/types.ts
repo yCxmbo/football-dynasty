@@ -49,6 +49,8 @@ export interface Player {
   joined?: number;
   /** Generated at the start to complete a squad of named players: never above his nation's usual level for international selection. */
   filler?: boolean;
+  /** Season awards won, newest first, e.g. "Golden Ball 2025/26". */
+  awards?: string[];
   /** Agreed to join this club on a free when his contract ends. */
   preContract?: string;
   /** On loan: the owning club, the season it ends, and the squad he returns to. */
@@ -180,6 +182,8 @@ export interface GameState {
   /** Head-to-head records of every derby, and derbies you have won. */
   derbies?: Record<string, import('./rivalries').DerbyRecord>;
   derbyWins?: number;
+  /** End-of-season awards: the latest season in full, and every Golden Ball and Golden Boy. */
+  awards?: import('./awards').Awards;
   /** All-time records across the world. */
   records?: import('./records').Records;
   /** Achievements unlocked, with the season. */

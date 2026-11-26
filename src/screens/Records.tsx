@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { FD } from '../ds';
+import { TEAM_SLOTS, type AwardWinner } from '../engine/awards';
 import { nationName } from '../engine/nations';
 import { titleCounts } from '../engine/records';
 import type { GameState } from '../engine/types';
@@ -30,6 +32,7 @@ export default function Records({ g }: { g: GameState }) {
         <h1 className="pg-title">World records</h1>
         <p className="hm-note" style={{ margin: 0 }}>All-time records across the game world since your career began. Retired players keep their place.</p>
       </div>
+      <Awards g={g} />
       <div className="pg-grid2 rec-grid">
         <Table title="Most top-flight titles" head={['Club', 'Titles']} empty={none} rows={titleCounts(g, 'league').map((x) => [club(x.id), x.n])} />
         <Table title="Most continental titles" head={['Club', 'Titles']} empty="No continental titles yet." rows={titleCounts(g, 'continental').map((x) => [club(x.id), x.n])} />
@@ -45,6 +48,47 @@ export default function Records({ g }: { g: GameState }) {
         <Table title="Record transfers" head={['Player', 'From', 'To', 'Season', 'Fee']} empty="No big transfers yet (from 5M)."
           rows={(r?.transfers ?? []).map((x) => [x.name, mine(x.from), mine(x.to), x.season, FD.formatMoney(toCur(x.fee, cur), cur)])} />
       </div>
+    </div>
+  );
+}
+
+function Awards({ g }: { g: GameState }) {
+  const a = g.awards?.latest;
+  const home = g.clubs[g.userClubId]?.league;
+  const [pick, setPick] = useState<string | null>(null);
+  if (!a) return (
+    <section className="pg-card">
+      <h2 className="pg-h">Awards</h2>
+      <p className="hm-note">The Golden Ball, the Golden Boy and each top flight's awards are handed out at the end of the season.</p>
+    </section>
+  );
+  const ours = (w?: AwardWinner) => w?.clubId === g.userClubId;
+  const who = (w?: AwardWinner) => (w ? <span className={ours(w) ? 'fd-gold' : undefined}>{ours(w) ? <strong>{w.name}</strong> : w.name} <span className="fd-muted">· {w.club}</span></span> : <span className="fd-muted">—</span>);
+  const league = a.leagues.find((l) => l.leagueId === (pick ?? home)) ?? a.leagues[0];
+  return (
+    <div className="pg-stack" style={{ gap: 16 }}>
+      <div className="pg-grid2 rec-grid">
+        <Table title={`Golden Ball ${a.season}`} head={['Player', 'Nation', 'Rating', 'Goals']} empty="Not awarded."
+          rows={a.ball.map((w) => [who(w), nationName(w.nation), w.rating.toFixed(2), w.goals])} />
+        <Table title="Golden Ball and Golden Boy winners" head={['Season', 'Golden Ball', 'Golden Boy']} empty="None yet."
+          rows={(g.awards?.history ?? []).map((h) => [h.season, who(h.ball[0]), who(h.boy)])} />
+      </div>
+      {a.boy ? <p className="hm-note" style={{ margin: 0 }}>Golden Boy {a.season}: {who(a.boy)}, aged {a.boy.age}, average rating {a.boy.rating.toFixed(2)}.</p> : null}
+      <Table title={`League awards ${a.season}`} head={['League', 'Player of the Season', 'Young Player', 'Top scorer']} empty="No top flights."
+        rows={a.leagues.map((l) => [l.league, who(l.pots), who(l.young), l.scorer ? <>{who(l.scorer)} <span className="fd-num">{l.scorer.goals}</span></> : '—'])} />
+      {league ? (
+        <section className="pg-card">
+          <div className="aw-head">
+            <h2 className="pg-h" style={{ margin: 0 }}>Team of the Season</h2>
+            <select className="fd-input aw-select" value={league.leagueId} onChange={(e) => setPick(e.target.value)} aria-label="League">
+              {a.leagues.map((l) => <option key={l.leagueId} value={l.leagueId}>{l.league}</option>)}
+            </select>
+          </div>
+          <table className="fd-mini"><thead><tr><th>Pos</th><th>Player</th><th className="fd-num">Apps</th><th className="fd-num">Goals</th><th className="fd-num">Rating</th></tr></thead><tbody>
+            {league.team.map((w, i) => <tr key={w.id}><td className="fd-muted">{TEAM_SLOTS[i] ?? w.pos}</td><td>{who(w)}</td><td className="fd-num">{w.apps}</td><td className="fd-num">{w.goals}</td><td className="fd-num">{w.rating.toFixed(2)}</td></tr>)}
+          </tbody></table>
+        </section>
+      ) : null}
     </div>
   );
 }

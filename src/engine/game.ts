@@ -1,3 +1,4 @@
+import { awardsMessage, seasonAwards } from './awards';
 import { formatDate } from './fixtures';
 import { available, fitFor, pickLineup, slotsOf, type Formation, type MatchMods } from './match';
 import { createLive, runToEnd, toResult, type LiveMatch } from './live';
@@ -490,6 +491,10 @@ function rollover(state: GameState) {
   tidySelection(state);
 
   recordSeason(state, label);
+  {
+    const a = seasonAwards(state, label);
+    addMessage(state, { category: 'media', from: 'Football awards', subject: a.ball[0] ? `${a.ball[0].name} wins the Golden Ball` : `${label} awards`, body: awardsMessage(state, a) });
+  }
   for (const p of Object.values(state.players)) {
     if (p.current.apps) p.career.unshift({ season: label, club: `${state.clubs[p.clubId]?.name ?? 'Free agent'}${p.loan ? ' (loan)' : ''}`, apps: p.current.apps, goals: p.current.goals, rating: Math.round((p.current.ratingSum / p.current.apps) * 100) / 100, honour: honours[p.clubId] });
     if (p.career.length > 12) p.career.length = 12;

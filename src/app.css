@@ -224,3 +224,7 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .trait em { font-style: normal; font-weight: 400; font-size: 11px; color: var(--ink-muted); }
 .trait--good { border-color: var(--teal); }
 .trait--bad { border-color: var(--warn, #e0a030); }
+.aw-chip { display: inline-block; padding: 3px 10px; border-radius: var(--radius-sm, 6px); border: 1px solid var(--line); font-size: 13px; font-weight: 600; }
+.aw-chip--gold { border-color: var(--gold); color: var(--gold-ink); }
+.aw-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-2); }
+.aw-select { max-width: 100%; width: auto; }

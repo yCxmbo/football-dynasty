@@ -78,6 +78,8 @@ export interface Club {
   reputation: number; // 1–100
   stadium: string;
   capacity: number;
+  /** A reserve side: can't be promoted. */
+  reserve?: boolean;
   /** Training ground and academy levels, and building work (your club; others use defaults). */
   facilities?: import('./facilities').Facilities;
   nickname: string;

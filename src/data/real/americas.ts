@@ -1,9 +1,10 @@
 import { c, type RCountry } from './types';
+import { BRA2 } from './second2';
 
 export const BRAZIL: RCountry = {
   id: 'bra', name: 'Brazil', superCup: 'Supercopa do Brasil',
-  cups: [{ id: 'bra-cup', name: 'Copa do Brasil', tiers: [1], main: true }],
-  leagues: [{ id: 'bra1', name: 'Brasileirão Série A', short: 'Brasileirão', tier: 1, promote: 0, relegate: 0, tv: 300_000, clubs: [
+  cups: [{ id: 'bra-cup', name: 'Copa do Brasil', tiers: [1, 2], main: true }],
+  leagues: [{ id: 'bra1', name: 'Brasileirão Série A', short: 'Brasileirão', tier: 1, promote: 0, relegate: 4, tv: 300_000, clubs: [
     c('atleticomg', 'Belo Horizonte Roosters', 'CAM', 66, ['#000000', '#FFFFFF'], 'Arena MRV Park', 46000, [['Everson', 'GK', 35, 74, 'BRA'], ['Gustavo Scarpa', 'AM', 31, 75, 'BRA'], ['Hulk', 'ST', 39, 76, 'BRA']]),
     c('bahia', 'Salvador Tricolor', 'BAH', 58, ['#0055A4', '#E30613'], 'Fonte Nova Park', 47907, [['Everton Ribeiro', 'AM', 36, 74, 'BRA'], ['Willian José', 'ST', 33, 72, 'BRA']]),
     c('botafogo', 'Rio Lone Star', 'BOT', 70, ['#000000', '#FFFFFF'], 'Nilton Santos Park', 44661, [['John', 'GK', 29, 75, 'BRA'], ['Alexander Barboza', 'CB', 30, 75, 'ARG'], ['Marlon Freitas', 'DM', 30, 75, 'BRA'], ['Savarino', 'RW', 28, 75, 'VEN'], ['Igor Jesus', 'ST', 24, 76, 'BRA']]),
@@ -26,7 +27,7 @@ export const BRAZIL: RCountry = {
     c('sport', 'Recife Leão da Ilha', 'SPT', 40, ['#E30613', '#000000'], 'Ilha do Retiro Park', 26418),
     c('vasco', 'Rio Gigante', 'VAS', 60, ['#000000', '#FFFFFF'], 'São Januário Park', 21880, [['Léo Jardim', 'GK', 30, 75, 'BRA'], ['Philippe Coutinho', 'AM', 33, 75, 'BRA'], ['Pablo Vegetti', 'ST', 36, 73, 'ARG']]),
     c('vitoriaba', 'Salvador Leão da Barra', 'VIT', 40, ['#E30613', '#000000'], 'Barradão Park', 30793),
-  ] }],
+  ] }, BRA2],
 };
 
 export const ARGENTINA: RCountry = {

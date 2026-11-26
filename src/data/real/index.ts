@@ -24,7 +24,7 @@ export function realWorld(): WorldDef {
   const seen = new Set<string>();
   const addClub = (country: string, rc: RC, league?: string) => {
     const id = `${country}-${rc.id}`;
-    clubs.push({ id, name: rc.name, short: rc.short, country, league, reputation: rc.rep, stadium: rc.st, capacity: rc.cap, colours: rc.col });
+    clubs.push({ id, name: rc.name, short: rc.short, country, league, reputation: rc.rep, stadium: rc.st, capacity: rc.cap, colours: rc.col, ...(rc.reserve ? { reserve: true } : {}) });
     for (const [name, pos, age, overall, nationality, potential] of rc.p ?? []) {
       if (!overall || seen.has(name)) continue; // a 0 marks a player listed at his former club
       seen.add(name);

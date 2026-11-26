@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { realWorld } from '../data/real';
-import { leagueTableOf } from './competitions';
+import { leagueTableOf, promotionsAndRelegations } from './competitions';
 import { newGame, playMatchday, seasonOver, startNewSeason } from './game';
 
 describe('league formats', () => {
@@ -38,4 +38,19 @@ describe('league formats', () => {
     expect(s.trophies[ligaChamp].some((t) => t.name === 'Liga MX')).toBe(true);
     expect(s.history[mlsChamp][0].champion).toBe(s.clubs[mlsChamp].name);
   }, 120_000);
+
+  it('reserve sides can\'t be promoted: the next club goes up instead', () => {
+    const s = newGame({ seed: 62, userClubId: 'ned-ajax', managerName: 'T', currency: 'EUR', world: realWorld(), source: 'real' });
+    for (const f of s.fixtures.filter((x) => x.comp === 'ned2')) {
+      // Jong Ajax win everything, so they top the table
+      f.result = { score: f.homeId === 'ned-jongajax' ? [5, 0] : f.awayId === 'ned-jongajax' ? [0, 5] : [1, 1], events: [], stats: {} as never, ratings: { home: [], away: [] } };
+    }
+    const t = leagueTableOf(s, 'ned2');
+    expect(t[0].clubId).toBe('ned-jongajax');
+    const { moves } = promotionsAndRelegations(s);
+    expect(moves['ned-jongajax']).toBeUndefined();
+    const up = Object.entries(moves).filter(([, m]) => m.to === 'ned1').map(([id]) => id);
+    expect(up.length).toBe(2);
+    for (const id of up) expect(s.clubs[id].reserve).toBeFalsy();
+  });
 });

@@ -67,6 +67,7 @@ A league needs an even number of clubs, at least 4.
 
 - `reputation` is 1–100. It sets the squad strength of generated players, the budget and the board's expectations.
 - Leave out `league` for a club that only plays continental football (a filler).
+- `"reserve": true` marks a reserve side (Jong Ajax, Benfica B): it plays in its league but can't be promoted; the next club takes the place.
 - `colours` is two hex colours, e.g. `["#c8102e", "#ffffff"]`, used for the generated badge.
 
 ### Players (optional)

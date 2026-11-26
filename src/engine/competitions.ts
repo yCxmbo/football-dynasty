@@ -421,7 +421,8 @@ export function setupPlayoffs(s: GameState) {
     const l = leagueDef(s, c.leagueId)!;
     const t = leagueTableOf(s, l.id);
     const [a] = l.playoff!;
-    const four = t.slice(a - 1, a + 3).map((r) => r.clubId);
+    // reserve sides can't go up, so the places pass to the next clubs
+    const four = t.filter((r) => !s.clubs[r.clubId].reserve).slice(a - 1, a + 3).map((r) => r.clubId);
     s.cups[c.id] = { round: 0, alive: four, exits: {} };
     add(s, c.id, 'Semi-final', four[0], four[3], { ko: true });
     add(s, c.id, 'Semi-final', four[1], four[2], { ko: true });
@@ -451,7 +452,7 @@ export function promotionsAndRelegations(s: GameState) {
       const up = ls[i - 1], down = ls[i + 1];
       if (down && l.relegate) for (const r of t.slice(-l.relegate)) moves[r.clubId] = { to: down.id, dir: 'relegated' };
       if (up) {
-        for (const r of t.slice(0, l.promote)) moves[r.clubId] = { to: up.id, dir: 'promoted' };
+        for (const r of t.filter((x) => !s.clubs[x.clubId].reserve).slice(0, l.promote)) moves[r.clubId] = { to: up.id, dir: 'promoted' };
         const po = s.cups[`po-${l.id}`]?.winner;
         if (po) moves[po] = { to: up.id, dir: 'promoted' };
       }

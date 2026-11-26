@@ -24,7 +24,7 @@ export interface LeagueDef {
 }
 export interface CupDef { id: string; name: string; country: string; /** League tiers that enter. */ tiers: number[]; /** The main cup's winner plays in the super cup and second continental competition. */ main?: boolean }
 export interface ContinentalDef { id: string; name: string; short?: string; rank: 1 | 2 | 3; size: 16 | 32 | 36; /** "league": a 36-club league phase (eight matches each, one table) instead of groups of four. */ format?: 'groups' | 'league'; /** Places per country from the top league (rank 1: top N; rank 2: the next N, and so on). */ places: Record<string, number>; /** Main cup winners also qualify (if not already in a higher competition). */ cupWinners?: boolean; /** Clubs without a league that fill any empty places, best first. */ fillers?: string[] }
-export interface ClubDef { id: string; name: string; short?: string; country: string; league?: string; reputation: number; stadium?: string; capacity?: number; nickname?: string; founded?: number; balance?: number; /** Badge colours, e.g. ["#ef0107", "#ffffff"]. */ colours?: [string, string] }
+export interface ClubDef { id: string; name: string; short?: string; country: string; league?: string; reputation: number; stadium?: string; capacity?: number; nickname?: string; founded?: number; balance?: number; /** Badge colours, e.g. ["#ef0107", "#ffffff"]. */ colours?: [string, string]; /** A reserve side (Jong Ajax, Benfica B): plays in the league but can't be promoted. */ reserve?: boolean }
 export interface PlayerDef {
   name: string; club: string; pos: string; age: number; nationality?: string;
   /** Either ability (1–200), overall (1–100) or attributes (1–20). */ ability?: number; overall?: number; potential?: number;
@@ -128,7 +128,7 @@ export function buildWorld(def: WorldDef, rng: Rng, year: number, userCountry: s
       stadium: c.stadium ?? `${c.name} Stadium`, capacity: c.capacity ?? Math.round(5000 + c.reputation * c.reputation * 8), nickname: c.nickname ?? '', founded: c.founded ?? 1900,
       balance: c.balance ?? Math.round(c.reputation * c.reputation * 9000 / 1e5) * 1e5,
       transferBudget: Math.round(c.reputation * c.reputation * 6000 / 1e5) * 1e5, wageBudget: 0,
-      division: tier, league: c.league, country: c.country, colours: c.colours,
+      division: tier, league: c.league, country: c.country, colours: c.colours, ...(c.reserve ? { reserve: true } : {}),
     };
   }
   // imported players

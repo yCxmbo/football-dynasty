@@ -102,7 +102,7 @@ describe('worlds', () => {
     const w = realWorld();
     const v = validateWorld(w);
     expect(v.errors).toEqual([]);
-    expect(w.leagues.length).toBe(21);
+    expect(w.leagues.length).toBe(26);
     expect(new Set(w.leagues.map((l) => l.country)).size).toBe(15);
     expect(new Set(w.players!.map((p) => p.name)).size).toBe(w.players!.length);
     const s = newGame({ seed: 5, userClubId: 'eng-liverpool', managerName: 'T', currency: 'GBP', world: w, source: 'real' });

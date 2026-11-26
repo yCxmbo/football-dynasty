@@ -1,9 +1,10 @@
 import { c, type RCountry } from './types';
+import { NED2, POR2, SCO2, TUR2 } from './second2';
 
 export const PORTUGAL: RCountry = {
   id: 'por', name: 'Portugal', superCup: 'Supertaça Cândido de Oliveira',
-  cups: [{ id: 'por-cup', name: 'Taça de Portugal', tiers: [1], main: true }],
-  leagues: [{ id: 'por1', name: 'Liga Portugal', short: 'Liga Portugal', tier: 1, promote: 0, relegate: 0, tv: 260_000, clubs: [
+  cups: [{ id: 'por-cup', name: 'Taça de Portugal', tiers: [1, 2], main: true }],
+  leagues: [{ id: 'por1', name: 'Liga Portugal', short: 'Liga Portugal', tier: 1, promote: 0, relegate: 2, tv: 260_000, clubs: [
     c('avs', 'Vila das Aves Futebol', 'AVS', 40, ['#D71920', '#FFFFFF'], 'Aves Park', 6230), c('alverca', 'Alverca Ribatejo', 'ALV', 38, ['#D71920', '#FFFFFF'], 'Alverca Park', 7700),
     c('arouca', 'Arouca Lobos', 'ARO', 44, ['#FFD200', '#0055A4'], 'Arouca Municipal', 5600),
     c('benfica', 'Lisbon Eagles', 'SLB', 84, ['#E83030', '#FFFFFF'], 'Stadium of Light', 64642, [
@@ -31,13 +32,13 @@ export const PORTUGAL: RCountry = {
       ['Luis Suárez', 'ST', 28, 79, 'COL'], ['Fotis Ioannidis', 'ST', 25, 77, 'GRE']]),
     c('tondela', 'Viseu Auriverdes', 'TON', 36, ['#FFD200', '#00843D'], 'João Cardoso Park', 5000), c('vitoria', 'Guimarães Conquerors', 'VSC', 56, ['#FFFFFF', '#000000'], 'Afonso Henriques Park', 30000, [
       ['Charles', 'GK', 31, 74, 'BRA'], ['Tiago Silva', 'CM', 32, 74, 'POR'], ['Nélson Oliveira', 'ST', 34, 72, 'POR']]),
-  ] }],
+  ] }, POR2],
 };
 
 export const NETHERLANDS: RCountry = {
   id: 'ned', name: 'Netherlands', superCup: 'Johan Cruyff Shield',
-  cups: [{ id: 'ned-cup', name: 'KNVB Cup', tiers: [1], main: true }],
-  leagues: [{ id: 'ned1', name: 'Eredivisie', short: 'Eredivisie', tier: 1, promote: 0, relegate: 0, tv: 230_000, clubs: [
+  cups: [{ id: 'ned-cup', name: 'KNVB Cup', tiers: [1, 2], main: true }],
+  leagues: [{ id: 'ned1', name: 'Eredivisie', short: 'Eredivisie', tier: 1, promote: 0, relegate: 3, tv: 230_000, clubs: [
     c('ajax', 'Amsterdam Sons of Gods', 'AJA', 80, ['#D2122E', '#FFFFFF'], 'Amsterdam Arena', 55865, [
       ['Vítězslav Jaroš', 'GK', 24, 76, 'CZE'], ['Josip Šutalo', 'CB', 25, 78, 'CRO'], ['Youri Baas', 'CB', 22, 77, 'NED'], ['Lucas Rosa', 'RB', 24, 74, 'BRA'],
       ['Jorrel Hato', 'LB', 19, 80, 'NED', 0], ['Kenneth Taylor', 'CM', 23, 79, 'NED'], ['Davy Klaassen', 'CM', 32, 75, 'NED'], ['Youri Regeer', 'CM', 22, 74, 'NED'],
@@ -62,7 +63,7 @@ export const NETHERLANDS: RCountry = {
     c('utrecht', 'Utrecht Domstedelingen', 'UTR', 58, ['#E30613', '#FFFFFF'], 'Galgenwaard Park', 23750, [
       ['Vasilios Barkas', 'GK', 31, 74, 'GRE'], ['Mike van der Hoorn', 'CB', 32, 73, 'NED'], ['Yoann Cathline', 'LW', 23, 74, 'FRA'], ['Noah Ohio', 'ST', 22, 72, 'NED']]),
     c('volendam', 'Volendam Fishermen', 'VOL', 32, ['#F58220', '#FFFFFF'], 'Kras Park', 7384),
-  ] }],
+  ] }, NED2],
 };
 
 export const BELGIUM: RCountry = {
@@ -89,8 +90,8 @@ export const BELGIUM: RCountry = {
 
 export const TURKEY: RCountry = {
   id: 'tur', name: 'Turkey', superCup: 'Turkish Super Cup',
-  cups: [{ id: 'tur-cup', name: 'Turkish Cup', tiers: [1], main: true }],
-  leagues: [{ id: 'tur1', name: 'Süper Lig', short: 'Süper Lig', tier: 1, promote: 0, relegate: 0, tv: 260_000, clubs: [
+  cups: [{ id: 'tur-cup', name: 'Turkish Cup', tiers: [1, 2], main: true }],
+  leagues: [{ id: 'tur1', name: 'Süper Lig', short: 'Süper Lig', tier: 1, promote: 0, relegate: 3, tv: 260_000, clubs: [
     c('alanya', 'Alanya Riviera', 'ALA', 44, ['#F58220', '#00843D'], 'Alanya Oba Park', 10130), c('antalya', 'Antalya Scorpions', 'ANT', 42, ['#E30613', '#FFFFFF'], 'Corendon Park', 32537),
     c('basaksehir', 'Istanbul Owls', 'IBF', 56, ['#F58220', '#002F6C'], 'Fatih Terim Park', 17319, [['Krzysztof Piątek', 'ST', 30, 75, 'POL'], ['Muhammed Şengezer', 'GK', 28, 72, 'TUR']]),
     c('besiktas', 'Istanbul Black Eagles', 'BJK', 74, ['#000000', '#FFFFFF'], 'Bosphorus Park', 42590, [
@@ -113,13 +114,13 @@ export const TURKEY: RCountry = {
     c('konya', 'Konya Anatolian Eagles', 'KON', 42, ['#00843D', '#FFFFFF'], 'Konya Park', 42000), c('rizespor', 'Rize Tea Growers', 'RIZ', 40, ['#00843D', '#0055A4'], 'Rize City Park', 15332),
     c('samsun', 'Samsun Red Lightning', 'SAM', 48, ['#E30613', '#FFFFFF'], 'Samsun 19 Mayıs Park', 33919), c('trabzon', 'Trabzon Black Sea Storm', 'TS', 62, ['#7A1F3D', '#6CABDD'], 'Papara Park', 40782, [
       ['André Onana', 'GK', 29, 0, 'CMR'], ['Stefan Savić', 'CB', 34, 74, 'MNE'], ['Edin Višća', 'RW', 35, 73, 'BIH'], ['Paul Onuachu', 'ST', 31, 76, 'NGA']]),
-  ] }],
+  ] }, TUR2],
 };
 
 export const SCOTLAND: RCountry = {
   id: 'sco', name: 'Scotland', superCup: false,
-  cups: [{ id: 'sco-cup', name: 'Scottish Cup', tiers: [1], main: true }, { id: 'sco-lc', name: 'Scottish League Cup', tiers: [1] }],
-  leagues: [{ id: 'sco1', name: 'Scottish Premiership', short: 'Premiership', tier: 1, promote: 0, relegate: 0, tv: 120_000, split: true, clubs: [
+  cups: [{ id: 'sco-cup', name: 'Scottish Cup', tiers: [1, 2], main: true }, { id: 'sco-lc', name: 'Scottish League Cup', tiers: [1, 2] }],
+  leagues: [{ id: 'sco1', name: 'Scottish Premiership', short: 'Premiership', tier: 1, promote: 0, relegate: 2, tv: 120_000, split: true, clubs: [
     c('aberdeen', 'Granite City Dons', 'ABE', 50, ['#E30613', '#FFFFFF'], 'Pittodrie Park', 20866, [['Dimitar Mitov', 'GK', 28, 72, 'BUL'], ['Kevin Nisbet', 'ST', 28, 70, 'SCO']]),
     c('celtic', 'Glasgow Hoops', 'CEL', 72, ['#018749', '#FFFFFF'], 'Parkhead Park', 60411, [
       ['Kasper Schmeichel', 'GK', 38, 76, 'DEN'], ['Cameron Carter-Vickers', 'CB', 27, 77, 'USA'], ['Liam Scales', 'CB', 26, 73, 'IRL'], ['Alistair Johnston', 'RB', 26, 75, 'CAN'],
@@ -133,5 +134,5 @@ export const SCOTLAND: RCountry = {
       ['Jack Butland', 'GK', 32, 77, 'ENG'], ['John Souttar', 'CB', 28, 73, 'SCO'], ['James Tavernier', 'RB', 33, 75, 'ENG'], ['Nicolas Raskin', 'CM', 24, 76, 'BEL'],
       ['Mohamed Diomande', 'CM', 23, 76, 'CIV'], ['Connor Barron', 'CM', 23, 72, 'SCO'], ['Danilo', 'ST', 26, 73, 'BRA'], ['Hamza Igamane', 'ST', 22, 0, 'MAR'], ['Cyriel Dessers', 'ST', 30, 73, 'NGA']]),
     c('stmirren', 'Paisley Buddies', 'STM', 36, ['#000000', '#FFFFFF'], 'Paisley Park', 8023),
-  ] }],
+  ] }, SCO2],
 };

@@ -81,6 +81,7 @@ The game saves automatically in the browser (IndexedDB), and you can keep severa
 - **Stadium and facilities:** expand the stadium (2,500 to 10,000 seats at a time; the new stands open next season), and upgrade the training ground (faster development) and youth academy (better intakes) through five levels. Crowds are limited by the fan base, which grows with reputation, so seats only pay when the demand is there. Building work is paid from the balance and the transfer budget; facilities cost upkeep each week.
 - **Achievements:** 24 milestones in four groups (results, trophies, club, career): from your first win to the treble, a World Cup with a national team, a dynasty of five titles, or managing in three countries. Each unlocks once with its season, arrives in the inbox, and shows on the Career screen.
 - **World records:** the Records screen keeps all-time records across the world since your career began: most top-flight and continental titles, all-time top scorers (retired players keep their place), most goals in a season, most points by a champion, and record transfers.
+- **Tips for new players:** the first time you open each main screen, a short tip explains what it's for and what to try. Dismiss each with *Got it*, or *Hide all tips*; Settings → *Show tips again* brings them back. Remembered per browser.
 - **Inbox:** board, media, medical, youth, league and transfer messages; bids can be accepted or rejected from the inbox.
 - **Transfers:**
   - Two windows: pre-season through league week 4, and three weeks in mid-season.

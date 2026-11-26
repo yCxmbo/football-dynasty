@@ -211,3 +211,8 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .ach.is-on em { color: var(--gold-ink); font-weight: 600; }
 .rec-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 @media (max-width: 1100px) { .rec-grid { grid-template-columns: 1fr; } }
+.tip { display: flex; gap: var(--space-4); align-items: center; justify-content: space-between; border-color: var(--teal); margin-bottom: var(--space-4); }
+.tip__body { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.tip__body strong { font: 700 16px/20px var(--font-display); text-transform: uppercase; }
+.tip__actions { display: flex; gap: var(--space-2); flex: none; }
+@media (max-width: 760px) { .tip { flex-direction: column; align-items: flex-start; } }

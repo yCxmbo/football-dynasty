@@ -25,6 +25,7 @@ import International from './screens/International';
 import Career from './screens/Career';
 import Staff from './screens/Staff';
 import Records from './screens/Records';
+import Tip, { TIPS } from './screens/Tip';
 import { simulate } from './sim/client';
 import NationalMatch from './screens/NationalMatch';
 import { beginSummer, summerLabel, summerStep, summerTournamentFor } from './engine/summer';
@@ -177,6 +178,8 @@ export default function App() {
     case 'settings': body = <Settings g={g} theme={theme} setTheme={setTheme} setCurrency={(c) => update((d) => { d.currency = c; })} onNewCareer={() => { leave(); setScreen('home'); }} careers={careers} activeId={activeId} onLoad={(id) => { void loadCareer(id); setScreen('home'); }} onDelete={(id) => void deleteCareer(id)} onImport={async (t) => { const e = await importSave(t); if (!e) go('home'); return e; }} />; break;
     default: body = <Placeholder id={screen} />;
   }
+  // a first-visit tip above each main screen
+  if (TIPS[screen] && !(screen === 'match' && !live)) body = <>{<Tip key={screen} id={screen} />}{body}</>;
   // out of work: only the career screen until you take a new job
   if (outOfWork && !live) body = <Career g={g} go={go} update={update} />;
 

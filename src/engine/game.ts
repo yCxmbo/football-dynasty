@@ -339,7 +339,7 @@ function award(state: GameState, clubId: string | undefined, name: string, tier:
 }
 
 /** Closes the season: history, trophies, promotion and relegation, careers, ageing, contracts, youth intake, next season's draw. */
-const STAGE = ['Winners', 'Final', 'Semi-final', 'Quarter-final', 'Round of 16', 'Round of 32', 'Round of 64', 'Round of 128', 'First round', 'Group stage'];
+const STAGE = ['Winners', 'Final', 'Semi-final', 'Quarter-final', 'Round of 16', 'Knockout play-off', 'Round of 32', 'Round of 64', 'Round of 128', 'First round', 'Group stage', 'League phase'];
 
 export function startNewSeason(state: GameState) {
   if (!seasonOver(state)) throw new Error('Season not finished');

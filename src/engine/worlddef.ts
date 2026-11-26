@@ -18,7 +18,7 @@ export interface LeagueDef {
   /** League TV money per matchday, in euros. */ tv: number;
 }
 export interface CupDef { id: string; name: string; country: string; /** League tiers that enter. */ tiers: number[]; /** The main cup's winner plays in the super cup and second continental competition. */ main?: boolean }
-export interface ContinentalDef { id: string; name: string; short?: string; rank: 1 | 2 | 3; size: 16 | 32; /** Places per country from the top league (rank 1: top N; rank 2: the next N, and so on). */ places: Record<string, number>; /** Main cup winners also qualify (if not already in a higher competition). */ cupWinners?: boolean; /** Clubs without a league that fill any empty places, best first. */ fillers?: string[] }
+export interface ContinentalDef { id: string; name: string; short?: string; rank: 1 | 2 | 3; size: 16 | 32 | 36; /** "league": a 36-club league phase (eight matches each, one table) instead of groups of four. */ format?: 'groups' | 'league'; /** Places per country from the top league (rank 1: top N; rank 2: the next N, and so on). */ places: Record<string, number>; /** Main cup winners also qualify (if not already in a higher competition). */ cupWinners?: boolean; /** Clubs without a league that fill any empty places, best first. */ fillers?: string[] }
 export interface ClubDef { id: string; name: string; short?: string; country: string; league?: string; reputation: number; stadium?: string; capacity?: number; nickname?: string; founded?: number; balance?: number; /** Badge colours, e.g. ["#ef0107", "#ffffff"]. */ colours?: [string, string] }
 export interface PlayerDef {
   name: string; club: string; pos: string; age: number; nationality?: string;
@@ -85,7 +85,8 @@ export function validateWorld(raw: unknown): Validation {
     if (entrants < 4) fail(`Cup "${cup.name}" has only ${entrants} clubs entering.`);
   }
   for (const k of w.continental!) {
-    if (k.size !== 16 && k.size !== 32) fail(`Continental competition "${k.name}" must have size 16 or 32.`);
+    if (k.size !== 16 && k.size !== 32 && k.size !== 36) fail(`Continental competition "${k.name}" must have size 16, 32 or 36.`);
+    if (k.size === 36 && k.format !== 'league') fail(`Continental competition "${k.name}": size 36 needs "format": "league".`);
     for (const c of Object.keys(k.places)) if (!countries.has(c)) fail(`"${k.name}" gives places to unknown country "${c}".`);
   }
   let players = 0;

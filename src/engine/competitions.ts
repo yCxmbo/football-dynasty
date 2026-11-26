@@ -40,7 +40,14 @@ export function cupRoundNames(entrants: number): string[] {
   return out;
 }
 const GROUP_ROUNDS = [1, 2, 3, 4, 5, 6].map((i) => `Group matchday ${i}`);
-export const continentalRounds = (size: number) => [...GROUP_ROUNDS, ...(size === 32 ? ['Round of 16'] : []), 'Quarter-final', 'Semi-final', 'Final'];
+const LEAGUE_ROUNDS = [1, 2, 3, 4, 5, 6, 7, 8].map((i) => `League phase ${i}`);
+export const continentalRounds = (size: number) => size === 36
+  ? [...LEAGUE_ROUNDS, 'Knockout play-off', 'Round of 16', 'Quarter-final', 'Semi-final', 'Final']
+  : [...GROUP_ROUNDS, ...(size === 32 ? ['Round of 16'] : []), 'Quarter-final', 'Semi-final', 'Final'];
+
+/** Size this season from the clubs available: the 36-club league phase when the format asks for it and enough clubs take part, else groups of four. */
+const continentalSize = (n: number, def: { size: number; format?: string }) =>
+  def.format === 'league' && n >= 36 ? 36 : n >= 32 && def.size >= 32 ? 32 : n >= 16 ? 16 : 0;
 
 function cupEntrants(s: GameState, cupId: string) {
   const def = s.world.cups.find((c) => c.id === cupId)!;
@@ -67,7 +74,7 @@ export function buildComps(s: GameState) {
     // the field is the qualified clubs plus fillers not already playing elsewhere (same order as setupContinental)
     let n = new Set(s.qualified[k.id] ?? []).size;
     for (const f of k.fillers ?? []) if (n < k.size && s.clubs[f] && !usedFillers.has(f)) { usedFillers.add(f); n++; }
-    const size = n >= 32 && k.size === 32 ? 32 : 16;
+    const size = continentalSize(n, k) || 16;
     comps[k.id] = { id: k.id, name: k.name, short: k.short ?? k.name, kind: 'continental', rank: k.rank, size, rounds: continentalRounds(size) };
   }
   s.comps = comps;
@@ -91,8 +98,11 @@ export function makeCalendar(s: GameState, year: number): Slot[] {
   const contWeeks = new Set<number>();
   for (const c of Object.values(s.comps).filter((x) => x.kind === 'continental')) {
     const day: Slot['day'] = c.rank === 1 ? 'Wed' : 'Thu';
-    const plan: Array<[string, number]> = [...[0.06, 0.14, 0.22, 0.3, 0.38, 0.46].map((f, i) => [GROUP_ROUNDS[i], frac(f)] as [string, number]),
-      ...(c.size === 32 ? [['Round of 16', frac(0.6)] as [string, number]] : []), ['Quarter-final', frac(0.7)], ['Semi-final', frac(0.82)]];
+    const plan: Array<[string, number]> = c.size === 36
+      ? [...[0.05, 0.1, 0.15, 0.2, 0.26, 0.32, 0.38, 0.44].map((f, i) => [LEAGUE_ROUNDS[i], frac(f)] as [string, number]),
+        ['Knockout play-off', frac(0.52)], ['Round of 16', frac(0.6)], ['Quarter-final', frac(0.7)], ['Semi-final', frac(0.82)]]
+      : [...[0.06, 0.14, 0.22, 0.3, 0.38, 0.46].map((f, i) => [GROUP_ROUNDS[i], frac(f)] as [string, number]),
+        ...(c.size === 32 ? [['Round of 16', frac(0.6)] as [string, number]] : []), ['Quarter-final', frac(0.7)], ['Semi-final', frac(0.82)]];
     for (const [round, week] of plan) { entries.push({ week, day, comp: c.id, round }); contWeeks.add(week); }
     entries.push({ week: W + 3, day: c.rank === 1 ? 'Sat' : 'Wed', comp: c.id, round: 'Final' });
   }
@@ -105,11 +115,15 @@ export function makeCalendar(s: GameState, year: number): Slot[] {
       const pool = free.filter((_, i) => i % Math.max(1, cups.length) === ci % Math.max(1, cups.length));
       const before = rounds.slice(0, -1);
       const span = ci === 0 ? pool : pool.filter((w) => w < W * 0.6);
+      // spread the rounds over the span, each in a later week than the one before (a round needs the last one's winners)
+      let last = 1;
       before.forEach((round, i) => {
-        const week = span[Math.min(span.length - 1, Math.round(((i + 0.5) * span.length) / Math.max(1, before.length)))] ?? 2 + i;
+        const want = span[Math.min(span.length - 1, Math.round(((i + 0.5) * span.length) / Math.max(1, before.length)))] ?? 2 + i;
+        const week = want > last ? want : (pool.find((w) => w > last) ?? free.find((w) => w > last) ?? last + 1);
+        last = week;
         entries.push({ week, day: ci === 0 ? 'Wed' : 'Tue', comp: c.id, round });
       });
-      entries.push(ci === 0 ? { week: W + 1, day: 'Sat', comp: c.id, round: 'Final' } : { week: frac(0.62), day: 'Sun', comp: c.id, round: 'Final' });
+      entries.push(ci === 0 ? { week: Math.max(W + 1, last + 1), day: 'Sat', comp: c.id, round: 'Final' } : { week: Math.max(frac(0.62), last + 1), day: 'Sun', comp: c.id, round: 'Final' });
     });
   }
   // play-offs straight after the league
@@ -219,11 +233,12 @@ function setupContinental(s: GameState, rng: Rng, c: CompInfo) {
   const def = s.world.continental.find((k) => k.id === c.id)!;
   const field = [...new Set(s.qualified[c.id] ?? [])].filter((id) => s.clubs[id]);
   for (const f of def.fillers ?? []) if (field.length < (c.size ?? 16) && s.clubs[f] && !field.includes(f) && !Object.values(s.qualified).some((q) => q.includes(f))) field.push(f);
-  const size = field.length >= 32 && def.size === 32 ? 32 : field.length >= 16 ? 16 : 0;
+  const size = continentalSize(field.length, def);
   if (!size) return; // not enough clubs this season
   c.size = size; c.rounds = continentalRounds(size);
   const entrants = field.sort(byRep(s)).slice(0, size);
   s.qualified[c.id] = entrants; // fillers used here can't fill a later competition
+  if (size === 36) { setupLeaguePhase(s, rng, c, entrants); return; }
   const G = size / 4;
   const groups: string[][] = Array.from({ length: G }, () => []);
   for (let pot = 0; pot < 4; pot++) {
@@ -238,6 +253,29 @@ function setupContinental(s: GameState, rng: Rng, c: CompInfo) {
   }
   s.groups[c.id] = groups;
   groups.forEach((g, gi) => roundRobin(g).forEach((pairs, r) => pairs.forEach(([h, a]) => add(s, c.id, GROUP_ROUNDS[r], h, a, { group: gi }))));
+  s.cups[c.id] = { round: 0, alive: [...entrants], exits: {} };
+}
+
+/** The 36-club league phase: eight matches each against eight different opponents, in one table.
+    Pairings come from rounds of a round robin, so nobody plays twice on a matchday; the eight rounds are
+    picked to keep clubs from the same country apart and to mix strong and weaker opponents. */
+function setupLeaguePhase(s: GameState, rng: Rng, c: CompInfo, entrants: string[]) {
+  // interleave the four pots of nine around the circle so every round mixes pots
+  const pots = [0, 1, 2, 3].map((p) => shuffle(rng, entrants.slice(p * 9, p * 9 + 9)));
+  const circle = Array.from({ length: 36 }, (_, i) => pots[i % 4][Math.floor(i / 4)]);
+  const all = roundRobin(circle).slice(0, 35); // the first half: 35 rounds of 18 pairs, every pair once
+  const potOf = new Map(entrants.map((id, i) => [id, Math.floor(i / 9)]));
+  const score = (pairs: Array<[string, string]>) => pairs.reduce((a, [h, aw]) => a + (s.clubs[h].country === s.clubs[aw].country ? 10 : 0) + (potOf.get(h) === potOf.get(aw) ? 1 : 0), 0);
+  const ranked = shuffle(rng, all.map((pairs, i) => ({ pairs, i }))).sort((x, y) => score(x.pairs) - score(y.pairs));
+  const chosen = ranked.slice(0, 8);
+  // home and away: four of each where possible
+  const home = new Map<string, number>(entrants.map((id) => [id, 0]));
+  s.groups[c.id] = [entrants];
+  chosen.forEach(({ pairs }, r) => pairs.forEach(([x, y]) => {
+    const [h, a] = (home.get(x)! < home.get(y)! || (home.get(x) === home.get(y) && rng.chance(0.5))) ? [x, y] : [y, x];
+    home.set(h, home.get(h)! + 1);
+    add(s, c.id, LEAGUE_ROUNDS[r], h, a, { group: 0 });
+  }));
   s.cups[c.id] = { round: 0, alive: [...entrants], exits: {} };
 }
 
@@ -258,6 +296,29 @@ export function advanceCups(s: GameState, rng: Rng, slot: Slot): string[] {
     const cup = (s.cups[c.id] ??= { round: 0, alive: [], exits: {} } as CupState);
     const played = s.fixtures.filter((f) => f.comp === c.id && f.round === e.round && f.result);
     if (!played.length) continue;
+    if (e.round.startsWith('League phase')) {
+      if (e.round !== LEAGUE_ROUNDS[7]) continue;
+      // top eight straight to the round of 16; 9th–24th play off (9 v 24, 10 v 23 …); the rest are out
+      const t = tableOf(s, c.id, (s.groups[c.id] ?? [[]])[0], 0).map((r) => r.clubId);
+      for (const id of t.slice(24)) cup.exits[id] = 'League phase';
+      cup.seeds = t.slice(0, 8);
+      for (let i = 0; i < 8; i++) add(s, c.id, 'Knockout play-off', t[8 + i], t[23 - i], { ko: true });
+      cup.alive = t.slice(0, 24);
+      cup.round = 8;
+      continue;
+    }
+    if (e.round === 'Knockout play-off' && cup.seeds) {
+      for (const f of played) cup.exits[loserOf(f)] = e.round;
+      // seed k meets the winner of the tie between 17-k and 16+k (1st v winner of 16th/17th …)
+      const ties = s.fixtures.filter((f) => f.comp === c.id && f.round === e.round);
+      cup.seeds.forEach((seed, k) => {
+        const tie = ties[7 - k];
+        add(s, c.id, 'Round of 16', seed, winnerOf(tie), { ko: true });
+      });
+      cup.alive = [...cup.seeds, ...ties.map(winnerOf)];
+      cup.round = c.rounds!.indexOf('Round of 16');
+      continue;
+    }
     if (e.round.startsWith('Group')) {
       if (e.round !== GROUP_ROUNDS[5]) continue;
       const groups = s.groups[c.id] ?? [];

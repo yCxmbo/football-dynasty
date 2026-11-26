@@ -42,8 +42,8 @@ export function realWorld(): WorldDef {
     leagues,
     cups: REAL_COUNTRIES.flatMap((k) => k.cups.map((cup) => ({ ...cup, country: k.id }))),
     continental: [
-      { id: 'ucl', name: 'UEFA Champions League', short: 'Champions League', rank: 1, size: 32, places: { eng: 4, esp: 4, ita: 4, ger: 4, fra: 3, por: 2, ned: 2, bel: 1, tur: 1, sco: 1 }, fillers: fill.eur },
-      { id: 'uel', name: 'UEFA Europa League', short: 'Europa League', rank: 2, size: 32, places: { eng: 2, esp: 2, ita: 2, ger: 2, fra: 2, por: 2, ned: 2, bel: 2, tur: 2, sco: 1 }, cupWinners: true, fillers: fill.eur },
+      { id: 'ucl', name: 'UEFA Champions League', short: 'Champions League', rank: 1, size: 36, format: 'league', places: { eng: 4, esp: 4, ita: 4, ger: 4, fra: 3, por: 2, ned: 2, bel: 1, tur: 1, sco: 1 }, fillers: fill.eur },
+      { id: 'uel', name: 'UEFA Europa League', short: 'Europa League', rank: 2, size: 36, format: 'league', places: { eng: 2, esp: 2, ita: 2, ger: 2, fra: 2, por: 2, ned: 2, bel: 2, tur: 2, sco: 1 }, cupWinners: true, fillers: fill.eur },
       { id: 'lib', name: 'Copa Libertadores', short: 'Libertadores', rank: 1, size: 16, places: { bra: 6, arg: 6 }, fillers: fill.sam },
       { id: 'nacc', name: 'CONCACAF Champions Cup', short: 'Champions Cup', rank: 1, size: 16, places: { mex: 8, usa: 8 } },
       { id: 'acl', name: 'AFC Champions League Elite', short: 'ACL Elite', rank: 1, size: 16, places: { ksa: 4 }, fillers: fill.asi },

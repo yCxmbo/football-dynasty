@@ -109,8 +109,23 @@ describe('worlds', () => {
     expect(squadOf(s, 'eng-liverpool').some((p) => p.name === 'Mohamed Salah')).toBe(true);
     const yamal = Object.values(s.players).find((p) => p.name === 'Lamine Yamal')!;
     expect(yamal.potential).toBeGreaterThan(yamal.ability + 10); // potential given as overall is converted
-    expect(s.comps.ucl.size).toBe(32);
-    expect(s.comps.uel.size).toBe(32);
+    expect(s.comps.ucl.size).toBe(36);
+    expect(s.comps.uel.size).toBe(36);
+    // league phase: eight matches each against eight different opponents, at most one per matchday, home and away balanced
+    for (const comp of ['ucl', 'uel']) {
+      const fx = s.fixtures.filter((f) => f.comp === comp);
+      expect(fx.length).toBe(144);
+      for (const id of s.qualified[comp]) {
+        const mine = fx.filter((f) => f.homeId === id || f.awayId === id);
+        expect(mine.length).toBe(8);
+        expect(new Set(mine.map((f) => (f.homeId === id ? f.awayId : f.homeId))).size).toBe(8);
+        expect(new Set(mine.map((f) => f.round)).size).toBe(8);
+        const home = mine.filter((f) => f.homeId === id).length;
+        expect(home).toBeGreaterThanOrEqual(3); expect(home).toBeLessThanOrEqual(5);
+      }
+      const sameCountry = fx.filter((f) => s.clubs[f.homeId].country === s.clubs[f.awayId].country).length;
+      expect(sameCountry).toBeLessThan(10);
+    }
   });
   it('a real-world season crowns a winner in every competition, and only real cups are played', () => {
     const s = newGame({ seed: 9, userClubId: 'mex-america', managerName: 'T', currency: 'USD', world: realWorld(), source: 'real' });
@@ -122,6 +137,10 @@ describe('worlds', () => {
     const n = totalMatchdays(s);
     for (let i = 0; i < n; i++) playMatchday(s);
     for (const c of Object.values(s.comps)) if (c.kind !== 'league') expect(s.cups[c.id]?.winner, c.id).toBeTruthy();
+    // the league phase sent eight to the round of 16 and sixteen to the play-off
+    expect(s.fixtures.filter((f) => f.comp === 'ucl' && f.round === 'Knockout play-off').length).toBe(8);
+    expect(s.fixtures.filter((f) => f.comp === 'ucl' && f.round === 'Round of 16').length).toBe(8);
+    expect(Object.values(s.cups.ucl.exits).filter((x) => x === 'League phase').length).toBe(12);
     const down = leagueTableOf(s, 'esp1').slice(-3).map((r) => r.clubId);
     const up = leagueTableOf(s, 'ger2').slice(0, 2).map((r) => r.clubId);
     startNewSeason(s);

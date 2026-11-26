@@ -25,6 +25,12 @@ export const EUROPE_REST: RFillers = { id: 'eur', name: 'Rest of Europe', clubs:
   c('rapid', 'Vienna Green-Whites', 'RAP', 52, ['#00843D', '#FFFFFF'], 'Allianz Vienna Park', 28000),
   c('ludogorets', 'Razgrad Eagles', 'LUD', 54, ['#00843D', '#FFFFFF'], 'Huvepharma Park', 10442),
   c('maccabi', 'Tel Aviv Yellows', 'MTA', 52, ['#FFD200', '#0055A4'], 'Bloomfield Park', 29400),
+  c('qarabag', 'Aghdam Horsemen', 'QAR', 54, ['#000000', '#FFFFFF'], 'Tofiq Bahramov Park', 31200),
+  c('pafos', 'Paphos Coast', 'PAF', 50, ['#002F6C', '#FFFFFF'], 'Alphamega Park', 9000),
+  c('kairat', 'Almaty Eagles', 'KAI', 48, ['#FFD200', '#000000'], 'Central Almaty Park', 23800),
+  c('fcsb', 'Bucharest Red-Blues', 'FCS', 52, ['#E30613', '#0055A4'], 'Arena Națională Park', 55600),
+  c('lech', 'Poznań Railwaymen', 'LPO', 50, ['#0055A4', '#FFFFFF'], 'Poznań Park', 42837),
+  c('brann', 'Bergen Reds', 'BRA', 48, ['#E30613', '#FFFFFF'], 'Brann Park', 16750),
 ] };
 
 export const SOUTH_AMERICA_REST: RFillers = { id: 'sam', name: 'Rest of South America', clubs: [

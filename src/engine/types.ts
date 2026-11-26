@@ -99,7 +99,7 @@ export interface CompInfo {
 /** One dated slot in the season calendar; each "Continue" plays one slot. */
 export interface Slot { index: number; date: string; week: number; day: 'Sat' | 'Sun' | 'Tue' | 'Wed' | 'Thu'; entries: Array<{ comp: CompId; round: string }> }
 
-export interface CupState { round: number; alive: string[]; winner?: string; runnerUp?: string; exits: Record<string, string> }
+export interface CupState { round: number; alive: string[]; winner?: string; runnerUp?: string; exits: Record<string, string>; /** League phase: the top eight, who wait for the play-off winners. */ seeds?: string[] }
 
 export interface Fixture {
   id: string;

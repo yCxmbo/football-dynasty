@@ -53,7 +53,8 @@ A league needs an even number of clubs, at least 4.
 | Field | Meaning |
 | --- | --- |
 | `rank` | 1 for the top competition, 2 for the next. Rank 2 takes the league places after rank 1's. |
-| `size` | 16 or 32. Groups of four, then knockouts. If too few clubs qualify for 32, it runs with 16; below 16 it doesn't run that season. |
+| `size` | 16 or 32: groups of four, then knockouts. 36 with `"format": "league"`: a league phase where each club plays eight different opponents in one table; the top eight reach the round of 16 and 9th–24th play a knockout play-off. With too few clubs it falls back to 32, then 16; below 16 it doesn't run that season. |
+| `format` | `"groups"` (default) or `"league"` (needs size 36). |
 | `places` | Places per country from its top league, e.g. `{ "eng": 4, "esp": 4 }`. |
 | `cupWinners` | Main cup winners qualify too, if not already in a higher competition. |
 | `fillers` | Club ids, usually clubs without a league, that fill empty places, best first. |

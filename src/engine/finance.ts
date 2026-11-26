@@ -51,7 +51,7 @@ export const prizeMoney = (pos: number, clubs: number, tv = 1_200_000) => Math.r
 
 /** Prize money by stage reached, for a main cup; second cups pay half, continental competitions by rank. */
 const STAGE_PRIZE: Record<string, number> = { Winners: 4_000_000, Final: 2_000_000, 'Semi-final': 1_000_000, 'Quarter-final': 500_000, 'Round of 16': 250_000, 'Round of 32': 120_000, 'Round of 64': 60_000, 'First round': 40_000 };
-const CONT_PRIZE: Record<string, number> = { Winners: 15_000_000, Final: 11_000_000, 'Semi-final': 8_000_000, 'Quarter-final': 6_000_000, 'Round of 16': 5_000_000, 'Group stage': 4_000_000 };
+const CONT_PRIZE: Record<string, number> = { Winners: 15_000_000, Final: 11_000_000, 'Semi-final': 8_000_000, 'Quarter-final': 6_000_000, 'Round of 16': 5_000_000, 'Knockout play-off': 4_500_000, 'Group stage': 4_000_000, 'League phase': 4_000_000 };
 export function cupPrize(s: GameState, comp: string, stage: string) {
   const c = compInfo(s, comp);
   if (c.kind === 'continental') return Math.round((CONT_PRIZE[stage] ?? 0) / (c.rank ?? 1));

@@ -9,8 +9,8 @@ import type { Screen } from './shared';
 
 function Ties({ g, comp, go }: { g: GameState; comp: CompId; go: (s: Screen, id?: string) => void }) {
   const c = compInfo(g, comp);
-  const rounds = (c.rounds ?? []).filter((r) => !r.startsWith('Group'));
-  const fx = g.fixtures.filter((f) => f.comp === comp && !f.round.startsWith('Group'));
+  const rounds = (c.rounds ?? []).filter((r) => !r.startsWith('Group') && !r.startsWith('League phase'));
+  const fx = g.fixtures.filter((f) => f.comp === comp && !f.round.startsWith('Group') && !f.round.startsWith('League phase'));
   const shown = rounds.filter((r) => fx.some((f) => f.round === r)).reverse();
   if (!shown.length) return <div className="pg-card pg-empty">No knockout ties drawn yet in the {c.name}.</div>;
   return (
@@ -70,9 +70,14 @@ export default function Table({ g, go }: { g: GameState; go: (s: Screen, id?: st
     const groups = g.groups[active.id] ?? [];
     body = groups.length ? (
       <div className="pg-stack" style={{ gap: 16 }}>
-        <div className="cc-groups">
-          {groups.map((grp, i) => <FD.LeagueTable key={i} compact title={`Group ${'ABCDEFGH'[i]}`} rows={tableOf(g, active.id, grp, i)} zones={{ promotion: 2, promotionLabel: 'Knockout stage' }} />)}
-        </div>
+        {active.size === 36 ? (
+          <FD.LeagueTable title={`${active.name} · League phase`} rows={tableOf(g, active.id, groups[0], 0)}
+            zones={{ promotion: 8, promotionLabel: 'Round of 16', playoff: [9, 24], playoffLabel: 'Knockout play-off', relegation: 12, relegationLabel: 'Out' }} />
+        ) : (
+          <div className="cc-groups">
+            {groups.map((grp, i) => <FD.LeagueTable key={i} compact title={`Group ${'ABCDEFGH'[i]}`} rows={tableOf(g, active.id, grp, i)} zones={{ promotion: 2, promotionLabel: 'Knockout stage' }} />)}
+          </div>
+        )}
         <Ties g={g} comp={active.id} go={go} />
       </div>
     ) : <div className="pg-card pg-empty">The {active.name} isn't being played this season (not enough qualified clubs).</div>;

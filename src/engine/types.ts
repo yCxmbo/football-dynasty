@@ -47,6 +47,10 @@ export interface Player {
   caStart?: number;
   /** Season the player joined the current club. */
   joined?: number;
+  /** Generated at the start to complete a squad of named players: never above his nation's usual level for international selection. */
+  filler?: boolean;
+  /** International career: caps, goals and tournaments won. */
+  intl?: { caps: number; goals: number; titles: string[] };
 }
 
 export type SessionType = 'fitness' | 'technical' | 'tactical' | 'setpieces' | 'matchprep' | 'recovery' | 'rest' | 'match';
@@ -154,6 +158,8 @@ export interface GameState {
   groups: Record<string, string[][]>;
   /** Qualified clubs per competition for the coming season (continental, super cups). */
   qualified: Record<string, string[]>;
+  /** Summer tournaments played so far (World Cup, Euro, Copa América). */
+  internationals?: import('./international').Tournament[];
   inbox: InboxMessage[];
   history: Record<string, SeasonRecord[]>; // by club id
   trophies: Record<string, Trophy[]>; // by club id

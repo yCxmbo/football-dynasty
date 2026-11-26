@@ -1,15 +1,17 @@
+import { nationName } from '../engine/nations';
 import { ATTRIBUTE_GROUPS, attributeWeight } from '../engine/ratings';
 import { knowledgeOf } from '../engine/transfers';
 import { FREE_AGENT, type Currency, type GameState, type Player } from '../engine/types';
 import { seasonLabel } from '../engine/types';
 import { toCur } from '../store';
 
-export type Screen = 'home' | 'inbox' | 'squad' | 'player' | 'tactics' | 'fixtures' | 'table' | 'match' | 'youth' | 'history' | 'settings' | 'transfers' | 'training' | 'scouting' | 'finances' | 'offer' | 'contract';
+export type Screen = 'home' | 'inbox' | 'squad' | 'player' | 'tactics' | 'fixtures' | 'table' | 'match' | 'youth' | 'history' | 'settings' | 'transfers' | 'training' | 'scouting' | 'finances' | 'offer' | 'contract' | 'international';
 
 export const NAV = (unread: number) => [
   { id: 'home', label: 'Home', icon: 'home' }, { id: 'inbox', label: 'Inbox', icon: 'inbox', badge: unread || undefined },
   { id: 'squad', label: 'Squad', icon: 'squad' }, { id: 'tactics', label: 'Tactics', icon: 'tactics' },
   { id: 'fixtures', label: 'Fixtures', icon: 'fixtures' }, { id: 'table', label: 'Competitions', icon: 'league-table' },
+  { id: 'international', label: 'International', icon: 'crown' },
   { id: 'youth', label: 'Academy', icon: 'youth' }, { id: 'history', label: 'Club history', icon: 'trophy' },
   { id: 'transfers', label: 'Transfers', icon: 'transfers' }, { id: 'scouting', label: 'Scouting', icon: 'scouting' }, { id: 'training', label: 'Training', icon: 'training' },
   { id: 'finances', label: 'Finances', icon: 'finances' }, { id: 'settings', label: 'Settings', icon: 'settings' },
@@ -53,7 +55,7 @@ export function profileData(state: GameState, p: Player, cur: Currency) {
     ...p.career,
   ];
   return {
-    number: p.clubId === FREE_AGENT ? undefined : p.number, name: p.name, pos: p.pos, age: p.age, nationality: p.nationality,
+    number: p.clubId === FREE_AGENT ? undefined : p.number, name: p.name, pos: p.pos, age: p.age, nationality: nationName(p.nationality),
     club: p.clubId === FREE_AGENT ? 'Free agent' : p.clubId === state.userClubId ? `${club.name} · ${p.squad}` : club.name,
     ability: p.ability, potential: p.potential, knowledge, positions: p.positions,
     value: toCur(p.value, cur), wage: toCur(p.wage, cur), contractEnd: `June ${p.contractEnd + 1}`, morale: p.morale,

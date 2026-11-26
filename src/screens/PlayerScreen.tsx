@@ -3,6 +3,7 @@ import { leagueScale, youthScale } from '../engine/game';
 import { MAX_SCOUTING, knowledgeOf, windowOpen } from '../engine/transfers';
 import type { GameState } from '../engine/types';
 import { profileData, type Screen } from './shared';
+import { nationName } from '../engine/nations';
 
 export interface PlayerActions { promote: (id: string) => void; scout: (id: string) => void; shortlist: (id: string) => void; transferList: (id: string) => void }
 
@@ -25,5 +26,15 @@ export default function PlayerScreen({ g, id, go, act }: { g: GameState; id?: st
     actions.push(<FD.Button key="l" size="sm" variant="secondary" icon="star" onClick={() => act.shortlist(p.id)}>{g.shortlist.includes(p.id) ? 'Shortlisted' : 'Shortlist'}</FD.Button>);
     actions.push(<FD.Button key="o" size="sm" icon="transfers" disabled={!windowOpen(g)} onClick={() => go('offer', p.id)}>Make offer</FD.Button>);
   }
-  return <FD.PlayerProfile player={profileData(g, p, g.currency)} currency={g.currency} scale={youth ? youthScale() : leagueScale(g)} actions={actions} />;
+  const intl = p.intl;
+  return (
+    <div className="pg-stack" style={{ gap: 16 }}>
+      <FD.PlayerProfile player={profileData(g, p, g.currency)} currency={g.currency} scale={youth ? youthScale() : leagueScale(g)} actions={actions} />
+      <section className="pg-card intl-line">
+        <h2 className="pg-h" style={{ margin: 0 }}>International · {nationName(p.nationality)}</h2>
+        <span>{intl?.caps ? `${intl.caps} cap${intl.caps === 1 ? '' : 's'}, ${intl.goals} goal${intl.goals === 1 ? '' : 's'} at tournaments` : 'No tournament appearances yet'}</span>
+        {intl?.titles.length ? <span className="intl-won">Won: {intl.titles.join(', ')}</span> : null}
+      </section>
+    </div>
+  );
 }

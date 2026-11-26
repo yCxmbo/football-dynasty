@@ -60,7 +60,9 @@ describe('live match', () => {
     const s = game();
     const xi = userLineup(s);
     s.lineup = xi;
-    const tired = s.players[xi[5]];
+    // a starter with a fresh first-team player in the same position on the bench
+    const bench = squadOf(s, 'ash').filter((p) => p.squad === 'First team' && !xi.includes(p.id));
+    const tired = xi.map((id) => s.players[id]).find((p) => p.pos !== 'GK' && bench.some((b) => b.pos === p.pos))!;
     tired.condition = 50;
     expect(userLineup(s)).not.toContain(tired.id);
     expect(s.lineup).toContain(tired.id); // the chosen XI is kept; the rest is only for this match

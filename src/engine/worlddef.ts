@@ -3,6 +3,7 @@
 import { abilityFromAttributes, clamp, type Position } from './ratings';
 import type { Rng } from './rng';
 import type { Club, Player, Squad } from './types';
+import { nationCode } from './nations';
 import { makeAttributes, makePlayer, valueFor, wageFor, SQUAD_TEMPLATE } from './world';
 
 export const WORLD_FORMAT = 'football-dynasty-world';
@@ -145,9 +146,9 @@ export function buildWorld(def: WorldDef, rng: Rng, year: number, userCountry: s
     // potential is on the same scale as the rating given (overall 1–100, otherwise ability 1–200)
     const pot = pd.potential === undefined ? undefined : pd.overall !== undefined && pd.ability === undefined ? clamp(Math.round(pd.potential * 2 - 10), 1, 200) : pd.potential;
     const squad: Squad = pd.squad ?? (club.league && pd.age <= 18 && ca < 90 ? 'U18' : 'First team');
-    const p = makePlayer(rng, { id: `p${n++}`, clubId: club.id, pos, ca, pa: pot ?? clamp(ca + growth, ca, 200), age: pd.age, squad, number: 0, year, reputation: club.reputation });
+    const p = makePlayer(rng, { id: `p${n++}`, clubId: club.id, pos, ca, pa: pot ?? clamp(ca + growth, ca, 200), age: pd.age, squad, number: 0, year, reputation: club.reputation, country: club.country });
     p.name = pd.name; p.attributes = attributes; p.ability = ca; p.potential = Math.max(ca, pot ?? p.potential);
-    if (pd.nationality) p.nationality = pd.nationality;
+    if (pd.nationality) p.nationality = nationCode(pd.nationality) ?? pd.nationality;
     p.number = numberFor(club.id, pd.number);
     p.wage = pd.wage ?? (squad === 'First team' ? wageFor(ca, club.reputation) : p.wage);
     p.contractEnd = pd.contractEnd ? clamp(pd.contractEnd - 1, year, year + 6) : p.contractEnd;
@@ -168,8 +169,9 @@ export function buildWorld(def: WorldDef, rng: Rng, year: number, userCountry: s
       const age = clamp(Math.round(rng.normal(26, 4)), 18, 35);
       const ca = clamp(Math.round(rng.normal(level - (starter ? 0 : 12), 9)), 45, 190);
       const growth = age < 22 ? rng.int(15, 55) : age < 26 ? rng.int(3, 25) : rng.int(0, 6);
-      const p = makePlayer(rng, { id: `p${n++}`, clubId: c.id, pos: pos as Position, ca, pa: clamp(ca + growth, ca, 200), age, squad: 'First team', number: 0, year, reputation: c.reputation });
+      const p = makePlayer(rng, { id: `p${n++}`, clubId: c.id, pos: pos as Position, ca, pa: clamp(ca + growth, ca, 200), age, squad: 'First team', number: 0, year, reputation: c.reputation, country: c.country });
       p.number = numberFor(c.id);
+      if (def.players?.length) p.filler = true; // squad filler next to named players
       players[p.id] = p;
     }
     if (youthCountry(def, c, userCountry) && !Object.values(players).some((p) => p.clubId === c.id && p.squad !== 'First team')) {
@@ -177,7 +179,7 @@ export function buildWorld(def: WorldDef, rng: Rng, year: number, userCountry: s
         const age = squad === 'U21' ? rng.int(18, 20) : rng.int(15, 17);
         const ca = clamp(Math.round(rng.normal(squad === 'U21' ? 50 + c.reputation * 0.5 : 30 + c.reputation * 0.5, 10)), 30, 120);
         const pa = clamp(Math.round(rng.normal(110 + c.reputation * 0.45, 18)), ca + 10, 195);
-        const p = makePlayer(rng, { id: `p${n++}`, clubId: c.id, pos, ca, pa, age, squad, number: 0, year, reputation: c.reputation });
+        const p = makePlayer(rng, { id: `p${n++}`, clubId: c.id, pos, ca, pa, age, squad, number: 0, year, reputation: c.reputation, country: c.country });
         p.number = numberFor(c.id) + 30;
         players[p.id] = p;
       }

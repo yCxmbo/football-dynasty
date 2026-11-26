@@ -1,4 +1,5 @@
-import { FIRST_NAMES, LAST_NAMES, NATIONALITIES } from './names';
+import { nameFor } from './namepools';
+import { generatedNationality } from './nations';
 import { ATTRIBUTE_GROUPS, POS_GROUP, POSITION_WEIGHTS, abilityFromAttributes, clamp, levelForAbility, type Position } from './ratings';
 import type { Rng } from './rng';
 import type { Familiarity, Player, Squad } from './types';
@@ -57,16 +58,17 @@ export function valueFor(ca: number, pa: number, age: number) {
   return Math.max(25000, Math.round((Math.pow(ca / 100, 4.2) * 5.5e6 * youthBonus) / 50000) * 50000);
 }
 
-export interface MakePlayerOpts { id: string; clubId: string; pos: Position; ca: number; pa: number; age: number; squad: Squad; number: number; year: number; reputation: number }
+export interface MakePlayerOpts { id: string; clubId: string; pos: Position; ca: number; pa: number; age: number; squad: Squad; number: number; year: number; reputation: number; /** World country of the club: most generated players are from there. */ country?: string; /** Fixed nationality (FIFA code). */ nationality?: string }
 
 export function makePlayer(rng: Rng, o: MakePlayerOpts): Player {
   const attributes = makeAttributes(rng, o.pos, o.ca);
   const ability = abilityFromAttributes(attributes, o.pos);
   const youth = o.squad !== 'First team';
+  const nationality = o.nationality ?? generatedNationality(rng, o.country);
   return {
     id: o.id, clubId: o.clubId,
-    name: `${rng.pick(FIRST_NAMES)} ${rng.pick(LAST_NAMES)}`,
-    nationality: rng.pick(NATIONALITIES),
+    name: nameFor(rng, nationality),
+    nationality,
     pos: o.pos, positions: familiarity(rng, o.pos), age: o.age,
     attributes, ability, potential: Math.max(ability, o.pa),
     hidden: { professionalism: rng.int(4, 20), injuryProneness: rng.int(2, 18), consistency: rng.int(5, 20), bigMatches: rng.int(4, 20) },

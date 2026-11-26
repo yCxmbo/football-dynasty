@@ -2,6 +2,8 @@ import { formatDate } from './fixtures';
 import { available, fitFor, pickLineup, slotsOf, type Formation, type MatchMods } from './match';
 import { createLive, runToEnd, toResult, type LiveMatch } from './live';
 import { POS_GROUP, abilityFromAttributes, clamp, POSITION_WEIGHTS } from './ratings';
+import { playSummer } from './international';
+import { NATION, nationCode } from './nations';
 import { createRng } from './rng';
 import { makePlayer, valueFor, wageFor, SQUAD_TEMPLATE } from './world';
 import type { Club, CompId, Currency, Fixture, GameState, InboxMessage, Player, SeasonRecord, Trophy } from './types';
@@ -374,6 +376,17 @@ export function startNewSeason(state: GameState) {
   const money = seasonFinances(state, tables);
   const nextQualified = qualifiers(state);
 
+  // the summer's international tournaments, with this season's squads
+  for (const run of playSummer(state, rng)) {
+    const t = run.tournament;
+    const mine = run.userPlayers;
+    addMessage(state, { category: 'media', from: 'International desk', subject: `${NATION[t.winner].name} win the ${t.name}`, body: [
+      ...run.messages,
+      ...(mine.length ? [`${mine.length} of our players went: ${mine.map((p) => `${p.name} (${NATION[p.nation].name}, ${p.reached.toLowerCase()})`).join(', ')}.`] : ['None of our players were called up.']),
+      ...mine.filter((p) => p.reached === 'Winners').map((p) => `${p.name} is a champion with ${NATION[p.nation].name}!`),
+    ] });
+  }
+
   for (const p of Object.values(state.players)) {
     if (p.current.apps) p.career.unshift({ season: label, club: state.clubs[p.clubId]?.name ?? 'Free agent', apps: p.current.apps, goals: p.current.goals, rating: Math.round((p.current.ratingSum / p.current.apps) * 100) / 100, honour: honours[p.clubId] });
     if (p.career.length > 12) p.career.length = 12;
@@ -474,7 +487,7 @@ function refillSquad(state: GameState, rng: ReturnType<typeof createRng>, c: Clu
       }
       const age = rng.int(22, 29);
       const ca = clamp(Math.round(rng.normal(60 + c.reputation * 1.1, 8)), 60, 185);
-      const p = makePlayer(rng, { id: `p${state.nextId++}`, clubId: c.id, pos: pos as Player['pos'], ca, pa: ca + rng.int(0, 10), age, squad: 'First team', number: freeNumber(state, c.id), year: state.year, reputation: c.reputation });
+      const p = makePlayer(rng, { id: `p${state.nextId++}`, clubId: c.id, pos: pos as Player['pos'], ca, pa: ca + rng.int(0, 10), age, squad: 'First team', number: freeNumber(state, c.id), year: state.year, reputation: c.reputation, country: c.country });
       state.players[p.id] = p;
       if (c.id === state.userClubId) addMessage(state, { category: 'transfers', from: 'Director of football', subject: `${p.name} (${p.pos}) joins on a free transfer`, body: [`To keep the squad at full strength, we have signed ${p.name}, ${p.age}, a ${p.pos}.`] });
     }
@@ -507,7 +520,7 @@ function aiTransfers(state: GameState, rng: ReturnType<typeof createRng>) {
       const ca = clamp(Math.round(level + rng.int(0, 12)), 60, 190);
       const fee = valueFor(ca, ca + 5, age);
       if (fee > spend) break;
-      const p = makePlayer(rng, { id: `p${state.nextId++}`, clubId: c.id, pos: weakest.pos, ca, pa: ca + rng.int(0, 8), age, squad: 'First team', number: weakest.number, year: state.year, reputation: c.reputation });
+      const p = makePlayer(rng, { id: `p${state.nextId++}`, clubId: c.id, pos: weakest.pos, ca, pa: ca + rng.int(0, 8), age, squad: 'First team', number: weakest.number, year: state.year, reputation: c.reputation, country: c.country });
       p.joined = state.year;
       state.players[p.id] = p;
       Object.assign(weakest, { clubId: FREE_AGENT, captain: false });
@@ -541,7 +554,7 @@ function youthIntake(state: GameState, rng: ReturnType<typeof createRng>) {
     for (let i = 0; i < n; i++) {
       const pos = rng.pick(['GK', 'CB', 'LB', 'RB', 'DM', 'CM', 'AM', 'LW', 'RW', 'ST'] as const);
       const pa = clamp(Math.round(rng.normal(115 + c.reputation * 0.35, 20)), 70, 195);
-      const p = makePlayer(rng, { id: `p${state.nextId++}`, clubId: c.id, pos, ca: rng.int(40, 70), pa, age: rng.int(15, 16), squad: 'U18', number: freeNumber(state, c.id), year: state.year, reputation: c.reputation });
+      const p = makePlayer(rng, { id: `p${state.nextId++}`, clubId: c.id, pos, ca: rng.int(40, 70), pa, age: rng.int(15, 16), squad: 'U18', number: freeNumber(state, c.id), year: state.year, reputation: c.reputation, country: c.country });
       state.players[p.id] = p; names.push(`${p.name} (${p.pos})`);
     }
     if (c.id === state.userClubId) addMessage(state, { category: 'youth', from: 'Head of youth development', subject: 'Youth intake has arrived', body: [`${n} new players join the U18s: ${names.join(', ')}.`, 'Keep an eye on their development in the Academy.'] });
@@ -579,6 +592,7 @@ export function bestLineup(state: GameState, formation: Formation = state.format
 
 /** Fills fields added after v0.2 so older saves keep working. (v1 saves can't be converted: see store.ts.) */
 export function migrate(state: GameState): GameState {
+  for (const p of Object.values(state.players)) if (p.nationality && p.nationality.length > 3) p.nationality = nationCode(p.nationality) ?? p.nationality;
   state.knowledge ??= {}; state.scouting ??= []; state.shortlist ??= []; state.transferListed ??= [];
   state.bids ??= []; state.negotiations ??= {}; state.installments ??= [];
   state.training ??= defaultTraining(); state.ledger ??= emptyLedger(); state.autoRotate ??= true;

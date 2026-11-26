@@ -143,3 +143,7 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .ng__warn { color: var(--ink-muted); }
 .ng__pick { display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: flex-end; }
 .ng__clubhead { display: flex; align-items: center; gap: 10px; }
+
+.intl-hero { display: flex; gap: var(--space-4); align-items: center; }
+.intl-line { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: baseline; font-size: 14px; }
+.intl-won { color: var(--gold-ink); font-weight: 600; }

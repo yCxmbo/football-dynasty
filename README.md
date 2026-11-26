@@ -41,7 +41,11 @@ The game saves automatically in the browser (localStorage, compressed with lz-st
   | CONCACAF Champions Cup | 16 clubs from Mexico and the USA. |
   | AFC Champions League Elite | 16 clubs from Saudi Arabia and the rest of Asia. |
 
-  National teams and the World Cup, Euro and Copa América are planned next.
+- **International football:** every player has a nationality, and generated players mostly come from their club's country, with names that fit it.
+  - In the summer between seasons the game plays the **FIFA World Cup** (2026, 2030, …: 48 teams, 12 groups, round of 32), the **UEFA Euro** (2028, 2032, …: 24 teams) and the **Copa América** (16 teams, with six CONCACAF guests). Real hosts where known (USA/Mexico/Canada 2026, Spain/Portugal/Morocco 2030, UK and Ireland 2028).
+  - National teams pick the best 26 of their nationality anywhere in the world, so your players get called up. Nations with few players in the world get depth players at their usual level. Qualifying follows confederation places, with some luck.
+  - Players win caps, goals and titles (shown on their profile); winners come back with high morale. Your inbox reports who went and how far they got.
+  - The **International** screen has the world ranking, your internationals, every tournament's groups and knockout rounds, and a roll of honour.
 - **Calendar:** dated slots for the whole season (league weekends, cup and continental midweeks, play-offs, finals). Shorter leagues are spread over the same season. Every match in the world is played, not just your league.
   - *Play match* plays your next game.
   - *Continue* skips days when you don't play.
@@ -107,6 +111,9 @@ src/
     live.ts        minute-by-minute match engine: goals, cards, injuries, fatigue, substitutions, ratings
     worlddef.ts    world file format: types, validation, building clubs and squads from a world
     builtin.ts     the fictional world and the template world file
+    nations.ts     national teams: confederations, strength, colours, nationalities for generated players
+    namepools.ts   invented names that fit each nationality
+    international.ts national squads, World Cup / Euro / Copa América: qualification, draw, groups, knockouts
     competitions.ts data-driven calendar, leagues, cups, continental groups, knockouts, play-offs, promotion/relegation, qualification
     game.ts        game state: playing calendar slots, season end, development, youth, promotion
     transfers.ts   windows, scouting, asking prices, offers, bids, contracts, free agents

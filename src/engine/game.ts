@@ -6,6 +6,7 @@ import { nationRanking, playSummer } from './international';
 import { summerStep } from './summer';
 import { jobOffers, managerReputation, tidySelection } from './nationaljob';
 import { returnLoans } from './loans';
+import { afterMatch, afterSeason, afterTournament } from './achievements';
 import { finishBuilding, trainingFacilityBoost, youthFacilityBonus } from './facilities';
 import { pressAfterMatch, weeklyMood } from './media';
 import { developmentBoost, initStaff, injuryLengthFactor, moraleRecoveryChance, recoveryBonus, refreshPool, youthPotentialBonus } from './staff';
@@ -276,7 +277,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     if (slot.week === win.summerUntil || slot.week === win.januaryTo) state.negotiations = {};
   }
   const uf = state.fixtures.find((f) => f.matchday === md && involves(f, state.userClubId));
-  if (uf) { postMatchMessages(state, uf); pressAfterMatch(state, createRng((state.rngState ^ 0x9e37) >>> 0), uf); }
+  if (uf) { postMatchMessages(state, uf); pressAfterMatch(state, createRng((state.rngState ^ 0x9e37) >>> 0), uf); afterMatch(state, uf); }
   for (const line of cupNews) if (line.includes(state.clubs[state.userClubId].name) || line.startsWith('Continental')) addMessage(state, { category: 'media', from: 'Football news', subject: line, body: [line] });
   if (seasonOver(state)) seasonEndMessage(state);
   return uf;
@@ -426,6 +427,7 @@ function rollover(state: GameState) {
       }
     }
   }
+  afterSeason(state, { promoted: moves[state.userClubId]?.dir === 'promoted', champion: Object.values(champions).includes(state.userClubId) });
   const tables = Object.fromEntries(state.world.leagues.map((l) => [l.id, leagueTableOf(state, l.id)]));
   const money = seasonFinances(state, tables);
   const nextQualified = qualifiers(state);
@@ -447,6 +449,7 @@ function rollover(state: GameState) {
     if (un && state.nationalJob) {
       const nation = NATION[un.code].name;
       if (un.reached === 'Winners') state.manager.trophies.push(t.name);
+      afterTournament(state, t.name, un.reached);
       const verdict = un.reached === 'Winners' ? `You won the ${t.name} with ${nation}!`
         : un.reached === 'Did not qualify' ? `${nation} failed to qualify for the ${t.name}.`
         : un.reached === 'Runners-up' ? `${nation} lost the final of the ${t.name}.`

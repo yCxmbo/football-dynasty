@@ -168,6 +168,8 @@ export interface GameState {
   internationals?: import('./international').Tournament[];
   /** The national team you manage alongside your club, if any. */
   nationalJob?: import('./nationaljob').NationalJob;
+  /** Achievements unlocked, with the season. */
+  achievements?: Record<string, string>;
   /** The summer tournament you're managing live, if any (your results so far). */
   summer?: import('./summer').SummerState;
   /** Promises of more games made to unhappy players. */

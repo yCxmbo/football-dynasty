@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FD } from '../ds';
 import { acceptOffer, applyChance, applyForJob, boardConfidence, career, clubLine, confidenceWord, currentSpell, resign } from '../engine/career';
 import { boardTarget } from '../engine/game';
+import { ACHIEVEMENTS } from '../engine/achievements';
 import { managerReputation } from '../engine/nationaljob';
 import { seasonLabel, type GameState } from '../engine/types';
 import { badgeUrl } from './badge';
@@ -22,8 +23,9 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
   const spell = currentSpell(g);
   const conf = boardConfidence(g, boardTarget(g, g.userClubId));
   const rep = managerReputation(g);
-  const vacancies = c.vacancies.filter((id) => g.clubs[id] && id !== g.userClubId)
-    .sort((a, b) => g.clubs[b].reputation - g.clubs[a].reputation);
+  // the ten most relevant: the biggest clubs that might realistically hire you
+  const vacancies = c.vacancies.filter((id) => g.clubs[id] && id !== g.userClubId && g.clubs[id].reputation >= rep - 30)
+    .sort((a, b) => g.clubs[b].reputation - g.clubs[a].reputation).slice(0, 10);
 
   const take = (id: string) => {
     if (!c.sacked && !window.confirm(`Leave ${club.name} for ${g.clubs[id].name}?`)) return;
@@ -105,6 +107,27 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
             })}
           </tbody></table>
         ) : <p className="hm-note">No vacancies yet. They open at the end of each season.</p>}
+      </section>
+
+      <section className="pg-card">
+        <h2 className="pg-h">Achievements · {Object.keys(g.achievements ?? {}).length} of {ACHIEVEMENTS.length}</h2>
+        {(['Results', 'Trophies', 'Club', 'Career'] as const).map((group) => (
+          <div key={group} className="ach-group">
+            <h3 className="ach-h">{group}</h3>
+            <div className="ach-grid">
+              {ACHIEVEMENTS.filter((a) => a.group === group).map((a) => {
+                const when = g.achievements?.[a.id];
+                return (
+                  <div key={a.id} className={'ach' + (when ? ' is-on' : '')} title={a.desc}>
+                    <strong>{a.title}</strong>
+                    <span>{a.desc}</span>
+                    <em>{when ? `Unlocked ${when}` : 'Locked'}</em>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </section>
 
       <section className="pg-card">

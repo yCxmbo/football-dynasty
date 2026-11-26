@@ -79,6 +79,7 @@ The game saves automatically in the browser (IndexedDB), and you can keep severa
   - After heavy wins and defeats (and some other games) the press want a word: answer in the inbox. Taking responsibility pleases the board; blaming the players hurts morale; praising a player lifts him.
   - Regulars who are unhappy and not playing ask to leave: promise more games (then keep it: three games in six weeks, or he goes public and onto the transfer list), transfer-list him, or tell him to fight for his place.
 - **Stadium and facilities:** expand the stadium (2,500 to 10,000 seats at a time; the new stands open next season), and upgrade the training ground (faster development) and youth academy (better intakes) through five levels. Crowds are limited by the fan base, which grows with reputation, so seats only pay when the demand is there. Building work is paid from the balance and the transfer budget; facilities cost upkeep each week.
+- **Achievements:** 24 milestones in four groups (results, trophies, club, career): from your first win to the treble, a World Cup with a national team, a dynasty of five titles, or managing in three countries. Each unlocks once with its season, arrives in the inbox, and shows on the Career screen.
 - **Inbox:** board, media, medical, youth, league and transfer messages; bids can be accepted or rejected from the inbox.
 - **Transfers:**
   - Two windows: pre-season through league week 4, and three weeks in mid-season.
@@ -133,6 +134,7 @@ src/
     media.ts       press conferences, transfer requests, promises
     staff.ts       backroom staff, their effects, hiring
     loans.ts       loans out and in, recalls, returns at season end
+    achievements.ts career milestones and when they unlock
     career.ts      board confidence, the sack, offers, vacancies, moving clubs
     summer.ts      the live tournament summer: pausing at your matches, resuming after a reload
     nationaljob.ts managing a national team: reputation, offers, squad selection

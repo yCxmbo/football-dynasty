@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { compressToUTF16, decompressFromUTF16 } from 'lz-string';
 import { migrate } from './engine/game';
 import type { Currency, GameState } from './engine/types';
@@ -15,7 +15,7 @@ function readRaw(): string | null {
 
 /** True when an older, incompatible save exists (before divisions and cups). */
 export function hasOldSave() {
-  try { const raw = readRaw(); return !!raw && (JSON.parse(raw) as { version?: number }).version !== 2; } catch { return false; }
+  try { const raw = readRaw(); return !!raw && (JSON.parse(raw) as { version?: number }).version !== 3; } catch { return false; }
 }
 
 export function loadGame(): GameState | null {
@@ -23,7 +23,7 @@ export function loadGame(): GameState | null {
     const raw = readRaw();
     if (!raw) return null;
     const s = JSON.parse(raw) as GameState;
-    return s.version === 2 ? migrate(s) : null;
+    return s.version === 3 ? migrate(s) : null;
   } catch { return null; }
 }
 
@@ -40,7 +40,23 @@ function saveGame(s: GameState | null) {
 /** Game state with copy-on-write updates and autosave. */
 export function useGame() {
   const [game, setGame] = useState<GameState | null>(() => loadGame());
-  useEffect(() => { saveGame(game); }, [game]);
+  // Saving a large world takes a moment, so save once things are quiet, and always when the page is hidden.
+  const latest = useRef(game);
+  const dirty = useRef(false);
+  useEffect(() => {
+    latest.current = game;
+    dirty.current = true;
+    if (!game) { saveGame(null); dirty.current = false; return; }
+    const t = setTimeout(() => { if (dirty.current) { saveGame(latest.current); dirty.current = false; } }, 1500);
+    return () => clearTimeout(t);
+  }, [game]);
+  useEffect(() => {
+    const flush = () => { if (dirty.current) { saveGame(latest.current); dirty.current = false; } };
+    const onVis = () => { if (document.visibilityState === 'hidden') flush(); };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onVis);
+    return () => { window.removeEventListener('pagehide', flush); document.removeEventListener('visibilitychange', onVis); };
+  }, []);
   const update = useCallback((fn: (draft: GameState) => void) => {
     setGame((prev) => {
       if (!prev) return prev;

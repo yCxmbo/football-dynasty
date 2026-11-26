@@ -5,7 +5,7 @@ import type { Formation } from './engine/match';
 import { formatDate } from './engine/fixtures';
 import { seasonLabel } from './engine/types';
 import { hasOldSave, toCur, useGame, useTheme } from './store';
-import { COMPS, currentSlot } from './engine/competitions';
+import { compInfo, currentSlot } from './engine/competitions';
 import { makeOffer, respondToBid, startScouting, toggleShortlist, toggleTransferList, type OfferTerms } from './engine/transfers';
 import Contract from './screens/Contract';
 import Finances from './screens/Finances';
@@ -41,7 +41,7 @@ export default function App() {
   const [live, setLive] = useState<LiveState | null>(null);
 
   if (!g) {
-    return <NewGame oldSave={hasOldSave()} onStart={({ clubId, name, currency }) => { setGame(newGame({ seed: Math.floor(Math.random() * 2 ** 31), userClubId: clubId, managerName: name, currency })); setScreen('home'); }} />;
+    return <NewGame oldSave={hasOldSave()} onStart={({ clubId, name, currency, world, source }) => { setGame(newGame({ seed: Math.floor(Math.random() * 2 ** 31), userClubId: clubId, managerName: name, currency, world, source })); setScreen('home'); }} />;
   }
 
   const go = (s: Screen, id?: string) => {
@@ -82,7 +82,7 @@ export default function App() {
 
   const club = g.clubs[g.userClubId];
   const shownFx = liveFx0(g, live) ?? userFixture(g);
-  const slotLabel = over ? 'Season finished' : shownFx ? `${COMPS[shownFx.comp].name}, ${shownFx.round}` : currentSlot(g).week === 0 ? 'Pre-season' : `Week ${currentSlot(g).week}`;
+  const slotLabel = over ? 'Season finished' : shownFx ? `${compInfo(g, shownFx.comp).name}, ${shownFx.round}` : currentSlot(g).week === 0 ? 'Pre-season' : `Week ${currentSlot(g).week}`;
   const liveFx = liveFx0(g, live);
   const unread = g.inbox.filter((m) => m.unread).length;
   const navActive = screen === 'player' ? (param && g.players[param]?.clubId !== g.userClubId ? 'transfers' : 'squad') : screen === 'match' ? 'fixtures' : screen === 'offer' ? 'transfers' : screen === 'contract' ? 'squad' : screen;

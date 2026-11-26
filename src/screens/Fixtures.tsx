@@ -1,5 +1,6 @@
 import { FD } from '../ds';
-import { COMPS } from '../engine/competitions';
+import { compInfo } from '../engine/competitions';
+import { badgeUrl } from './badge';
 import { formatDate } from '../engine/fixtures';
 import type { GameState } from '../engine/types';
 import { seasonLabel } from '../engine/types';
@@ -25,9 +26,9 @@ export default function Fixtures({ g, go }: { g: GameState; go: (s: Screen, id?:
               return (
                 <tr key={f.id} className={(f === next ? 'fx-next ' : '') + (r ? 'fx-click' : '')} onClick={r ? () => go('match', f.id) : undefined}>
                   <td>{formatDate(f.date)}</td>
-                  <td><span className={f.comp.startsWith('D') ? '' : 'fd-gold'}>{COMPS[f.comp].name}</span></td>
+                  <td><span className={compInfo(g, f.comp).kind === 'league' ? '' : 'fd-gold'}>{compInfo(g, f.comp).name}</span></td>
                   <td className="fd-muted">{f.round}</td>
-                  <td><strong>{opp.name}</strong>{opp.country ? <span className="fd-muted"> · {opp.country}</span> : null}</td>
+                  <td><span className="club-cell"><img className="club-badge" src={badgeUrl(opp)} alt="" /><strong>{opp.name}</strong>{opp.country !== g.clubs[g.userClubId].country ? <span className="fd-muted"> · {g.world.countries.find((c) => c.id === opp.country)?.name}</span> : null}</span></td>
                   <td className="fd-muted">{f.neutral ? 'Neutral' : home ? 'Home' : 'Away'}</td>
                   <td>{r ? <span className="fx-res"><span className={`fx-badge fx-badge--${wdl}`} aria-label={wdl === 'W' ? 'Win' : wdl === 'L' ? 'Defeat' : 'Draw'}>{wdl}</span>{us}–{them}<span className="fd-muted" style={{ fontWeight: 400, fontFamily: 'var(--font-sans)', fontSize: 12 }}>{pens}</span></span>
                     : f === next ? <FD.Button size="sm" variant="ghost" onClick={() => go('home')}>Next match</FD.Button> : <span className="fd-muted">–</span>}</td>

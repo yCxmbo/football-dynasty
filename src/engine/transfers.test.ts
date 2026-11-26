@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { currentWeek } from './competitions';
 import { newGame, playMatchday, squadOf, startNewSeason, totalMatchdays } from './game';
-import { askingPrice, expectedRole, makeOffer, renewContract, respondToBid, startScouting, toggleTransferList, wageDemand, windowOpen, type OfferTerms } from './transfers';
+import { windows, askingPrice, expectedRole, makeOffer, renewContract, respondToBid, startScouting, toggleTransferList, wageDemand, windowOpen, type OfferTerms } from './transfers';
 import { FREE_AGENT, type GameState, type Player } from './types';
 
 const game = () => newGame({ seed: 21, userClubId: 'ash', managerName: 'Test', currency: 'EUR' });
@@ -17,7 +17,8 @@ describe('transfer windows', () => {
     const s = game();
     expect(windowOpen(s)).toBe(true);
     playTo(s, 6); expect(windowOpen(s)).toBe(false);
-    playTo(s, 12); expect(windowOpen(s)).toBe(true);
+    playTo(s, windows(s).januaryFrom); expect(windowOpen(s)).toBe(true);
+    playTo(s, windows(s).januaryTo + 1); expect(windowOpen(s)).toBe(false);
   });
   it('offers are refused while the window is closed', () => {
     const s = game(); playTo(s, 6);

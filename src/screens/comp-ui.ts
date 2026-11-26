@@ -1,32 +1,38 @@
-import { COMPS, divisionComp, divisionTable } from '../engine/competitions';
+import { compInfo, leagueDef, leagueTableOf } from '../engine/competitions';
 import { formatDate } from '../engine/fixtures';
 import type { Fixture, GameState } from '../engine/types';
+import { badgeUrl } from './badge';
 
-/** Zones for the design system's LeagueTable, per division. */
-export function zonesFor(division: number) {
-  if (division === 1) return { champions: 3, championsLabel: 'Continental Cup (top 3)', relegation: 3, relegationLabel: 'Relegated to the Championship' };
-  if (division === 2) return { promotion: 2, promotionLabel: 'Promoted', playoff: [3, 6] as [number, number], playoffLabel: 'Play-offs (one more place up)', relegation: 3, relegationLabel: 'Relegated to League One' };
-  return { promotion: 2, promotionLabel: 'Promoted', playoff: [3, 6] as [number, number], playoffLabel: 'Play-offs (one more place up)' };
+/** Zones for the design system's LeagueTable from the league's rules. */
+export function zonesFor(g: GameState, leagueId: string | undefined) {
+  const l = leagueDef(g, leagueId);
+  if (!l) return {};
+  const below = g.world.leagues.find((x) => x.country === l.country && x.tier === l.tier + 1);
+  const cont = g.world.continental.filter((k) => k.rank === 1).reduce((a, k) => a + (k.places[l.country] ?? 0), 0);
+  return {
+    ...(l.tier === 1 && cont ? { champions: cont, championsLabel: `${g.world.continental.find((k) => k.rank === 1 && k.places[l.country])?.name ?? 'Continental'} places` } : {}),
+    ...(l.promote ? { promotion: l.promote, promotionLabel: 'Promoted' } : {}),
+    ...(l.playoff ? { playoff: l.playoff, playoffLabel: 'Play-offs (one more place up)' } : {}),
+    ...(l.relegate ? { relegation: l.relegate, relegationLabel: `Relegated${below ? ` to the ${below.name}` : ''}` } : {}),
+  };
 }
 
 function formOf(g: GameState, id: string) {
-  const d = g.clubs[id]?.division;
-  if (!d) return undefined;
-  return divisionTable(g, d).find((r) => r.clubId === id)?.form;
+  const l = g.clubs[id]?.league;
+  return l ? leagueTableOf(g, l).find((r) => r.clubId === id)?.form : undefined;
 }
 
 export function fixtureCardProps(g: GameState, f: Fixture) {
   const H = g.clubs[f.homeId], A = g.clubs[f.awayId];
   const r = f.result;
-  const userHome = f.homeId === g.userClubId;
   const pens = r?.pens ? ` · ${r.pens[0]}–${r.pens[1]} pens` : '';
+  const day = new Date(f.date + 'T12:00:00Z').getUTCDay();
   return {
-    competition: COMPS[f.comp].name, matchday: f.comp.startsWith('D') ? f.round : f.round + pens, status: r ? 'FT' : 'upcoming', score: r?.score,
-    date: formatDate(f.date), kickoff: f.date && new Date(f.date + 'T12:00:00Z').getUTCDay() === 3 ? '19:45' : '15:00', venue: f.neutral ? 'National Stadium' : H.stadium,
-    home: { name: H.name, short: H.short, isUser: H.id === g.userClubId, form: formOf(g, H.id) },
-    away: { name: A.name, short: A.short, isUser: A.id === g.userClubId, form: formOf(g, A.id) },
-    userHome,
+    competition: compInfo(g, f.comp).name, matchday: compInfo(g, f.comp).kind === 'league' ? f.round : f.round + pens, status: r ? 'FT' : 'upcoming', score: r?.score,
+    date: formatDate(f.date), kickoff: day === 3 || day === 2 || day === 4 ? '19:45' : '15:00', venue: f.neutral ? 'Neutral venue' : H.stadium,
+    home: { name: H.name, short: H.short, crest: badgeUrl(H), isUser: H.id === g.userClubId, form: formOf(g, H.id) },
+    away: { name: A.name, short: A.short, crest: badgeUrl(A), isUser: A.id === g.userClubId, form: formOf(g, A.id) },
   };
 }
 
-export const divisionLabel = (d: number) => (d ? COMPS[divisionComp(d)].name : 'Abroad');
+export const leagueLabel = (g: GameState, id?: string) => leagueDef(g, id)?.name ?? 'No league';

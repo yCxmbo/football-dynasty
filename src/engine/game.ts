@@ -3,63 +3,82 @@ import { available, fitFor, pickLineup, slotsOf, type Formation, type MatchMods 
 import { createLive, runToEnd, toResult, type LiveMatch } from './live';
 import { POS_GROUP, abilityFromAttributes, clamp, POSITION_WEIGHTS } from './ratings';
 import { createRng } from './rng';
-import { makePlayer, makeWorld, valueFor, wageFor, SQUAD_TEMPLATE } from './world';
+import { makePlayer, valueFor, wageFor, SQUAD_TEMPLATE } from './world';
 import type { Club, CompId, Currency, Fixture, GameState, InboxMessage, Player, SeasonRecord, Trophy } from './types';
 import { FREE_AGENT, seasonLabel } from './types';
-import { aiBids, expireContracts, payInstallments, scoutingTick, WINDOWS } from './transfers';
+import { aiBids, expireContracts, payInstallments, scoutingTick, windows } from './transfers';
 import { defaultTraining, developStep, effects, trainingWeek } from './training';
 import { cupGate, emptyLedger, financeWeek, seasonFinances } from './finance';
 import {
-  COMPS, LEAGUE_WEEKS, advanceCups, cupResult, currentSlot, currentWeek, divisionName, divisionTable, initialQualifiers, makeCalendar,
-  makeLeagueFixtures, promotionsAndRelegations, qualifiers, setupCups, setupPlayoffs, winnerOf, type TableRow,
+  advanceCups, buildComps, clubsInLeague, compInfo, cupResult, currentSlot, currentWeek, leagueDef, leagueTableOf, makeCalendar,
+  promotionsAndRelegations, qualifiers, setupPlayoffs, setupSeason, winnerOf, type TableRow,
 } from './competitions';
+import { buildWorld, type WorldDef } from './worlddef';
+import { squadOf, withSquadIndex } from './index';
+import { builtinWorld } from './builtin';
 
 export type { TableRow };
-export const DIVISION = 'Premier Division';
 
-export function newGame(opts: { seed: number; userClubId: string; managerName: string; currency: Currency; year?: number }): GameState {
-  const year = opts.year ?? 2026;
+export interface NewGameOpts { seed: number; userClubId: string; managerName: string; currency: Currency; year?: number; world?: WorldDef; source?: 'builtin' | 'real' | 'import' }
+
+export function newGame(opts: NewGameOpts): GameState {
+  const def = opts.world ?? builtinWorld();
+  const year = opts.year ?? def.startYear ?? 2026;
   const rng = createRng(opts.seed);
-  const { clubs, players, nextId } = makeWorld(rng, year);
+  const userCountry = def.clubs.find((c) => c.id === opts.userClubId)?.country ?? def.countries[0].id;
+  const { clubs, players, nextId } = buildWorld(def, rng, year, userCountry);
   const state: GameState = {
-    version: 2, seed: opts.seed, rngState: rng.state(), year, matchday: 1, userClubId: opts.userClubId, managerName: opts.managerName, currency: opts.currency,
-    clubs, players, fixtures: [], calendar: makeCalendar(year), cups: {}, ccGroups: [], qualified: { cc: [], superCup: ['', ''] },
+    version: 3, seed: opts.seed, rngState: rng.state(), year, matchday: 1, userClubId: opts.userClubId, managerName: opts.managerName, currency: opts.currency,
+    clubs, players, fixtures: [], calendar: [], leagueWeeks: 38, comps: {}, cups: {}, groups: {}, qualified: {},
+    world: { name: def.name, source: opts.source ?? (opts.world ? 'import' : 'builtin'), userCountry, countries: def.countries, leagues: def.leagues, cups: def.cups, continental: def.continental },
     inbox: [], history: {}, trophies: {}, lineup: [], formation: '4-3-3', nextId, autoRotate: true,
     manager: { since: year, w: 0, d: 0, l: 0, trophies: [] },
     knowledge: {}, scouting: [], shortlist: [], transferListed: [], bids: [], negotiations: {}, installments: [],
     training: defaultTraining(), ledger: emptyLedger(),
   };
-  state.qualified = initialQualifiers(state);
-  makeLeagueFixtures(state);
-  setupCups(state, rng);
+  state.qualified = qualifiers(state, true);
+  buildComps(state);
+  state.calendar = makeCalendar(state, year);
+  setupSeason(state, rng);
   state.rngState = rng.state();
   state.lineup = pickLineup(squadOf(state, opts.userClubId));
   for (const p of Object.values(players)) p.caStart = p.ability;
   state.ledger.balanceHistory.push(clubs[opts.userClubId].balance);
   const club = clubs[opts.userClubId];
   const target = boardTarget(state, opts.userClubId);
+  const cont = Object.values(state.comps).filter((c) => c.kind === 'continental' && (state.qualified[c.id] ?? []).includes(club.id));
   addMessage(state, { category: 'board', from: 'The board', role: club.name, subject: `Welcome to ${club.name}`, body: [
     `Welcome, ${opts.managerName}. The board is delighted to have you at ${club.stadium}.`,
-    `We play in the ${divisionName(club.division)}. Our expectation this season: ${target.text}.`,
+    `We play in the ${leagueName(state, club.league)}. Our expectation this season: ${target.text}.`,
     `Your transfer budget is ${Math.round(club.transferBudget / 1e5) / 10}M.`,
-    ...(state.qualified.cc.includes(club.id) ? ['We are in the Continental Cup this season: a chance to test ourselves against the best clubs abroad.'] : []),
+    ...cont.map((c) => `We are in the ${c.name} this season.`),
   ] });
   return state;
 }
 
-export function squadOf(state: GameState, clubId: string) { return Object.values(state.players).filter((p) => p.clubId === clubId); }
+export const leagueName = (state: GameState, id?: string) => leagueDef(state, id)?.name ?? 'no league';
+
+export { squadOf };
 export function firstTeam(state: GameState, clubId: string) { return squadOf(state, clubId).filter((p) => p.squad === 'First team'); }
 
 export function boardTarget(state: GameState, clubId: string) {
   const club = state.clubs[clubId];
-  const d = club.division;
-  const rank = Object.values(state.clubs).filter((c) => c.division === d).sort((a, b) => b.reputation - a.reputation).findIndex((c) => c.id === clubId) + 1;
-  if (d === 1) {
-    const pos = rank <= 2 ? 2 : rank <= 4 ? 4 : rank <= 8 ? 8 : 9;
-    return { pos, text: pos <= 2 ? 'a top-two finish and a title challenge' : pos <= 4 ? 'a top-four finish and Continental Cup football' : pos <= 8 ? 'a top-half finish' : 'avoid relegation (finish 9th or higher)' };
+  const l = leagueDef(state, club.league);
+  if (!l) return { pos: 99, text: 'do well in cup competitions' };
+  const ids = clubsInLeague(state, l.id);
+  const n = ids.length;
+  const rank = ids.map((id) => state.clubs[id]).sort((a, b) => b.reputation - a.reputation).findIndex((c) => c.id === clubId) + 1;
+  const safe = n - l.relegate;
+  if (l.tier === 1) {
+    const places = state.world.continental.filter((k) => k.rank === 1).reduce((a, k) => a + (k.places[l.country] ?? 0), 0);
+    if (rank <= 2) return { pos: 2, text: 'a top-two finish and a title challenge' };
+    if (places && rank <= places) return { pos: places, text: `a top-${places} finish and Champions-level continental football` };
+    if (rank <= Math.ceil(n / 2)) return { pos: Math.ceil(n / 2), text: 'a top-half finish' };
+    return l.relegate ? { pos: safe, text: `avoid relegation (finish ${ordinal(safe)} or higher)` } : { pos: n - 2, text: 'stay clear of the bottom two' };
   }
-  const pos = rank <= 2 ? 2 : rank <= 5 ? 6 : rank <= 9 ? 9 : d === 3 ? 12 : 9;
-  return { pos, text: pos <= 2 ? 'promotion (a top-two finish)' : pos <= 6 ? 'a play-off place (top six)' : d === 3 && pos === 12 ? 'build for the future (no relegation from League One)' : 'avoid relegation (finish 9th or higher)' };
+  if (rank <= l.promote) return { pos: l.promote, text: `promotion (a top-${l.promote} finish)` };
+  if (l.playoff && rank <= l.playoff[1]) return { pos: l.playoff[1], text: `a play-off place (top ${l.playoff[1]})` };
+  return l.relegate ? { pos: safe, text: `avoid relegation (finish ${ordinal(safe)} or higher)` } : { pos: Math.ceil(n * 0.75), text: 'build for the future' };
 }
 
 function addMessage(state: GameState, m: Omit<InboxMessage, 'id' | 'date' | 'unread'> & { date?: string }) {
@@ -84,7 +103,7 @@ export function userFixture(state: GameState, matchday = state.matchday) {
 export function nextUserFixture(state: GameState) {
   return state.fixtures.filter((f) => !f.result && f.matchday >= state.matchday && involves(f, state.userClubId)).sort((a, b) => a.matchday - b.matchday)[0];
 }
-export const compName = (c: CompId) => COMPS[c].name;
+export const compName = (state: GameState, c: CompId) => compInfo(state, c).name;
 
 /** The user's chosen XI with only unavailable or departed players replaced, slot by slot. This is what gets saved. */
 export function repairLineup(state: GameState): string[] {
@@ -172,14 +191,19 @@ function slim(f: Fixture) {
 /** Plays every fixture in the current calendar slot. Pass the user's live match to use its result (with their substitutions). */
 export function playMatchday(state: GameState, live?: { fixtureId: string; lm: LiveMatch }): Fixture | undefined {
   if (seasonOver(state)) return undefined;
+  return withSquadIndex(state, () => playSlot(state, live));
+}
+
+function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch }): Fixture | undefined {
   const rng = createRng(state.rngState ^ (state.matchday * 7919));
   const md = state.matchday;
   const slot = currentSlot(state);
-  const leagueWeek = slot.entries.some((e) => e.comp === 'D1');
+  const leagueIds = new Set(slot.entries.filter((e) => compInfo(state, e.comp).kind === 'league').map((e) => e.comp));
+  const leagueWeek = leagueIds.size > 0;
   const te = effects(state.training);
   const homeIds = new Set<string>();
   const positions: Record<string, number> = {};
-  for (const d of [1, 2, 3]) divisionTable(state, d).forEach((r, i) => { positions[r.clubId] = i + 1; });
+  for (const l of state.world.leagues) leagueTableOf(state, l.id).forEach((r, i) => { positions[r.clubId] = i + 1; });
   for (const f of state.fixtures.filter((x) => x.matchday === md && !x.result)) {
     const uh = f.homeId === state.userClubId, ua = f.awayId === state.userClubId;
     let lm: LiveMatch;
@@ -192,7 +216,7 @@ export function playMatchday(state: GameState, live?: { fixtureId: string; lm: L
     if (f.ko) result.winnerId = winnerOf(f);
     for (const [id, c] of Object.entries(conditions)) if (state.players[id]) state.players[id].condition = c;
     applyResult(state, f, rng);
-    if (f.comp.startsWith('D')) homeIds.add(f.homeId); else cupGate(state, f);
+    if (compInfo(state, f.comp).kind === 'league') homeIds.add(f.homeId); else cupGate(state, f);
     if (!uh && !ua) slim(f);
   }
   const days = state.calendar[md] ? Math.round((Date.parse(state.calendar[md].date) - Date.parse(slot.date)) / 86400000) : 30;
@@ -203,16 +227,18 @@ export function playMatchday(state: GameState, live?: { fixtureId: string; lm: L
   }
   const cupNews = advanceCups(state, rng, slot);
   if (leagueWeek) {
-    financeWeek(state, homeIds, positions);
+    financeWeek(state, leagueIds, homeIds, positions);
     for (const msg of trainingWeek(rng, state, squadOf(state, state.userClubId))) addMessage(state, { category: 'training', from: 'Head coach', role: 'Training ground', subject: 'Training update', body: [msg] });
-    if (slot.week % 4 === 0) {
+    // about five development steps a season, whatever the league length (small steps would round away)
+    const every = Math.max(4, Math.round(state.leagueWeeks / 5.5));
+    if (slot.week % every === 0) {
       for (const p of Object.values(state.players)) {
         if (p.clubId === FREE_AGENT) continue;
         const mine = p.clubId === state.userClubId;
-        developStep(rng, p, 0.12, mine ? te.development : 1, mine ? state.training.focus[p.id] : undefined);
+        developStep(rng, p, 0.6 / Math.floor(state.leagueWeeks / every), mine ? te.development : 1, mine ? state.training.focus[p.id] : undefined);
       }
     }
-    if (slot.week === LEAGUE_WEEKS) setupPlayoffs(state);
+    if (slot.week === state.leagueWeeks) setupPlayoffs(state);
   }
   state.rngState = rng.state();
   state.matchday++;
@@ -221,8 +247,9 @@ export function playMatchday(state: GameState, live?: { fixtureId: string; lm: L
     payInstallments(state);
     aiBids(state, state.rngState ^ (state.matchday * 104729));
     const week = currentWeek(state);
-    if (week === WINDOWS.januaryFrom && slot.week === WINDOWS.januaryFrom - 1) januaryReminder(state);
-    if (slot.week === WINDOWS.summerUntil || slot.week === WINDOWS.januaryTo) state.negotiations = {};
+    const win = windows(state);
+    if (week >= win.januaryFrom && slot.week < win.januaryFrom) januaryReminder(state);
+    if (slot.week === win.summerUntil || slot.week === win.januaryTo) state.negotiations = {};
   }
   const uf = state.fixtures.find((f) => f.matchday === md && involves(f, state.userClubId));
   if (uf) postMatchMessages(state, uf);
@@ -252,12 +279,13 @@ function postMatchMessages(state: GameState, f: Fixture) {
   const won = f.ko ? r.winnerId === us.id : gf > ga;
   const word = f.ko ? (won ? 'win' : 'defeat') : gf > ga ? 'win' : gf < ga ? 'defeat' : 'draw';
   if (gf > ga) state.manager.w++; else if (gf === ga) state.manager.d++; else state.manager.l++;
-  const comp = COMPS[f.comp];
+  const comp = compInfo(state, f.comp);
   const pens = r.pens ? ` (${userHome ? r.pens[0] : r.pens[1]}\u2013${userHome ? r.pens[1] : r.pens[0]} on penalties)` : '';
   let line2: string;
   if (comp.kind === 'league') {
-    const pos = divisionTable(state, us.division).findIndex((t) => t.clubId === us.id) + 1;
-    line2 = `They are ${ordinal(pos)} in the ${comp.name} after ${divisionTable(state, us.division)[0].p} matches.`;
+    const t = leagueTableOf(state, f.comp);
+    const pos = t.findIndex((r) => r.clubId === us.id) + 1;
+    line2 = `They are ${ordinal(pos)} in the ${comp.name} after ${t[pos - 1]?.p ?? 0} matches.`;
   } else if (f.round === 'Final') line2 = won ? `${us.name} win the ${comp.name}!` : `Heartbreak in the ${comp.name} final.`;
   else line2 = won ? `${us.name} are through in the ${comp.name}.` : `${us.name} are out of the ${comp.name} (${f.round.toLowerCase()}).`;
   addMessage(state, { category: 'media', from: `${us.name.split(' ')[0]} Gazette`, subject: `${word === 'win' ? 'Fans celebrate' : word === 'draw' ? 'Honours even in' : 'Frustration after'} ${gf}\u2013${ga}${pens} ${word} ${userHome || f.neutral ? 'against' : 'at'} ${them.name}`,
@@ -273,28 +301,28 @@ function postMatchMessages(state: GameState, f: Fixture) {
 function januaryReminder(state: GameState) {
   const expiring = squadOf(state, state.userClubId).filter((p) => p.squad === 'First team' && p.contractEnd <= state.year);
   addMessage(state, { category: 'transfers', from: 'Director of football', subject: 'The January transfer window is open', body: [
-    `The window is open until week ${WINDOWS.januaryTo} of the league season.`,
+    `The window is open until league week ${windows(state).januaryTo}.`,
     expiring.length ? `${expiring.length} ${expiring.length === 1 ? 'player\'s contract ends' : 'players\' contracts end'} this summer: ${expiring.map((p) => p.name).join(', ')}. Renew them from their profiles or they will leave for free.` : 'No contracts run out this summer.',
   ] });
 }
 
 function seasonEndMessage(state: GameState) {
   const us = state.clubs[state.userClubId];
-  const table = divisionTable(state, us.division);
+  if (!us.league) return;
+  const table = leagueTableOf(state, us.league);
   const pos = table.findIndex((t) => t.clubId === us.id) + 1;
   const target = boardTarget(state, us.id);
-  const mv = promotionsAndRelegations(state);
-  const up = mv.promoted[us.id], down = mv.relegated[us.id];
-  const ok = pos <= target.pos || !!up;
-  addMessage(state, { category: 'board', from: 'The board', role: us.name, subject: pos === 1 ? 'Champions! The board is overjoyed' : up ? 'Promoted! The board is delighted' : down ? 'Relegated. A painful day for the club' : ok ? 'Season review: target met' : 'Season review: below expectations',
-    body: [`We finished ${ordinal(pos)} in the ${divisionName(us.division)}. The target was ${target.text}.`,
-      up ? `Next season we play in the ${divisionName(up)}.` : down ? `Next season we play in the ${divisionName(down)}. The board expects an immediate return.` : ok ? 'The board is pleased with your work.' : 'The board expects improvement next season.',
+  const mv = promotionsAndRelegations(state).moves[us.id];
+  const ok = pos <= target.pos || mv?.dir === 'promoted';
+  addMessage(state, { category: 'board', from: 'The board', role: us.name, subject: pos === 1 ? 'Champions! The board is overjoyed' : mv?.dir === 'promoted' ? 'Promoted! The board is delighted' : mv?.dir === 'relegated' ? 'Relegated. A painful day for the club' : ok ? 'Season review: target met' : 'Season review: below expectations',
+    body: [`We finished ${ordinal(pos)} in the ${leagueName(state, us.league)}. The target was ${target.text}.`,
+      mv ? `Next season we play in the ${leagueName(state, mv.to)}.${mv.dir === 'relegated' ? ' The board expects an immediate return.' : ''}` : ok ? 'The board is pleased with your work.' : 'The board expects improvement next season.',
       'Start the new season from the home screen when you are ready.'] });
 }
 
-/** The user's league table (or any division's). */
-export function leagueTable(state: GameState, division = state.clubs[state.userClubId].division || 1): TableRow[] {
-  return divisionTable(state, division);
+/** A league table (the user's league by default). */
+export function leagueTable(state: GameState, leagueId = state.clubs[state.userClubId].league ?? state.world.leagues[0].id): TableRow[] {
+  return leagueTableOf(state, leagueId);
 }
 
 export function ordinal(n: number) { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
@@ -309,33 +337,41 @@ function award(state: GameState, clubId: string | undefined, name: string, tier:
 }
 
 /** Closes the season: history, trophies, promotion and relegation, careers, ageing, contracts, youth intake, next season's draw. */
+const STAGE = ['Winners', 'Final', 'Semi-final', 'Quarter-final', 'Round of 16', 'Round of 32', 'Round of 64', 'Round of 128', 'First round', 'Group stage'];
+
 export function startNewSeason(state: GameState) {
   if (!seasonOver(state)) throw new Error('Season not finished');
   const rng = createRng(state.rngState ^ 0x9e3779b9);
   const label = seasonLabel(state.year);
-  const mv = promotionsAndRelegations(state);
-  const tables = { 1: divisionTable(state, 1), 2: divisionTable(state, 2), 3: divisionTable(state, 3) } as const;
+  const { moves, champions } = promotionsAndRelegations(state);
   const honours: Record<string, string> = {};
-  for (const d of [1, 2, 3] as const) {
-    tables[d].forEach((row, i) => {
+  const best = (id: string, kinds: string[]) => Object.values(state.comps).filter((c) => kinds.includes(c.kind)).map((c) => cupResult(state, c.id, id)).filter(Boolean)
+    .sort((a, b) => STAGE.indexOf(a!) - STAGE.indexOf(b!))[0];
+  for (const l of state.world.leagues) {
+    const t = leagueTableOf(state, l.id);
+    const mainCup = state.world.cups.find((c) => c.country === l.country && c.main);
+    const secondCup = state.world.cups.find((c) => c.country === l.country && !c.main);
+    t.forEach((row, i) => {
       const squad = squadOf(state, row.clubId);
       const top = squad.slice().sort((a, b) => b.current.goals - a.current.goals)[0];
-      const rec: SeasonRecord = { season: label, division: divisionName(d), pos: i + 1, pts: row.pts, champion: state.clubs[tables[d][0].clubId].name,
+      const rec: SeasonRecord = { season: label, division: l.name, pos: i + 1, pts: row.pts, champion: state.clubs[t[0].clubId].name,
         topScorer: top && top.current.goals ? { name: top.name, goals: top.current.goals } : undefined,
         manager: row.clubId === state.userClubId ? state.managerName : 'AI manager', isYou: row.clubId === state.userClubId,
-        movement: mv.promoted[row.clubId] ? 'promoted' : mv.relegated[row.clubId] ? 'relegated' : undefined,
-        cup: cupResult(state, 'NC', row.clubId), leagueCup: cupResult(state, 'LC', row.clubId), europe: cupResult(state, 'CC', row.clubId) };
+        movement: moves[row.clubId]?.dir,
+        cup: mainCup ? cupResult(state, mainCup.id, row.clubId) : undefined, leagueCup: secondCup ? cupResult(state, secondCup.id, row.clubId) : undefined,
+        europe: best(row.clubId, ['continental']) };
       (state.history[row.clubId] ??= []).unshift(rec);
     });
-    award(state, mv.champions[d], divisionName(d), 'league', label);
-    honours[mv.champions[d]] = divisionName(d);
+    if (champions[l.id]) { award(state, champions[l.id], l.name, 'league', label); honours[champions[l.id]] = l.name; }
   }
-  award(state, state.cups.NC?.winner, COMPS.NC.name, 'cup', label);
-  award(state, state.cups.LC?.winner, COMPS.LC.name, 'cup', label);
-  award(state, state.cups.CC?.winner, COMPS.CC.name, 'continental', label);
-  award(state, state.cups.SC?.winner, COMPS.SC.name, 'super', label);
-  for (const c of ['NC', 'LC', 'CC'] as const) { const w = state.cups[c]?.winner; if (w) honours[w] = honours[w] ? `${honours[w]}, ${COMPS[c].name}` : COMPS[c].name; }
-
+  for (const c of Object.values(state.comps)) {
+    if (c.kind === 'league' || c.kind === 'playoff') continue;
+    const w = state.cups[c.id]?.winner;
+    if (!w) continue;
+    award(state, w, c.name, c.kind === 'continental' ? 'continental' : c.kind === 'super' ? 'super' : 'cup', label);
+    if (c.kind !== 'super') honours[w] = honours[w] ? `${honours[w]}, ${c.name}` : c.name;
+  }
+  const tables = Object.fromEntries(state.world.leagues.map((l) => [l.id, leagueTableOf(state, l.id)]));
   const money = seasonFinances(state, tables);
   const nextQualified = qualifiers(state);
 
@@ -360,20 +396,23 @@ export function startNewSeason(state: GameState) {
     }
   }
   // promotion and relegation
-  for (const [id, d] of Object.entries(mv.promoted)) { state.clubs[id].division = d; state.clubs[id].reputation = clamp(state.clubs[id].reputation + 4, 20, 95); }
-  for (const [id, d] of Object.entries(mv.relegated)) { state.clubs[id].division = d; state.clubs[id].reputation = clamp(state.clubs[id].reputation - 4, 20, 95); }
-  const userMove = mv.promoted[state.userClubId] ? 'promoted' : mv.relegated[state.userClubId] ? 'relegated' : undefined;
+  for (const [id, m] of Object.entries(moves)) {
+    const c = state.clubs[id];
+    c.league = m.to;
+    c.division = leagueDef(state, m.to)!.tier;
+    c.reputation = clamp(c.reputation + (m.dir === 'promoted' ? 4 : -4), 15, 95);
+  }
+  const userMove = moves[state.userClubId]?.dir;
 
   state.year++;
   aiTransfers(state, rng);
   pruneFreeAgents(state);
   for (const c of Object.values(state.clubs)) refillSquad(state, rng, c);
   youthIntake(state, rng);
-  state.calendar = makeCalendar(state.year);
-  state.fixtures = [];
   state.qualified = nextQualified;
-  makeLeagueFixtures(state);
-  setupCups(state, rng);
+  buildComps(state);
+  state.calendar = makeCalendar(state, state.year);
+  setupSeason(state, rng);
   state.matchday = 1;
   state.lineup = pickLineup(squadOf(state, state.userClubId), state.formation);
   state.rngState = rng.state();
@@ -384,11 +423,11 @@ export function startNewSeason(state: GameState) {
   const us = state.clubs[state.userClubId];
   const target = boardTarget(state, us.id);
   const m = (n: number) => `${Math.round(n / 1e5) / 10}M`;
-  addMessage(state, { category: 'board', from: 'The board', role: us.name, subject: `New season: ${seasonLabel(state.year)} in the ${divisionName(us.division)}`, body: [
+  addMessage(state, { category: 'board', from: 'The board', role: us.name, subject: `New season: ${seasonLabel(state.year)} in the ${leagueName(state, us.league)}`, body: [
     `${userMove === 'promoted' ? 'Welcome to a higher level! ' : userMove === 'relegated' ? 'A new start after relegation. ' : ''}The board's target: ${target.text}.`,
     `Prize money last season: ${m(money.prize)}. Club reputation ${money.repChange > 0 ? 'rose' : money.repChange < 0 ? 'fell' : 'held steady'} (${us.reputation}).`,
     `Your transfer budget is ${m(money.transferBudget)} and the wage budget is ${Math.round(money.wageBudget / 1000)}k a week.`,
-    ...(state.qualified.cc.includes(us.id) ? ['We have qualified for the Continental Cup.'] : []),
+    ...Object.values(state.comps).filter((c) => c.kind === 'continental' && (state.qualified[c.id] ?? []).includes(us.id)).map((c) => `We have qualified for the ${c.name}.`),
     ...(money.balance < 0 ? ['The club is in debt. The board has cut the transfer budget and expects you to sell before buying.'] : [])] });
 }
 
@@ -448,9 +487,9 @@ function refillSquad(state: GameState, rng: ReturnType<typeof createRng>, c: Clu
  * clubs deep in debt sell their most valuable player abroad. Keeps money moving and squads competitive.
  */
 function aiTransfers(state: GameState, rng: ReturnType<typeof createRng>) {
-  const abroad = Object.values(state.clubs).filter((c) => c.division === 0);
+  const abroad = Object.values(state.clubs).filter((c) => c.country !== state.clubs[state.userClubId].country && c.reputation >= 60);
   for (const c of Object.values(state.clubs)) {
-    if (c.id === state.userClubId || c.division === 0) continue;
+    if (c.id === state.userClubId || !c.league) continue;
     const reserve = c.reputation * c.reputation * 5000;
     const ft = firstTeam(state, c.id);
     if (c.balance < -8_000_000 && ft.length > 16) {
@@ -492,7 +531,7 @@ function freeNumber(state: GameState, clubId: string) {
 
 function youthIntake(state: GameState, rng: ReturnType<typeof createRng>) {
   for (const c of Object.values(state.clubs)) {
-    if (c.division === 0) continue; // foreign clubs only field a first team
+    if (!c.league || c.country !== state.world.userCountry) continue; // youth academies are simulated in the user's country only
     // U21 players who turn 22 leave if not promoted; U18 aged 18+ move up to U21
     for (const p of squadOf(state, c.id)) {
       if (p.squad === 'U18' && p.age >= 18) p.squad = 'U21';
@@ -522,8 +561,8 @@ export function promote(state: GameState, playerId: string, notify = true) {
 
 /** Stars compare players with first-teamers in the user's division. */
 export function leagueScale(state: GameState) {
-  const d = state.clubs[state.userClubId]?.division || 1;
-  const cas = Object.values(state.players).filter((p) => p.squad === 'First team' && state.clubs[p.clubId]?.division === d).map((p) => p.ability);
+  const l = state.clubs[state.userClubId]?.league;
+  const cas = Object.values(state.players).filter((p) => p.squad === 'First team' && state.clubs[p.clubId]?.league === l).map((p) => p.ability);
   return { low: Math.min(...cas), high: Math.max(...cas) };
 }
 export function youthScale() { return { low: 35, high: 140 }; }

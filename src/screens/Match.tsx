@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FD } from '../ds';
-import { COMPS } from '../engine/competitions';
+import { compInfo } from '../engine/competitions';
 import { MAX_SUBS, ratingOf, substitute, tick, type LiveMatch } from '../engine/live';
 import { slotsOf } from '../engine/match';
 import type { GameState, MatchStats } from '../engine/types';
@@ -36,7 +36,7 @@ export default function Match({ g, id, live, setLive, go, onFinish }: {
     const H = g.clubs[f.homeId], A = g.clubs[f.awayId];
     const userHome = f.homeId === g.userClubId;
     const base = {
-      competition: `${COMPS[f.comp].name} · ${f.round}`, venue: f.neutral ? 'National Stadium' : H.stadium,
+      competition: `${compInfo(g, f.comp).name} · ${f.round}`, venue: f.neutral ? 'Neutral venue' : H.stadium,
       home: { name: H.name, short: H.short, isUser: userHome }, away: { name: A.name, short: A.short, isUser: !userHome },
     };
     if (isLive && lm) {

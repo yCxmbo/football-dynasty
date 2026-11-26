@@ -1,5 +1,8 @@
 import type { Position } from './ratings';
 import type { Formation } from './match';
+import type { ContinentalDef, CountryDef, CupDef, LeagueDef } from './worlddef';
+
+export interface WorldMeta { name: string; source: 'builtin' | 'real' | 'import'; userCountry: string; countries: CountryDef[]; leagues: LeagueDef[]; cups: CupDef[]; continental: ContinentalDef[] }
 
 export type Currency = 'EUR' | 'USD' | 'GBP';
 export type Squad = 'First team' | 'U21' | 'U18';
@@ -74,15 +77,23 @@ export interface Club {
   balance: number;
   transferBudget: number;
   wageBudget: number; // weekly
-  /** 1 Premier Division, 2 Championship, 3 League One, 0 foreign (Continental Cup only). */
-  division: 0 | 1 | 2 | 3;
-  country?: string;
+  /** Tier of the club's league (1 = top), 0 for clubs that only play continental football. */
+  division: number;
+  /** League id from the world definition, if the club plays in a league. */
+  league?: string;
+  country: string;
+  /** Badge colours [primary, secondary] (hex). */
+  colours?: [string, string];
 }
 
-export type CompId = 'D1' | 'D2' | 'D3' | 'NC' | 'LC' | 'CC' | 'SC' | 'PO2' | 'PO3';
+export type CompId = string;
+export interface CompInfo {
+  id: string; name: string; short: string; kind: 'league' | 'cup' | 'continental' | 'super' | 'playoff';
+  country?: string; tier?: number; rounds?: string[]; leagueId?: string; rank?: number; size?: number; main?: boolean;
+}
 
 /** One dated slot in the season calendar; each "Continue" plays one slot. */
-export interface Slot { index: number; date: string; week: number; day: 'Sat' | 'Sun' | 'Wed'; entries: Array<{ comp: CompId; round: string }> }
+export interface Slot { index: number; date: string; week: number; day: 'Sat' | 'Sun' | 'Tue' | 'Wed' | 'Thu'; entries: Array<{ comp: CompId; round: string }> }
 
 export interface CupState { round: number; alive: string[]; winner?: string; runnerUp?: string; exits: Record<string, string> }
 
@@ -120,7 +131,7 @@ export interface SeasonRecord { season: string; division: string; pos: number; p
 export interface Trophy { name: string; tier: 'league' | 'cup' | 'continental' | 'super'; seasons: string[] }
 
 export interface GameState {
-  version: 2;
+  version: 3;
   seed: number;
   rngState: number;
   year: number; // season starts in this year
@@ -132,11 +143,17 @@ export interface GameState {
   players: Record<string, Player>;
   fixtures: Fixture[];
   calendar: Slot[];
-  cups: Partial<Record<CompId, CupState>>;
-  /** Continental Cup groups (club ids). */
-  ccGroups: string[][];
-  /** Clubs qualified for next season's Continental Cup and Super Cup, decided at season end. */
-  qualified: { cc: string[]; superCup: [string, string] };
+  /** League weeks this season (rounds of the longest league). */
+  leagueWeeks: number;
+  /** The world: countries, leagues, cups and continental competitions (clubs live in `clubs`). */
+  world: WorldMeta;
+  /** This season's competitions, including play-offs and super cups. */
+  comps: Record<string, CompInfo>;
+  cups: Record<string, CupState>;
+  /** Continental group draws (club ids) per competition. */
+  groups: Record<string, string[][]>;
+  /** Qualified clubs per competition for the coming season (continental, super cups). */
+  qualified: Record<string, string[]>;
   inbox: InboxMessage[];
   history: Record<string, SeasonRecord[]>; // by club id
   trophies: Record<string, Trophy[]>; // by club id

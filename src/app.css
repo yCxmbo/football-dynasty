@@ -18,7 +18,7 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 
 /* Home */
 .hm-grid { display: grid; grid-template-columns: minmax(320px, 420px) minmax(0, 1fr) minmax(280px, 340px); gap: var(--space-6); align-items: start; }
-@media (max-width: 1200px) { .hm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 1360px) { .hm-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 760px) { .hm-grid { grid-template-columns: 1fr; } }
 .hm-col { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
 .hm-col > .pg-h:not(:first-child) { margin-top: var(--space-4); }
@@ -39,8 +39,8 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .hm-fin strong { font: 700 18px/22px var(--font-display); }
 
 /* New game */
-.ng { min-height: 100%; display: flex; flex-direction: column; align-items: center; gap: var(--space-6); padding: var(--space-8) var(--space-4); box-sizing: border-box; }
-.ng__crest { width: 220px; height: 220px; }
+.ng { min-height: 100%; display: flex; flex-direction: column; align-items: center; gap: var(--space-6); padding: var(--space-8) var(--space-4); box-sizing: border-box; background: linear-gradient(180deg, rgba(6,14,32,.35) 0, rgba(6,14,32,.85) 420px, #060e20 760px), url("/title-bg.jpg") center top / 1400px auto no-repeat, #060e20; }
+.ng__crest { width: min(320px, 70vw); height: auto; filter: drop-shadow(0 12px 32px rgba(0,0,0,.55)); }
 .ng__card { width: 100%; max-width: 920px; display: flex; flex-direction: column; gap: var(--space-4); }
 .ng__clubs { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-2); }
 .ng__club { display: flex; flex-direction: column; gap: 4px; padding: var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-raised); color: var(--ink); text-align: left; cursor: pointer; font: inherit; }
@@ -120,3 +120,26 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .sub-cond { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; }
 .sub-cond .fd-meter { width: 64px; }
 .fit-table td { padding: 5px 4px; vertical-align: middle; }
+
+/* Club badges */
+.club-cell { display: inline-flex; align-items: center; gap: 8px; }
+.club-cell--end { justify-content: flex-end; width: 100%; }
+.club-badge { width: 22px; height: 22px; flex: none; }
+.club-badge--lg { width: 64px; height: 64px; }
+.comp-tabs { flex-wrap: wrap; row-gap: 4px; }
+.ng__club .club-badge { width: 32px; height: 32px; flex: none; }
+.ng__clubhead { display: flex; align-items: center; gap: var(--space-2); color: var(--ink) !important; font-size: inherit !important; }
+.ng__worlds { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-2); }
+.ng__world { display: flex; flex-direction: column; gap: 4px; padding: var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-raised); color: var(--ink); text-align: left; cursor: pointer; font: inherit; }
+.ng__world strong { font: 700 18px/22px var(--font-display); text-transform: uppercase; }
+.ng__world span { font-size: 13px; color: var(--ink-muted); }
+.ng__world.is-on { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+.ng__world:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.ng__import { display: flex; flex-direction: column; gap: var(--space-2); }
+.ng__check { display: flex; flex-direction: column; gap: 6px; padding: var(--space-2) var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--line); font-size: 13px; }
+.ng__check.is-ok { border-color: var(--teal); }
+.ng__check.is-bad { border-color: var(--danger, #e5484d); }
+.ng__check ul { margin: 0; padding-left: 18px; }
+.ng__warn { color: var(--ink-muted); }
+.ng__pick { display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: flex-end; }
+.ng__clubhead { display: flex; align-items: center; gap: 10px; }

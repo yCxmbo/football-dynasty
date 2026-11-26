@@ -17,26 +17,33 @@ npm test           # engine tests (Vitest)
 npm run build      # type-check + production build into dist/
 ```
 
-The game saves automatically in the browser (localStorage, compressed with lz-string). Settings → *Start a new career* deletes the save. Saves from before divisions and cups (v0.2 and earlier) can't be converted; the game says so and starts a new career.
+The game saves automatically in the browser (localStorage, compressed with lz-string). Settings → *Start a new career* deletes the save. Saves are written a moment after you stop clicking and whenever the tab is hidden. Saves from before the multi-country worlds can't be converted; the game says so and starts a new career.
 
 ## What's playable (v0.1)
 
-- **New career:** pick a manager name, a currency (€ / $ / £), a division and one of 36 fictional clubs. Starting in League One lets you build from the bottom.
-- **Football pyramid:** three divisions of 12 (Premier Division, Championship, League One), each a double round robin over 22 matchdays.
-  - The top two go up automatically, places 3–6 play off for a third promotion place, and the bottom three go down (League One has no relegation).
-  - Promotion and relegation change a club's reputation, TV money and board expectations.
-- **Competitions** (fictional names, modelled on real formats):
+- **New career:** pick a manager name, a currency (€ / $ / £) and a world, then a country, league and club.
+  - **Real world (default):** 2025/26 in 15 countries: England (Premier Division, Championship, Division One), Spain, Italy, Germany, France, Portugal, the Netherlands, Belgium, Turkey, Scotland, Brazil, Argentina, the USA, Saudi Arabia and Mexico. 358 clubs, about 1,350 real players with estimated ratings, and generated players to complete each squad.
+  - **Fictional world:** invented clubs and players in five countries.
+  - **Load a world file:** your own leagues, clubs and players. See [WORLD_FILES.md](WORLD_FILES.md).
+- **Club names and badges:** clubs have names close to the real ones (for example *Merseyside Reds*, *Madrid Merengues*), and badges generated from each club's colours. Real club crests are protected designs, so the game doesn't copy them.
+- **Leagues:** every league is a double round robin. England has promotion and relegation between its three divisions (top two up, places 3–6 in play-offs, three down; Division One has no relegation). The other countries have one top league each.
+- **Competitions** (names close to the real ones):
 
   | Competition | Modelled on | Format |
   | --- | --- | --- |
-  | National Cup | FA Cup | All 36 clubs. League One's 8 lowest-ranked clubs play a preliminary round. One-off ties, penalties if level, semi-finals and final at a neutral venue. |
-  | League Cup | Carabao Cup | The 24 clubs of the top two divisions. Knockout, neutral final. |
-  | Continental Cup | Champions League | 16 clubs: the Premier Division's top three, the National Cup winner (or 4th place), and 12 foreign clubs. Four groups of four, then quarter-finals, semi-finals and a neutral final. |
-  | Super Cup | Community Shield | League champions against National Cup winners before the season. |
+  | Domestic cups (English FA Trophy, Copa del Reino, Coppa Italica, German Pokal…) | each country's cup | Knockout. With an awkward number of clubs, the lowest-ranked play a first round and the rest get byes. Neutral semi-finals (main cups) and final. |
+  | English and Scottish League Cups | League cups | Knockout, neutral final. |
+  | Super Cups | Community Shield, Supercopa… | League champions against the main cup winners, before the season. |
+  | European Champions Cup | Champions League | 32 clubs: the top of each European league plus clubs from the rest of Europe. 8 groups of four, then round of 16, quarter-finals, semi-finals and a neutral final. |
+  | European Euro Cup | Europa League | 32 clubs: the next places in each league plus cup winners. |
+  | Copa Libertad | Copa Libertadores | 16 clubs from Brazil, Argentina and the rest of South America. |
+  | North American Champions Cup | CONCACAF Champions Cup | 16 clubs from Mexico and the USA. |
+  | Asian Champions Cup | AFC Champions League | 16 clubs from Saudi Arabia and the rest of Asia. |
 
-- **Calendar:** about 45 dated slots per season: league Saturdays, cup and Continental Wednesdays, play-offs and finals.
+  National teams and the World Cup, Euro and Copa América are planned next.
+- **Calendar:** dated slots for the whole season (league weekends, cup and continental midweeks, play-offs, finals). Shorter leagues are spread over the same season. Every match in the world is played, not just your league.
   - *Play match* plays your next game.
-  - *Continue* skips nights when you don't play.
+  - *Continue* skips days when you don't play.
 - **Prize money** for every competition, gate receipts for cup ties (split at neutral venues) and Continental Cup TV money.
 - Computer-run clubs spend surplus money on better players and sell their stars abroad when deep in debt.
 - **Match day:** your match is simulated minute by minute as you watch (pause, 1×, 2×, 4×, sim to end), with commentary, stats, live ratings and each player's condition.
@@ -55,7 +62,7 @@ The game saves automatically in the browser (localStorage, compressed with lz-st
 - **Season end:** player development (young players grow toward potential, veterans decline), retirements, a youth intake, the board's review, and club history (trophy cabinet, season-by-season record, records, hall of fame, your manager career).
 - **Inbox:** board, media, medical, youth, league and transfer messages; bids can be accepted or rejected from the inbox.
 - **Transfers:**
-  - Two windows: pre-season through matchday 4, and January (matchdays 11–13).
+  - Two windows: pre-season through league week 4, and three weeks in mid-season.
   - Search other clubs' players and free agents by position, age, asking price and name.
   - The selling club accepts, counters or rejects your fee. They value money paid now above instalments and add-ons, and end talks after four poor offers.
   - The player then decides on your contract: wage, length, squad role and contract type.
@@ -70,7 +77,7 @@ The game saves automatically in the browser (localStorage, compressed with lz-st
   - The workload decides the injury risk in matches and in training.
   - Match prep, tactics and set-piece sessions add a little match sharpness.
   - A week without days off hurts morale.
-  - Give young players an individual focus to steer their growth into one attribute. Every club's players develop every 4 matchdays, with a smaller step in the summer.
+  - Give young players an individual focus to steer their growth into one attribute. Every club's players develop about five times a season, with a smaller step in the summer.
 - **Finances:**
   - Each matchday brings gate receipts (home games), TV money, sponsorship and merchandise. It costs wages and staff for that share of the year.
   - Prize money depends on your final position.
@@ -97,17 +104,20 @@ src/
     fixtures.ts    double round-robin schedule
     match.ts       formations, positional fit, condition-aware lineup picking
     live.ts        minute-by-minute match engine: goals, cards, injuries, fatigue, substitutions, ratings
-    competitions.ts calendar, divisions, cups, draws, knockouts, play-offs, promotion/relegation, qualification
+    worlddef.ts    world file format: types, validation, building clubs and squads from a world
+    builtin.ts     the fictional world and the template world file
+    competitions.ts data-driven calendar, leagues, cups, continental groups, knockouts, play-offs, promotion/relegation, qualification
     game.ts        game state: playing calendar slots, season end, development, youth, promotion
     transfers.ts   windows, scouting, asking prices, offers, bids, contracts, free agents
     training.ts    weekly plans, workload, injury risk, in-season development, focus
     finance.ts     weekly income and costs, prize money, budgets, reputation
     *.test.ts      engine tests
   ds/              the design system (bundle.js, bundle.css, tokens) + a typed wrapper
-  screens/         one file per screen, built from design-system components
+  data/real/       the real-world database, one file per country (compact format, see types.ts)
+  screens/         one file per screen, built from design-system components; badge.ts draws club badges
   App.tsx          navigation and game flow
   store.ts         autosave, theme, currency conversion
-public/            the crest at several sizes
+public/            the game crest at several sizes and the title-screen background
 ```
 
 ### Updating the design system
@@ -116,4 +126,4 @@ public/            the crest at several sizes
 
 ## Naming
 
-Clubs and players are fictional. Using real player names in a commercial game generally needs a licence from the players' representatives; check before release.
+The real world uses real player names with estimated ratings, and club and competition names that are close to, but not the same as, the real ones. Badges are generated from club colours rather than copied. Using real player names in a commercial game generally needs a licence from the players' representatives (in many countries through their players' union); check before any commercial release. The fictional world has no real names at all.

@@ -13,21 +13,24 @@ export const SQUAD_ROLES = ['Star player', 'Important player', 'Regular starter'
 export type SquadRole = (typeof SQUAD_ROLES)[number];
 
 /* ---------- windows ---------- */
-export const WINDOWS = { summerUntil: 4, januaryFrom: 11, januaryTo: 13 };
+/** Summer window: pre-season to league week 4. January window: the middle of the league season (three weeks). */
+export function windows(s: GameState) {
+  const januaryFrom = Math.round((s.leagueWeeks || 38) / 2);
+  return { summerUntil: 4, januaryFrom, januaryTo: januaryFrom + 2 };
+}
 
-/** Summer window: pre-season (season finished) and matchdays 1–4. January: matchdays 11–13. */
 /** Windows follow league weeks (the calendar also has cup midweeks). */
 export function windowOpen(s: GameState) {
-  const w = currentWeek(s);
-  return w === 99 || w <= WINDOWS.summerUntil || (w >= WINDOWS.januaryFrom && w <= WINDOWS.januaryTo);
+  const w = currentWeek(s), win = windows(s);
+  return w === 99 || w <= win.summerUntil || (w >= win.januaryFrom && w <= win.januaryTo);
 }
 export function windowLabel(s: GameState) {
-  const w = currentWeek(s);
+  const w = currentWeek(s), win = windows(s);
   if (windowOpen(s)) {
-    const closes = w <= WINDOWS.summerUntil ? WINDOWS.summerUntil : w >= WINDOWS.januaryFrom && w <= WINDOWS.januaryTo ? WINDOWS.januaryTo : null;
-    return closes ? `Transfer window open until league matchday ${closes}` : 'Transfer window open (pre-season)';
+    const closes = w <= win.summerUntil ? win.summerUntil : w >= win.januaryFrom && w <= win.januaryTo ? win.januaryTo : null;
+    return closes ? `Transfer window open until league week ${closes}` : 'Transfer window open (pre-season)';
   }
-  return w < WINDOWS.januaryFrom ? `Window closed. The January window opens at league matchday ${WINDOWS.januaryFrom}.` : 'Window closed. The summer window opens after the season.';
+  return w < win.januaryFrom ? `Window closed. The January window opens at league week ${win.januaryFrom}.` : 'Window closed. The summer window opens after the season.';
 }
 
 /* ---------- helpers ---------- */

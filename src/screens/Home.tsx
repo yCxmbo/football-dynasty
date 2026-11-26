@@ -1,8 +1,8 @@
 import { FD } from '../ds';
 import { boardTarget, currentDate, leagueTable, nextUserFixture, ordinal, seasonOver } from '../engine/game';
-import { COMPS, cupResult } from '../engine/competitions';
+import { compInfo, cupResult, topLeague } from '../engine/competitions';
 import type { GameState } from '../engine/types';
-import { divisionLabel, fixtureCardProps, zonesFor } from './comp-ui';
+import { fixtureCardProps, leagueLabel, zonesFor } from './comp-ui';
 import { toCur } from '../store';
 import type { Screen } from './shared';
 import { bidsFor } from './shared-transfers';
@@ -17,7 +17,8 @@ export default function Home({ g, go, onPlay }: { g: GameState; go: (s: Screen, 
   const next = nextUserFixture(g);
   const isNow = next && next.matchday === g.matchday;
   const last = g.fixtures.filter((f) => f.result && (f.homeId === g.userClubId || f.awayId === g.userClubId)).sort((a, b) => a.matchday - b.matchday).pop();
-  const cups = (['NC', 'LC', 'CC'] as const).map((c) => ({ c, r: cupResult(g, c, club.id) })).filter((x) => x.r);
+  const cups = Object.values(g.comps).filter((c) => c.kind === 'cup' || c.kind === 'continental').map((c) => ({ c: c.id, r: cupResult(g, c.id, club.id) })).filter((x) => x.r);
+  void topLeague;
   const over = seasonOver(g);
   const conf = played === 0 ? 70 : Math.max(5, Math.min(98, 100 - (pos - target.pos) * 12 - (pos > target.pos ? 10 : 0)));
   const confWord = conf >= 80 ? 'Very pleased' : conf >= 60 ? 'Satisfied' : conf >= 40 ? 'Concerned' : 'Losing patience';
@@ -32,7 +33,7 @@ export default function Home({ g, go, onPlay }: { g: GameState; go: (s: Screen, 
   ].slice(0, 5);
   const unread = g.inbox.filter((m) => m.unread).slice(0, 3);
   const greeting = over ? 'The season is over' : pos === 1 && played > 0 ? 'Top of the league, boss' : `Good morning, ${g.managerName.startsWith('The ') ? g.managerName.toLowerCase() : g.managerName.split(' ')[0]}`;
-  const lead = played === 0 ? `A new season in the ${divisionLabel(club.division)} starts ${currentDate(g)}. The board wants ${target.text}.`
+  const lead = played === 0 ? `A new season in the ${leagueLabel(g, club.league)} starts ${currentDate(g)}. The board wants ${target.text}.`
     : over ? `You finished ${ordinal(pos)}. Read the board's review, then start the new season.`
     : `${ordinal(pos)} after ${played} ${played === 1 ? 'match' : 'matches'}, ${pos === 1 ? `${table[0].pts - table[1].pts} ${table[0].pts - table[1].pts === 1 ? 'point' : 'points'} clear` : `${table[0].pts - table[pos - 1].pts} points off the top`}.`;
 
@@ -50,15 +51,15 @@ export default function Home({ g, go, onPlay }: { g: GameState; go: (s: Screen, 
           </>}
         </div>
         <div className="hm-col">
-          <h2 className="pg-h">{divisionLabel(club.division)}</h2>
-          <FD.LeagueTable compact rows={table.map((r) => ({ ...r }))} zones={zonesFor(club.division)} />
+          <h2 className="pg-h">{leagueLabel(g, club.league)}</h2>
+          <FD.LeagueTable compact rows={table.map((r) => ({ ...r }))} zones={zonesFor(g, club.league)} />
           <button className="pg-link" style={{ alignSelf: 'flex-start' }} onClick={() => go('table')}>Full table</button>
           {cups.length > 0 && <>
             <h2 className="pg-h">Cups</h2>
             <div className="pg-card hm-fin">
               {cups.map(({ c, r }) => {
                 const out = r !== 'Winners' && g.cups[c]?.exits[club.id];
-                return <div key={c}><span className="pg-h">{COMPS[c].name}</span><strong className={r === 'Winners' ? 'fd-gold' : out ? 'fd-muted' : 'fd-ok'}>{r === 'Winners' ? 'Winners' : out ? `Out (${r})` : r}</strong></div>;
+                return <div key={c}><span className="pg-h">{compInfo(g, c).name}</span><strong className={r === 'Winners' ? 'fd-gold' : out ? 'fd-muted' : 'fd-ok'}>{r === 'Winners' ? 'Winners' : out ? `Out (${r})` : r}</strong></div>;
               })}
             </div>
           </>}

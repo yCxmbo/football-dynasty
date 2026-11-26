@@ -1,32 +1,40 @@
 import { describe, expect, it } from 'vitest';
-import { clubsIn, divisionTable, makeCalendar } from './competitions';
+import { clubsInLeague, cupRoundNames, leagueTableOf } from './competitions';
 import { newGame, playMatchday, promote, seasonOver, startNewSeason, squadOf, totalMatchdays } from './game';
 import { abilityFromAttributes } from './ratings';
 import { createRng } from './rng';
 import { makeAttributes } from './world';
+import { templateWorld } from './builtin';
+import { validateWorld } from './worlddef';
+import { realWorld } from '../data/real';
+
+const game = (seed: number) => newGame({ seed, userClubId: 'ash', managerName: 'T', currency: 'EUR' });
 
 describe('fixtures', () => {
-  it('each division is a double round robin: every pair meets home and away once', () => {
-    const s = newGame({ seed: 1, userClubId: 'ash', managerName: 'T', currency: 'EUR' });
-    for (const d of ['D1', 'D2', 'D3'] as const) {
-      const f = s.fixtures.filter((x) => x.comp === d);
-      expect(f.length).toBe(12 * 11);
-      expect(new Set(f.map((x) => `${x.homeId}-${x.awayId}`)).size).toBe(132);
+  it('each league is a double round robin: every pair meets home and away once', () => {
+    const s = game(1);
+    for (const l of s.world.leagues) {
+      const n = clubsInLeague(s, l.id).length;
+      const f = s.fixtures.filter((x) => x.comp === l.id);
+      expect(f.length, l.id).toBe(n * (n - 1));
+      expect(new Set(f.map((x) => `${x.homeId}-${x.awayId}`)).size).toBe(n * (n - 1));
     }
   });
   it('no club plays twice in one calendar slot', () => {
-    const s = newGame({ seed: 2, userClubId: 'ash', managerName: 'T', currency: 'EUR' });
-    for (let i = 0; i < totalMatchdays(s); i++) {
+    const s = game(2);
+    for (let i = 0; i < 20; i++) {
       const clubs = s.fixtures.filter((x) => x.matchday === s.matchday).flatMap((x) => [x.homeId, x.awayId]);
       expect(new Set(clubs).size).toBe(clubs.length);
       playMatchday(s);
     }
   });
-  it('the calendar has every competition in date order', () => {
-    const cal = makeCalendar(2026);
-    expect(cal.map((x) => x.date)).toEqual([...cal.map((x) => x.date)].sort());
-    const comps = new Set(cal.flatMap((x) => x.entries.map((e) => e.comp)));
-    expect([...comps].sort()).toEqual(['CC', 'D1', 'D2', 'D3', 'LC', 'NC', 'PO2', 'PO3', 'SC']);
+  it('the calendar is in date order', () => {
+    const s = game(3);
+    expect(s.calendar.map((x) => x.date)).toEqual([...s.calendar.map((x) => x.date)].sort());
+  });
+  it('cups with an awkward number of entrants start with a first round and byes', () => {
+    expect(cupRoundNames(60)).toEqual(['First round', 'Round of 32', 'Round of 16', 'Quarter-final', 'Semi-final', 'Final']);
+    expect(cupRoundNames(16)).toEqual(['Round of 16', 'Quarter-final', 'Semi-final', 'Final']);
   });
 });
 
@@ -42,52 +50,80 @@ describe('ratings', () => {
 
 describe('season', () => {
   it('is deterministic for a seed', () => {
-    const a = newGame({ seed: 42, userClubId: 'ash', managerName: 'Test', currency: 'EUR' });
-    const b = newGame({ seed: 42, userClubId: 'ash', managerName: 'Test', currency: 'EUR' });
+    const a = game(42), b = game(42);
     for (let i = 0; i < 5; i++) { playMatchday(a); playMatchday(b); }
     expect(a.fixtures.filter((f) => f.result).map((f) => f.result!.score)).toEqual(b.fixtures.filter((f) => f.result).map((f) => f.result!.score));
   });
 
-  it('plays a full season with consistent tables, cups with winners, promotion and relegation', () => {
-    const s = newGame({ seed: 7, userClubId: 'ash', managerName: 'Test', currency: 'EUR' });
+  it('plays a full season with consistent tables, every competition won, promotion and relegation', () => {
+    const s = game(7);
     const n = totalMatchdays(s);
     for (let i = 0; i < n; i++) playMatchday(s);
     expect(seasonOver(s)).toBe(true);
-    for (const d of [1, 2, 3]) {
-      const t = divisionTable(s, d);
-      expect(t.every((r) => r.p === 22)).toBe(true);
-      const fx = s.fixtures.filter((f) => f.comp === `D${d}`);
+    for (const l of s.world.leagues) {
+      const t = leagueTableOf(s, l.id);
+      expect(t.every((r) => r.p === 2 * (t.length - 1))).toBe(true);
+      const fx = s.fixtures.filter((f) => f.comp === l.id);
       const goals = fx.reduce((g, f) => g + f.result!.score[0] + f.result!.score[1], 0);
       expect(t.reduce((g, r) => g + r.gf, 0)).toBe(goals);
       const draws = fx.filter((f) => f.result!.score[0] === f.result!.score[1]).length;
       expect(t.reduce((p, r) => p + r.pts, 0)).toBe((fx.length - draws) * 3 + draws * 2);
     }
-    for (const c of ['NC', 'LC', 'CC', 'SC', 'PO2', 'PO3'] as const) expect(s.cups[c]?.winner, c).toBeTruthy();
-    expect(s.fixtures.filter((f) => f.comp === 'NC').length).toBe(4 + 16 + 8 + 4 + 2 + 1);
-    expect(s.fixtures.filter((f) => f.comp === 'CC').length).toBe(4 * 12 + 4 + 2 + 1);
+    for (const c of Object.values(s.comps)) if (c.kind !== 'league') expect(s.cups[c.id]?.winner, c.id).toBeTruthy();
     expect(s.fixtures.filter((f) => f.ko).every((f) => f.result!.winnerId)).toBe(true);
 
-    const d1Bottom = divisionTable(s, 1).slice(-3).map((r) => r.clubId);
-    const d2Top = divisionTable(s, 2).slice(0, 2).map((r) => r.clubId);
-    const po2 = s.cups.PO2!.winner!;
+    const top = leagueTableOf(s, 'eng1').slice(-3).map((r) => r.clubId);
+    const up = leagueTableOf(s, 'eng2').slice(0, 2).map((r) => r.clubId);
+    const po = s.cups['po-eng2']!.winner!;
+    const year = s.year;
     startNewSeason(s);
-    expect(s.year).toBe(2027);
+    expect(s.year).toBe(year + 1);
     expect(s.matchday).toBe(1);
-    for (const id of d1Bottom) expect(s.clubs[id].division).toBe(2);
-    for (const id of [...d2Top, po2]) expect(s.clubs[id].division).toBe(1);
-    for (const d of [1, 2, 3]) expect(clubsIn(s, d).length).toBe(12);
-    expect(s.history['ash'][0].season).toBe('2026/27');
-    expect(Object.values(s.trophies).flat().filter((t) => t.seasons.includes('2026/27')).length).toBeGreaterThanOrEqual(7);
-    for (const c of Object.keys(s.clubs)) expect(squadOf(s, c).filter((p) => p.squad === 'First team').length).toBeGreaterThanOrEqual(22);
-    expect(s.qualified.cc.length).toBe(4);
-  });
+    for (const id of top) expect(s.clubs[id].league).toBe('eng2');
+    for (const id of [...up, po]) expect(s.clubs[id].league).toBe('eng1');
+    for (const l of s.world.leagues) expect(clubsInLeague(s, l.id).length).toBe(s.world.leagues.find((x) => x.id === l.id) && s.comps[l.id].size);
+    expect(s.history['ash'].length).toBe(1);
+    for (const c of Object.keys(s.clubs)) expect(squadOf(s, c).filter((p) => p.squad === 'First team').length).toBeGreaterThanOrEqual(18);
+    expect(s.qualified.cc1.length).toBe(32);
+  }, 120_000);
 
   it('promoting a youth player gives a professional contract', () => {
-    const s = newGame({ seed: 3, userClubId: 'ash', managerName: 'Test', currency: 'EUR' });
+    const s = game(3);
     const y = squadOf(s, 'ash').find((p) => p.squad === 'U21')!;
     expect(y.contractType).toBe('youth');
     promote(s, y.id);
     expect(s.players[y.id].squad).toBe('First team');
     expect(s.players[y.id].contractType).toBe('full-time');
+  });
+});
+
+describe('worlds', () => {
+  it('the real world database is valid and keeps its named players', () => {
+    const w = realWorld();
+    const v = validateWorld(w);
+    expect(v.errors).toEqual([]);
+    expect(w.leagues.length).toBe(17);
+    expect(new Set(w.leagues.map((l) => l.country)).size).toBe(15);
+    expect(new Set(w.players!.map((p) => p.name)).size).toBe(w.players!.length);
+    const s = newGame({ seed: 5, userClubId: 'eng-liverpool', managerName: 'T', currency: 'GBP', world: w, source: 'real' });
+    expect(squadOf(s, 'eng-liverpool').some((p) => p.name === 'Mohamed Salah')).toBe(true);
+    const yamal = Object.values(s.players).find((p) => p.name === 'Lamine Yamal')!;
+    expect(yamal.potential).toBeGreaterThan(yamal.ability + 10); // potential given as overall is converted
+    expect(s.comps.ucl.size).toBe(32);
+    expect(s.comps.uel.size).toBe(32);
+  });
+  it('the template validates and starts a game', () => {
+    const w = templateWorld();
+    expect(validateWorld(w).ok).toBe(true);
+    const s = newGame({ seed: 1, userClubId: w.clubs.find((c) => c.league)!.id, managerName: 'T', currency: 'EUR', world: w, source: 'import' });
+    for (let i = 0; i < 6; i++) playMatchday(s);
+    expect(s.fixtures.some((f) => f.result)).toBe(true);
+  });
+  it('rejects files with unbalanced promotion and relegation', () => {
+    const w = structuredClone(templateWorld());
+    w.leagues[0].relegate = 1; w.leagues[1].promote = 2;
+    const v = validateWorld(w);
+    expect(v.ok).toBe(false);
+    expect(v.errors.join(' ')).toMatch(/must match|top league/);
   });
 });

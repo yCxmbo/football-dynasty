@@ -34,8 +34,8 @@ export default function Finances({ g }: { g: GameState }) {
   const usage = Math.round((bill / club.wageBudget) * 100);
   const start = L.balanceHistory[0] ?? club.balance;
   const pos = leagueTable(g).findIndex((r) => r.clubId === g.userClubId) + 1;
-  const n = 12;
-  const div = club.division || 1;
+  const tv = g.world.leagues.find((l) => l.id === club.league)?.tv ?? 1_000_000;
+  const n = g.world.leagues.find((l) => l.id === club.league) ? Object.values(g.clubs).filter((c) => c.league === club.league).length : 20;
   return (
     <div className="pg-stack">
       <div className="pg-head" style={{ marginBottom: 0 }}><div><h1 className="pg-title">Finances</h1><p className="pg-sub">{seasonLabel(g.year)} so far. Each matchday counts a share of the year's wages, staff costs and sponsorship; prize money arrives at season end.</p></div></div>
@@ -52,7 +52,7 @@ export default function Finances({ g }: { g: GameState }) {
       </div>
       <section className="pg-card">
         <h2 className="pg-h">Prize money</h2>
-        <p className="hm-note">League prize money is paid at the end of the season, along with cup prize money for the round you reached. You are {pos}{pos === 1 ? 'st' : pos === 2 ? 'nd' : pos === 3 ? 'rd' : 'th'}, worth <FD.Money amount={toCur(prizeMoney(pos, n, div), cur)} currency={cur} /> if it stays that way. Champions get <FD.Money amount={toCur(prizeMoney(1, n, div), cur)} currency={cur} />; last place <FD.Money amount={toCur(prizeMoney(n, n, div), cur)} currency={cur} />.</p>
+        <p className="hm-note">League prize money is paid at the end of the season, along with cup prize money for the round you reached. You are {pos}{pos === 1 ? 'st' : pos === 2 ? 'nd' : pos === 3 ? 'rd' : 'th'}, worth <FD.Money amount={toCur(prizeMoney(pos, n, tv), cur)} currency={cur} /> if it stays that way. Champions get <FD.Money amount={toCur(prizeMoney(1, n, tv), cur)} currency={cur} />; last place <FD.Money amount={toCur(prizeMoney(n, n, tv), cur)} currency={cur} />.</p>
       </section>
       {g.lastLedger && (
         <section className="pg-card">

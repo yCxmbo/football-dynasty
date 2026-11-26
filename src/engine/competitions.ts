@@ -19,7 +19,7 @@ export const leagueRounds = (n: number) => 2 * (n - 1);
 
 /** Knockout round names for a number of entrants; a first round thins the field to a power of two. */
 /** "the Premier League" but "LaLiga", "Serie A", "Liga MX", "MLS": names used in English without an article. */
-export const withThe = (name: string) => (/^(LaLiga|Serie |Ligue |Liga |Major League Soccer|MLS)/.test(name) ? name : `the ${name}`);
+export const withThe = (name: string) => (/^(LaLiga|Serie |Ligue |Liga |Major League Soccer|MLS|2\. Bundesliga)/.test(name) ? name : `the ${name}`);
 
 export function cupRoundNames(entrants: number): string[] {
   const p = 2 ** Math.floor(Math.log2(Math.max(2, entrants)));

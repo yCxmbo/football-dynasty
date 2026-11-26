@@ -1,10 +1,11 @@
 import { c, type RCountry } from './types';
+import { ESP2 } from './second';
 
 export const SPAIN: RCountry = {
   id: 'esp', name: 'Spain', superCup: 'Supercopa de España',
-  cups: [{ id: 'esp-cup', name: 'Copa del Rey', tiers: [1], main: true }],
+  cups: [{ id: 'esp-cup', name: 'Copa del Rey', tiers: [1, 2], main: true }],
   leagues: [
-    { id: 'esp1', name: 'LaLiga', short: 'LaLiga', tier: 1, promote: 0, relegate: 0, tv: 1_000_000, clubs: [
+    { id: 'esp1', name: 'LaLiga', short: 'LaLiga', tier: 1, promote: 0, relegate: 3, tv: 1_000_000, clubs: [
       c('alaves', 'Vitoria Babazorros', 'ALA', 60, ['#0761AF', '#FFFFFF'], 'Mendizorrotza Park', 19840, [
         ['Antonio Sivera', 'GK', 28, 76, 'ESP'], ['Jonny Otto', 'RB', 31, 74, 'ESP'], ['Antonio Blanco', 'DM', 25, 75, 'ESP'], ['Carlos Vicente', 'RW', 26, 75, 'ESP'], ['Toni Martínez', 'ST', 28, 75, 'ESP']]),
       c('athletic', 'Bilbao Lions', 'ATH', 80, ['#EE2523', '#FFFFFF'], 'Lions Cathedral', 53289, [
@@ -77,5 +78,6 @@ export const SPAIN: RCountry = {
         ['Pape Gueye', 'CM', 26, 76, 'SEN'], ['Yeremy Pino', 'RW', 22, 79, 'ESP'], ['Nicolas Pépé', 'RW', 30, 77, 'CIV'], ['Ayoze Pérez', 'ST', 32, 79, 'ESP'],
         ['Gerard Moreno', 'ST', 33, 79, 'ESP'], ['Georges Mikautadze', 'ST', 24, 78, 'GEO']]),
     ] },
+    ESP2,
   ],
 };

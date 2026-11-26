@@ -1,10 +1,11 @@
 import { c, type RCountry } from './types';
+import { ITA2 } from './second';
 
 export const ITALY: RCountry = {
   id: 'ita', name: 'Italy', superCup: 'Supercoppa Italiana',
-  cups: [{ id: 'ita-cup', name: 'Coppa Italia', tiers: [1], main: true }],
+  cups: [{ id: 'ita-cup', name: 'Coppa Italia', tiers: [1, 2], main: true }],
   leagues: [
-    { id: 'ita1', name: 'Serie A', short: 'Serie A', tier: 1, promote: 0, relegate: 0, tv: 850_000, clubs: [
+    { id: 'ita1', name: 'Serie A', short: 'Serie A', tier: 1, promote: 0, relegate: 3, tv: 850_000, clubs: [
       c('atalanta', 'Bergamo Nerazzurri', 'ATA', 80, ['#1E71B8', '#000000'], 'Bergamo Arena', 24950, [
         ['Marco Carnesecchi', 'GK', 25, 82, 'ITA'], ['Isak Hien', 'CB', 26, 79, 'SWE'], ['Berat Djimsiti', 'CB', 32, 78, 'ALB'], ['Sead Kolašinac', 'CB', 32, 76, 'BIH'],
         ['Raoul Bellanova', 'RB', 25, 78, 'ITA'], ['Davide Zappacosta', 'RB', 33, 76, 'ITA'], ['Éderson', 'CM', 26, 82, 'BRA'], ['Marten de Roon', 'DM', 34, 79, 'NED'],
@@ -75,5 +76,6 @@ export const ITALY: RCountry = {
         ['Maduka Okoye', 'GK', 25, 76, 'NGA'], ['Thomas Kristensen', 'CB', 23, 75, 'DEN'], ['Jordan Zemura', 'LB', 25, 74, 'ZIM'], ['Jesper Karlström', 'DM', 30, 74, 'SWE'],
         ['Jakub Piotrowski', 'CM', 28, 74, 'POL'], ['Keinan Davis', 'ST', 27, 74, 'ENG'], ['Nicolò Zaniolo', 'AM', 26, 74, 'ITA']]),
     ] },
+    ITA2,
   ],
 };

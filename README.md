@@ -22,12 +22,12 @@ The game saves automatically in the browser (localStorage, compressed with lz-st
 ## What's playable (v0.1)
 
 - **New career:** pick a manager name, a currency (€ / $ / £) and a world, then a country, league and club.
-  - **Real world (default):** 2025/26 in 15 countries: England (Premier League, Championship, League One), Spain, Italy, Germany, France, Portugal, the Netherlands, Belgium, Turkey, Scotland, Brazil, Argentina, the USA, Saudi Arabia and Mexico. 358 clubs, about 1,350 real players with estimated ratings, and generated players to complete each squad.
+  - **Real world (default):** 2025/26 in 15 countries: England (Premier League, Championship, League One), Spain (LaLiga, LaLiga Hypermotion), Italy (Serie A, Serie B), Germany (Bundesliga, 2. Bundesliga), France (Ligue 1, Ligue 2), Portugal, the Netherlands, Belgium, Turkey, Scotland, Brazil, Argentina, the USA, Saudi Arabia and Mexico. 436 clubs, about 1,350 real players with estimated ratings, and generated players to complete each squad.
   - **Fictional world:** invented clubs and players in five countries.
   - **Load a world file:** your own leagues, clubs and players. See [WORLD_FILES.md](WORLD_FILES.md).
 - **Real competition names:** leagues, cups, super cups and continental competitions use their real names (Premier League, LaLiga, FA Cup, Copa del Rey, UEFA Champions League, Copa Libertadores…).
 - **Club names and badges:** clubs have names close to the real ones (for example *Merseyside Reds*, *Madrid Merengues*), and badges generated from each club's colours. Real club crests are protected designs, so the game doesn't copy them.
-- **Leagues:** every league is a double round robin. England has promotion and relegation between its three divisions (top two up, places 3–6 in play-offs, three down; Division One has no relegation). The other countries have one top league each.
+- **Leagues:** every league is a double round robin. England, Spain, Italy, Germany and France have promotion and relegation: the top two go up, places 3–6 play off for a third place, and three go down. England's League One and the other second divisions are the bottom of their pyramids. The other countries have one league each.
 - **Competitions:**
 
   | Competition | Format |

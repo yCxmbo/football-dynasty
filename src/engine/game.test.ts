@@ -102,7 +102,7 @@ describe('worlds', () => {
     const w = realWorld();
     const v = validateWorld(w);
     expect(v.errors).toEqual([]);
-    expect(w.leagues.length).toBe(17);
+    expect(w.leagues.length).toBe(21);
     expect(new Set(w.leagues.map((l) => l.country)).size).toBe(15);
     expect(new Set(w.players!.map((p) => p.name)).size).toBe(w.players!.length);
     const s = newGame({ seed: 5, userClubId: 'eng-liverpool', managerName: 'T', currency: 'GBP', world: w, source: 'real' });
@@ -122,8 +122,14 @@ describe('worlds', () => {
     const n = totalMatchdays(s);
     for (let i = 0; i < n; i++) playMatchday(s);
     for (const c of Object.values(s.comps)) if (c.kind !== 'league') expect(s.cups[c.id]?.winner, c.id).toBeTruthy();
+    const down = leagueTableOf(s, 'esp1').slice(-3).map((r) => r.clubId);
+    const up = leagueTableOf(s, 'ger2').slice(0, 2).map((r) => r.clubId);
     startNewSeason(s);
     expect(s.comps['sc-mex'].name).toBe('Campeón de Campeones');
+    for (const id of down) expect(s.clubs[id].league).toBe('esp2');
+    for (const id of up) expect(s.clubs[id].league).toBe('ger1');
+    expect(clubsInLeague(s, 'esp1').length).toBe(20);
+    expect(clubsInLeague(s, 'esp2').length).toBe(22);
   }, 120_000);
   it('the template validates and starts a game', () => {
     const w = templateWorld();

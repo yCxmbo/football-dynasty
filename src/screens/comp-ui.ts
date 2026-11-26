@@ -1,4 +1,4 @@
-import { compInfo, leagueDef, leagueTableOf } from '../engine/competitions';
+import { compInfo, leagueDef, leagueTableOf, withThe } from '../engine/competitions';
 import { formatDate } from '../engine/fixtures';
 import type { Fixture, GameState } from '../engine/types';
 import { badgeUrl } from './badge';
@@ -13,7 +13,7 @@ export function zonesFor(g: GameState, leagueId: string | undefined) {
     ...(l.tier === 1 && cont ? { champions: cont, championsLabel: `${g.world.continental.find((k) => k.rank === 1 && k.places[l.country])?.name ?? 'Continental'} places` } : {}),
     ...(l.promote ? { promotion: l.promote, promotionLabel: 'Promoted' } : {}),
     ...(l.playoff ? { playoff: l.playoff, playoffLabel: 'Play-offs (one more place up)' } : {}),
-    ...(l.relegate ? { relegation: l.relegate, relegationLabel: `Relegated${below ? ` to the ${below.name}` : ''}` } : {}),
+    ...(l.relegate ? { relegation: l.relegate, relegationLabel: `Relegated${below ? ` to ${withThe(below.name)}` : ''}` } : {}),
   };
 }
 

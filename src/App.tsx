@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react';
 import { FD } from './ds';
-import { currentDate, markRead, newGame, playMatchday, promote, seasonOver, setAutoRotate, setTactics, startNewSeason, startUserMatch, userFixture } from './engine/game';
+import { currentDate, markRead, newGame, playMatchday, promote, seasonOver, setAutoRotate, setTactics, startUserMatch, userFixture } from './engine/game';
 import type { Formation } from './engine/match';
 import { formatDate } from './engine/fixtures';
-import { seasonLabel } from './engine/types';
+import { seasonLabel, type GameState } from './engine/types';
 import { toCur, useGame, useTheme } from './store';
-import { compInfo, currentSlot, currentWeek } from './engine/competitions';
+import { compInfo, currentSlot } from './engine/competitions';
 import { makeOffer, respondToBid, startScouting, toggleShortlist, toggleTransferList, type OfferTerms } from './engine/transfers';
 import Contract from './screens/Contract';
 import Finances from './screens/Finances';
@@ -24,6 +24,7 @@ import NewGame from './screens/NewGame';
 import International from './screens/International';
 import Career from './screens/Career';
 import Staff from './screens/Staff';
+import { simulate } from './sim/client';
 import NationalMatch from './screens/NationalMatch';
 import { beginSummer, summerLabel, summerStep, summerTournamentFor } from './engine/summer';
 import { NATION } from './engine/nations';
@@ -50,7 +51,7 @@ export default function App() {
   const [live, setLive] = useState<LiveState | null>(null);
   const [sim, setSim] = useState<string | null>(null);
   const [simMenu, setSimMenu] = useState(false);
-  const stopSim = useRef(false);
+  const stopSim = useRef<() => void>(() => {});
 
   if (loading) {
     return <main className="ng ng--loading"><img className="ng__crest" src={`${import.meta.env.BASE_URL}crest-512.png`} alt="Football Dynasty" /><p className="hm-note" role="status">Loading your career…</p></main>;
@@ -82,24 +83,11 @@ export default function App() {
   const simAhead = async (kind: 'match' | 'month' | 'season') => {
     setSimMenu(false);
     if (live) return;
-    const d = structuredClone(g);
-    const until = currentWeek(d) + 4;
-    stopSim.current = false;
     setSim('Simulating…');
-    await new Promise((r) => setTimeout(r, 20));
-    let steps = 0;
-    while (!seasonOver(d) && !stopSim.current && !d.career?.sacked) {
-      const hadMatch = !!userFixture(d);
-      playMatchday(d);
-      steps++;
-      if (kind === 'match' && hadMatch) break;
-      if (kind === 'month' && currentWeek(d) >= until) break;
-      if (steps % 3 === 0) {
-        const s = currentSlot(d);
-        setSim(`Simulating… ${s ? formatDate(s.date) : ''}`);
-        await new Promise((r) => setTimeout(r, 0));
-      }
-    }
+    const run = simulate(g, { kind: 'ahead', until: kind }, setSim);
+    stopSim.current = run.stop;
+    let d: GameState;
+    try { d = await run.result; } catch { setSim(null); return; }
     setGame(d);
     setSim(null);
     go(d.career?.sacked ? 'career' : 'home');
@@ -109,9 +97,8 @@ export default function App() {
   const startSeason = async () => {
     const t = summerTournaments(g.year).map(tournamentName);
     setSim(t.length ? `Playing the ${t.join(' and ')} ${g.year + 1}…` : 'Preparing the new season…');
-    await new Promise((r) => setTimeout(r, 30));
-    const d = structuredClone(g);
-    startNewSeason(d);
+    let d: GameState;
+    try { d = await simulate(g, { kind: 'rollover' }, () => {}).result; } catch { setSim(null); return; }
     setGame(d);
     setSim(null);
     go(d.career?.sacked ? 'career' : t.length ? 'international' : 'home');
@@ -205,7 +192,7 @@ export default function App() {
           <div className="sim-overlay__box pg-card">
             <strong>{sim}</strong>
             <span className="hm-note">Your matches are played with your current tactics. Bids and offers that arrive meanwhile wait in your inbox.</span>
-            {!sim.startsWith('Playing') && !sim.startsWith('Preparing') && <FD.Button variant="secondary" onClick={() => { stopSim.current = true; }}>Stop</FD.Button>}
+            {!sim.startsWith('Playing') && !sim.startsWith('Preparing') && <FD.Button variant="secondary" onClick={() => stopSim.current()}>Stop</FD.Button>}
           </div>
         </div>
       )}

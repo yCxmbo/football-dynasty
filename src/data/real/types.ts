@@ -4,7 +4,7 @@
 export type P = [string, string, number, number, string, number?];
 export interface RC { id: string; name: string; short: string; rep: number; col: [string, string]; st?: string; cap?: number; p?: P[] }
 export interface RL { id: string; name: string; short?: string; tier: number; promote: number; playoff?: [number, number]; relegate: number; tv: number; clubs: RC[] }
-export interface RCountry { id: string; name: string; leagues: RL[]; cups: Array<{ id: string; name: string; tiers: number[]; main?: boolean }> }
+export interface RCountry { id: string; name: string; superCup?: string; leagues: RL[]; cups: Array<{ id: string; name: string; tiers: number[]; main?: boolean }> }
 /** Clubs without a league here that fill continental places. */
 export interface RFillers { id: string; name: string; clubs: RC[] }
 

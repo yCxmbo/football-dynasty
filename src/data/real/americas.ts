@@ -1,9 +1,9 @@
 import { c, type RCountry } from './types';
 
 export const BRAZIL: RCountry = {
-  id: 'bra', name: 'Brazil',
-  cups: [{ id: 'bra-cup', name: 'Brazilian Cup', tiers: [1], main: true }],
-  leagues: [{ id: 'bra1', name: 'Brazilian Série Prima', short: 'Série Prima', tier: 1, promote: 0, relegate: 0, tv: 300_000, clubs: [
+  id: 'bra', name: 'Brazil', superCup: 'Supercopa do Brasil',
+  cups: [{ id: 'bra-cup', name: 'Copa do Brasil', tiers: [1], main: true }],
+  leagues: [{ id: 'bra1', name: 'Brasileirão Série A', short: 'Brasileirão', tier: 1, promote: 0, relegate: 0, tv: 300_000, clubs: [
     c('atleticomg', 'Belo Horizonte Roosters', 'CAM', 66, ['#000000', '#FFFFFF'], 'Arena MRV Park', 46000, [['Everson', 'GK', 35, 74, 'BRA'], ['Gustavo Scarpa', 'AM', 31, 75, 'BRA'], ['Hulk', 'ST', 39, 76, 'BRA']]),
     c('bahia', 'Salvador Tricolor', 'BAH', 58, ['#0055A4', '#E30613'], 'Fonte Nova Park', 47907, [['Everton Ribeiro', 'AM', 36, 74, 'BRA'], ['Willian José', 'ST', 33, 72, 'BRA']]),
     c('botafogo', 'Rio Lone Star', 'BOT', 70, ['#000000', '#FFFFFF'], 'Nilton Santos Park', 44661, [['John', 'GK', 29, 75, 'BRA'], ['Alexander Barboza', 'CB', 30, 75, 'ARG'], ['Marlon Freitas', 'DM', 30, 75, 'BRA'], ['Savarino', 'RW', 28, 75, 'VEN'], ['Igor Jesus', 'ST', 24, 76, 'BRA']]),
@@ -30,9 +30,9 @@ export const BRAZIL: RCountry = {
 };
 
 export const ARGENTINA: RCountry = {
-  id: 'arg', name: 'Argentina',
-  cups: [{ id: 'arg-cup', name: 'Argentine Cup', tiers: [1], main: true }],
-  leagues: [{ id: 'arg1', name: 'Argentine Primera Liga', short: 'Primera AR', tier: 1, promote: 0, relegate: 0, tv: 160_000, clubs: [
+  id: 'arg', name: 'Argentina', superCup: 'Supercopa Argentina',
+  cups: [{ id: 'arg-cup', name: 'Copa Argentina', tiers: [1], main: true }],
+  leagues: [{ id: 'arg1', name: 'Liga Profesional', short: 'Liga Profesional', tier: 1, promote: 0, relegate: 0, tv: 160_000, clubs: [
     c('boca', 'Buenos Aires Xeneizes', 'BOC', 74, ['#0033A0', '#FFD100'], 'Bombonera Park', 54000, [['Agustín Marchesín', 'GK', 37, 74, 'ARG'], ['Leandro Paredes', 'DM', 31, 78, 'ARG'], ['Ander Herrera', 'CM', 35, 73, 'ESP'], ['Edinson Cavani', 'ST', 38, 73, 'URU'], ['Miguel Merentiel', 'ST', 29, 74, 'URU']]),
     c('river', 'Buenos Aires Millonarios', 'RIV', 76, ['#FFFFFF', '#E30613'], 'Monumental Park', 85018, [['Franco Armani', 'GK', 38, 75, 'ARG'], ['Germán Pezzella', 'CB', 34, 74, 'ARG'], ['Gonzalo Montiel', 'RB', 28, 75, 'ARG'], ['Enzo Pérez', 'DM', 39, 72, 'ARG'], ['Juan Fernando Quintero', 'AM', 32, 75, 'COL'], ['Miguel Borja', 'ST', 32, 74, 'COL'], ['Sebastián Driussi', 'ST', 29, 74, 'ARG']]),
     c('racing', 'Avellaneda Academy', 'RAC', 66, ['#6CABDD', '#FFFFFF'], 'Cylinder Park', 51389, [['Gabriel Arias', 'GK', 37, 73, 'CHI'], ['Juan Fernando Quintero', 'AM', 32, 0, 'COL'], ['Adrián Martínez', 'ST', 33, 74, 'ARG']]),
@@ -49,9 +49,9 @@ export const ARGENTINA: RCountry = {
 };
 
 export const USA: RCountry = {
-  id: 'usa', name: 'United States',
-  cups: [{ id: 'usa-cup', name: 'American Open Cup', tiers: [1], main: true }],
-  leagues: [{ id: 'usa1', name: 'American Soccer League', short: 'ASL', tier: 1, promote: 0, relegate: 0, tv: 320_000, clubs: [
+  id: 'usa', name: 'United States', superCup: 'Campeones Cup',
+  cups: [{ id: 'usa-cup', name: 'U.S. Open Cup', tiers: [1], main: true }],
+  leagues: [{ id: 'usa1', name: 'Major League Soccer', short: 'MLS', tier: 1, promote: 0, relegate: 0, tv: 320_000, clubs: [
     c('miami', 'Miami Herons', 'MIA', 66, ['#F7B5CD', '#231F20'], 'Fort Lauderdale Park', 21550, [
       ['Óscar Ustari', 'GK', 39, 70, 'ARG'], ['Jordi Alba', 'LB', 36, 76, 'ESP'], ['Sergio Busquets', 'DM', 37, 76, 'ESP'], ['Rodrigo De Paul', 'CM', 31, 80, 'ARG'],
       ['Lionel Messi', 'RW', 38, 86, 'ARG'], ['Luis Suárez', 'ST', 38, 76, 'URU'], ['Tadeo Allende', 'RW', 26, 72, 'ARG']]),
@@ -75,9 +75,9 @@ export const USA: RCountry = {
 };
 
 export const MEXICO: RCountry = {
-  id: 'mex', name: 'Mexico',
-  cups: [{ id: 'mex-cup', name: 'Mexican Cup', tiers: [1], main: true }],
-  leagues: [{ id: 'mex1', name: 'Mexican Primera Liga', short: 'Liga MX-ish', tier: 1, promote: 0, relegate: 0, tv: 240_000, clubs: [
+  id: 'mex', name: 'Mexico', superCup: 'Campeón de Campeones',
+  cups: [{ id: 'mex-cup', name: 'Copa MX', tiers: [1], main: true }],
+  leagues: [{ id: 'mex1', name: 'Liga MX', short: 'Liga MX', tier: 1, promote: 0, relegate: 0, tv: 240_000, clubs: [
     c('america', 'Mexico City Eagles', 'AME', 68, ['#FFD200', '#002F6C'], 'Aztec Park', 83264, [['Luis Malagón', 'GK', 28, 74, 'MEX'], ['Álvaro Fidalgo', 'CM', 28, 75, 'ESP'], ['Alejandro Zendejas', 'RW', 27, 73, 'USA'], ['Brian Rodríguez', 'LW', 25, 73, 'URU']]),
     c('chivas', 'Guadalajara Goats', 'GDL', 62, ['#E30613', '#FFFFFF'], 'Akron Park', 48071, [['Raúl Rangel', 'GK', 25, 72, 'MEX'], ['Roberto Alvarado', 'RW', 26, 73, 'MEX'], ['Javier Hernández', 'ST', 37, 68, 'MEX']]),
     c('cruzazul', 'Mexico City Cement Makers', 'CAZ', 66, ['#0055A4', '#FFFFFF'], 'Ciudad de los Deportes Park', 33000, [['Kevin Mier', 'GK', 25, 74, 'COL'], ['Jorge Sánchez', 'RB', 27, 72, 'MEX'], ['Ángel Sepúlveda', 'ST', 34, 72, 'MEX']]),

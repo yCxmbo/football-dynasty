@@ -44,7 +44,7 @@ export function buildComps(s: GameState) {
   for (const c of s.world.cups) comps[c.id] = { id: c.id, name: c.name, short: c.name, kind: 'cup', country: c.country, rounds: cupRoundNames(cupEntrants(s, c.id).length), main: c.main };
   for (const country of s.world.countries) {
     if (!topLeague(s, country.id) || !s.world.cups.some((c) => c.country === country.id && c.main)) continue;
-    comps[`sc-${country.id}`] = { id: `sc-${country.id}`, name: `${country.name} Super Cup`, short: 'Super Cup', kind: 'super', country: country.id, rounds: ['Final'] };
+    comps[`sc-${country.id}`] = { id: `sc-${country.id}`, name: country.superCup ?? `${country.name} Super Cup`, short: country.superCup ?? 'Super Cup', kind: 'super', country: country.id, rounds: ['Final'] };
   }
   const usedFillers = new Set(Object.values(s.qualified).flat());
   for (const k of s.world.continental) {

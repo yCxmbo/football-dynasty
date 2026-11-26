@@ -1,9 +1,9 @@
 import { c, type RCountry } from './types';
 
 export const PORTUGAL: RCountry = {
-  id: 'por', name: 'Portugal',
-  cups: [{ id: 'por-cup', name: 'Taça Lusitana', tiers: [1], main: true }],
-  leagues: [{ id: 'por1', name: 'Portuguese Primeira', short: 'Primeira PT', tier: 1, promote: 0, relegate: 0, tv: 260_000, clubs: [
+  id: 'por', name: 'Portugal', superCup: 'Supertaça Cândido de Oliveira',
+  cups: [{ id: 'por-cup', name: 'Taça de Portugal', tiers: [1], main: true }],
+  leagues: [{ id: 'por1', name: 'Liga Portugal', short: 'Liga Portugal', tier: 1, promote: 0, relegate: 0, tv: 260_000, clubs: [
     c('avs', 'Vila das Aves Futebol', 'AVS', 40, ['#D71920', '#FFFFFF'], 'Aves Park', 6230), c('alverca', 'Alverca Ribatejo', 'ALV', 38, ['#D71920', '#FFFFFF'], 'Alverca Park', 7700),
     c('arouca', 'Arouca Lobos', 'ARO', 44, ['#FFD200', '#0055A4'], 'Arouca Municipal', 5600),
     c('benfica', 'Lisbon Eagles', 'SLB', 84, ['#E83030', '#FFFFFF'], 'Stadium of Light', 64642, [
@@ -35,9 +35,9 @@ export const PORTUGAL: RCountry = {
 };
 
 export const NETHERLANDS: RCountry = {
-  id: 'ned', name: 'Netherlands',
-  cups: [{ id: 'ned-cup', name: 'Dutch Beker', tiers: [1], main: true }],
-  leagues: [{ id: 'ned1', name: 'Dutch Eredivisie Pro', short: 'Eredivisie', tier: 1, promote: 0, relegate: 0, tv: 230_000, clubs: [
+  id: 'ned', name: 'Netherlands', superCup: 'Johan Cruyff Shield',
+  cups: [{ id: 'ned-cup', name: 'KNVB Cup', tiers: [1], main: true }],
+  leagues: [{ id: 'ned1', name: 'Eredivisie', short: 'Eredivisie', tier: 1, promote: 0, relegate: 0, tv: 230_000, clubs: [
     c('ajax', 'Amsterdam Sons of Gods', 'AJA', 80, ['#D2122E', '#FFFFFF'], 'Amsterdam Arena', 55865, [
       ['Vítězslav Jaroš', 'GK', 24, 76, 'CZE'], ['Josip Šutalo', 'CB', 25, 78, 'CRO'], ['Youri Baas', 'CB', 22, 77, 'NED'], ['Lucas Rosa', 'RB', 24, 74, 'BRA'],
       ['Jorrel Hato', 'LB', 19, 80, 'NED', 0], ['Kenneth Taylor', 'CM', 23, 79, 'NED'], ['Davy Klaassen', 'CM', 32, 75, 'NED'], ['Youri Regeer', 'CM', 22, 74, 'NED'],
@@ -66,9 +66,9 @@ export const NETHERLANDS: RCountry = {
 };
 
 export const BELGIUM: RCountry = {
-  id: 'bel', name: 'Belgium',
+  id: 'bel', name: 'Belgium', superCup: 'Belgian Super Cup',
   cups: [{ id: 'bel-cup', name: 'Belgian Cup', tiers: [1], main: true }],
-  leagues: [{ id: 'bel1', name: 'Belgian Pro Division', short: 'Pro Division', tier: 1, promote: 0, relegate: 0, tv: 200_000, clubs: [
+  leagues: [{ id: 'bel1', name: 'Belgian Pro League', short: 'Pro League', tier: 1, promote: 0, relegate: 0, tv: 200_000, clubs: [
     c('anderlecht', 'Brussels Purple & White', 'AND', 66, ['#4C2683', '#FFFFFF'], 'Lotto Park', 21500, [
       ['Colin Coosemans', 'GK', 32, 74, 'BEL'], ['Jan-Carlo Simić', 'CB', 20, 73, 'SRB'], ['Yari Verschaeren', 'AM', 24, 75, 'BEL'], ['Kasper Dolberg', 'ST', 27, 76, 'DEN']]),
     c('antwerp', 'Antwerp Great Old', 'ANT', 58, ['#E30613', '#FFFFFF'], 'Bosuil Park', 16144, [['Senne Lammens', 'GK', 23, 76, 'BEL'], ['Toby Alderweireld', 'CB', 36, 72, 'BEL']]),
@@ -88,9 +88,9 @@ export const BELGIUM: RCountry = {
 };
 
 export const TURKEY: RCountry = {
-  id: 'tur', name: 'Turkey',
+  id: 'tur', name: 'Turkey', superCup: 'Turkish Super Cup',
   cups: [{ id: 'tur-cup', name: 'Turkish Cup', tiers: [1], main: true }],
-  leagues: [{ id: 'tur1', name: 'Turkish Super League', short: 'Super League', tier: 1, promote: 0, relegate: 0, tv: 260_000, clubs: [
+  leagues: [{ id: 'tur1', name: 'Süper Lig', short: 'Süper Lig', tier: 1, promote: 0, relegate: 0, tv: 260_000, clubs: [
     c('alanya', 'Alanya Riviera', 'ALA', 44, ['#F58220', '#00843D'], 'Alanya Oba Park', 10130), c('antalya', 'Antalya Scorpions', 'ANT', 42, ['#E30613', '#FFFFFF'], 'Corendon Park', 32537),
     c('basaksehir', 'Istanbul Owls', 'IBF', 56, ['#F58220', '#002F6C'], 'Fatih Terim Park', 17319, [['Krzysztof Piątek', 'ST', 30, 75, 'POL'], ['Muhammed Şengezer', 'GK', 28, 72, 'TUR']]),
     c('besiktas', 'Istanbul Black Eagles', 'BJK', 74, ['#000000', '#FFFFFF'], 'Bosphorus Park', 42590, [
@@ -117,9 +117,9 @@ export const TURKEY: RCountry = {
 };
 
 export const SCOTLAND: RCountry = {
-  id: 'sco', name: 'Scotland',
+  id: 'sco', name: 'Scotland', superCup: 'Scottish Super Cup',
   cups: [{ id: 'sco-cup', name: 'Scottish Cup', tiers: [1], main: true }, { id: 'sco-lc', name: 'Scottish League Cup', tiers: [1] }],
-  leagues: [{ id: 'sco1', name: 'Scottish Premier Division', short: 'Scot Prem', tier: 1, promote: 0, relegate: 0, tv: 120_000, clubs: [
+  leagues: [{ id: 'sco1', name: 'Scottish Premiership', short: 'Premiership', tier: 1, promote: 0, relegate: 0, tv: 120_000, clubs: [
     c('aberdeen', 'Granite City Dons', 'ABE', 50, ['#E30613', '#FFFFFF'], 'Pittodrie Park', 20866, [['Dimitar Mitov', 'GK', 28, 72, 'BUL'], ['Kevin Nisbet', 'ST', 28, 70, 'SCO']]),
     c('celtic', 'Glasgow Hoops', 'CEL', 72, ['#018749', '#FFFFFF'], 'Parkhead Park', 60411, [
       ['Kasper Schmeichel', 'GK', 38, 76, 'DEN'], ['Cameron Carter-Vickers', 'CB', 27, 77, 'USA'], ['Liam Scales', 'CB', 26, 73, 'IRL'], ['Alistair Johnston', 'RB', 26, 75, 'CAN'],

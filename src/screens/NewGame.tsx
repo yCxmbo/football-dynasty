@@ -10,7 +10,7 @@ type Source = 'real' | 'builtin' | 'import';
 export interface StartOpts { clubId: string; name: string; currency: Currency; world: WorldDef; source: Source }
 
 const SOURCES: Array<[Source, string, string]> = [
-  ['real', 'Real world', '15 countries, 17 leagues and real players from 2025/26, with club names close to the real ones.'],
+  ['real', 'Real world', '15 countries with their real leagues and competitions, real players from 2025/26, and club names close to the real ones.'],
   ['builtin', 'Fictional world', 'Invented clubs and players in five countries. Nobody knows who the stars are.'],
   ['import', 'Load a world file', 'Play with leagues, clubs and players from a world file you made or downloaded.'],
 ];

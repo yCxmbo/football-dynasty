@@ -1,10 +1,10 @@
 import { c, type RCountry } from './types';
 
 export const SPAIN: RCountry = {
-  id: 'esp', name: 'Spain',
-  cups: [{ id: 'esp-cup', name: 'Copa del Reino', tiers: [1], main: true }],
+  id: 'esp', name: 'Spain', superCup: 'Supercopa de España',
+  cups: [{ id: 'esp-cup', name: 'Copa del Rey', tiers: [1], main: true }],
   leagues: [
-    { id: 'esp1', name: 'Spanish Primera', short: 'Primera', tier: 1, promote: 0, relegate: 0, tv: 1_000_000, clubs: [
+    { id: 'esp1', name: 'LaLiga', short: 'LaLiga', tier: 1, promote: 0, relegate: 0, tv: 1_000_000, clubs: [
       c('alaves', 'Vitoria Babazorros', 'ALA', 60, ['#0761AF', '#FFFFFF'], 'Mendizorrotza Park', 19840, [
         ['Antonio Sivera', 'GK', 28, 76, 'ESP'], ['Jonny Otto', 'RB', 31, 74, 'ESP'], ['Antonio Blanco', 'DM', 25, 75, 'ESP'], ['Carlos Vicente', 'RW', 26, 75, 'ESP'], ['Toni Martínez', 'ST', 28, 75, 'ESP']]),
       c('athletic', 'Bilbao Lions', 'ATH', 80, ['#EE2523', '#FFFFFF'], 'Lions Cathedral', 53289, [

@@ -1,10 +1,10 @@
 import { c, type RCountry } from './types';
 
 export const FRANCE: RCountry = {
-  id: 'fra', name: 'France',
-  cups: [{ id: 'fra-cup', name: 'Coupe Française', tiers: [1], main: true }],
+  id: 'fra', name: 'France', superCup: 'Trophée des Champions',
+  cups: [{ id: 'fra-cup', name: 'Coupe de France', tiers: [1], main: true }],
   leagues: [
-    { id: 'fra1', name: 'French Ligue Une', short: 'Ligue Une', tier: 1, promote: 0, relegate: 0, tv: 550_000, clubs: [
+    { id: 'fra1', name: 'Ligue 1', short: 'Ligue 1', tier: 1, promote: 0, relegate: 0, tv: 550_000, clubs: [
       c('angers', 'Angers Scoïstes', 'ANG', 48, ['#000000', '#FFFFFF'], 'Raymond Kopa Park', 18752, [
         ['Yahia Fofana', 'GK', 24, 74, 'CIV'], ['Jordan Lefort', 'CB', 31, 70, 'FRA'], ['Haris Belkebla', 'DM', 31, 70, 'ALG'], ['Esteban Lepaul', 'ST', 25, 71, 'FRA']]),
       c('auxerre', 'Burgundy Auxerrois', 'AUX', 50, ['#FFFFFF', '#0055A4'], 'Abbé-Deschamps Park', 18541, [

@@ -38,15 +38,15 @@ export function realWorld(): WorldDef {
   const leagues = REAL_COUNTRIES.flatMap((k) => k.leagues.map(({ clubs: _c, ...l }) => ({ ...l, country: k.id, playoff: l.playoff ?? null })));
   cached = {
     format: WORLD_FORMAT, version: WORLD_VERSION, name: 'Real world 2025/26', startYear: 2025,
-    countries: [...REAL_COUNTRIES.map((k) => ({ id: k.id, name: k.name })), ...FILLERS.map((f) => ({ id: f.id, name: f.name }))],
+    countries: [...REAL_COUNTRIES.map((k) => ({ id: k.id, name: k.name, superCup: k.superCup })), ...FILLERS.map((f) => ({ id: f.id, name: f.name }))],
     leagues,
     cups: REAL_COUNTRIES.flatMap((k) => k.cups.map((cup) => ({ ...cup, country: k.id }))),
     continental: [
-      { id: 'ucl', name: 'European Champions Cup', short: 'Champions Cup', rank: 1, size: 32, places: { eng: 4, esp: 4, ita: 4, ger: 4, fra: 3, por: 2, ned: 2, bel: 1, tur: 1, sco: 1 }, fillers: fill.eur },
-      { id: 'uel', name: 'European Euro Cup', short: 'Euro Cup', rank: 2, size: 32, places: { eng: 2, esp: 2, ita: 2, ger: 2, fra: 2, por: 2, ned: 2, bel: 2, tur: 2, sco: 1 }, cupWinners: true, fillers: fill.eur },
-      { id: 'lib', name: 'Copa Libertad', short: 'Libertad', rank: 1, size: 16, places: { bra: 6, arg: 6 }, fillers: fill.sam },
-      { id: 'nacc', name: 'North American Champions Cup', short: 'NA Champions', rank: 1, size: 16, places: { mex: 8, usa: 8 } },
-      { id: 'acl', name: 'Asian Champions Cup', short: 'Asian Champions', rank: 1, size: 16, places: { ksa: 4 }, fillers: fill.asi },
+      { id: 'ucl', name: 'UEFA Champions League', short: 'Champions League', rank: 1, size: 32, places: { eng: 4, esp: 4, ita: 4, ger: 4, fra: 3, por: 2, ned: 2, bel: 1, tur: 1, sco: 1 }, fillers: fill.eur },
+      { id: 'uel', name: 'UEFA Europa League', short: 'Europa League', rank: 2, size: 32, places: { eng: 2, esp: 2, ita: 2, ger: 2, fra: 2, por: 2, ned: 2, bel: 2, tur: 2, sco: 1 }, cupWinners: true, fillers: fill.eur },
+      { id: 'lib', name: 'Copa Libertadores', short: 'Libertadores', rank: 1, size: 16, places: { bra: 6, arg: 6 }, fillers: fill.sam },
+      { id: 'nacc', name: 'CONCACAF Champions Cup', short: 'Champions Cup', rank: 1, size: 16, places: { mex: 8, usa: 8 } },
+      { id: 'acl', name: 'AFC Champions League Elite', short: 'ACL Elite', rank: 1, size: 16, places: { ksa: 4 }, fillers: fill.asi },
     ],
     clubs, players,
   };

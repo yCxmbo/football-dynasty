@@ -1,10 +1,10 @@
 import { c, type RCountry } from './types';
 
 export const ITALY: RCountry = {
-  id: 'ita', name: 'Italy',
-  cups: [{ id: 'ita-cup', name: 'Coppa Italica', tiers: [1], main: true }],
+  id: 'ita', name: 'Italy', superCup: 'Supercoppa Italiana',
+  cups: [{ id: 'ita-cup', name: 'Coppa Italia', tiers: [1], main: true }],
   leagues: [
-    { id: 'ita1', name: 'Italian Serie Prima', short: 'Serie Prima', tier: 1, promote: 0, relegate: 0, tv: 850_000, clubs: [
+    { id: 'ita1', name: 'Serie A', short: 'Serie A', tier: 1, promote: 0, relegate: 0, tv: 850_000, clubs: [
       c('atalanta', 'Bergamo Nerazzurri', 'ATA', 80, ['#1E71B8', '#000000'], 'Bergamo Arena', 24950, [
         ['Marco Carnesecchi', 'GK', 25, 82, 'ITA'], ['Isak Hien', 'CB', 26, 79, 'SWE'], ['Berat Djimsiti', 'CB', 32, 78, 'ALB'], ['Sead Kolašinac', 'CB', 32, 76, 'BIH'],
         ['Raoul Bellanova', 'RB', 25, 78, 'ITA'], ['Davide Zappacosta', 'RB', 33, 76, 'ITA'], ['Éderson', 'CM', 26, 82, 'BRA'], ['Marten de Roon', 'DM', 34, 79, 'NED'],

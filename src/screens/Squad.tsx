@@ -4,6 +4,7 @@ import { leagueScale, squadOf, youthScale } from '../engine/game';
 import type { GameState, Squad as SquadName } from '../engine/types';
 import { toCur } from '../store';
 import { squadRow, type Screen } from './shared';
+import { leagueLabel } from './comp-ui';
 
 export default function Squad({ g, go }: { g: GameState; go: (s: Screen, id?: string) => void }) {
   const [tab, setTab] = useState<SquadName>('First team');
@@ -25,7 +26,7 @@ export default function Squad({ g, go }: { g: GameState; go: (s: Screen, id?: st
           ))}
         </div>
       </div>
-      <p className="pg-h">Stars compared to: {tab === 'First team' ? 'Premier Division' : 'youth level'} · click a player for the full profile</p>
+      <p className="pg-h">Stars compared to: {tab === 'First team' ? leagueLabel(g, g.clubs[g.userClubId].league) : 'youth level'} · click a player for the full profile</p>
       <FD.SquadTable key={tab} players={list.map((p) => squadRow(p, g.currency, g.year))} currency={g.currency} scale={scale} onSelect={(p: { id: string }) => go('player', p.id)} />
     </div>
   );

@@ -1,10 +1,10 @@
 import { c, type RCountry } from './types';
 
 export const GERMANY: RCountry = {
-  id: 'ger', name: 'Germany',
-  cups: [{ id: 'ger-cup', name: 'German Pokal', tiers: [1], main: true }],
+  id: 'ger', name: 'Germany', superCup: 'DFL-Supercup',
+  cups: [{ id: 'ger-cup', name: 'DFB-Pokal', tiers: [1], main: true }],
   leagues: [
-    { id: 'ger1', name: 'German Bundesliga Eins', short: 'Bundes Eins', tier: 1, promote: 0, relegate: 0, tv: 750_000, clubs: [
+    { id: 'ger1', name: 'Bundesliga', short: 'Bundesliga', tier: 1, promote: 0, relegate: 0, tv: 750_000, clubs: [
       c('augsburg', 'Augsburg Fuggerstädter', 'FCA', 58, ['#BA3733', '#46714D'], 'Augsburg Arena', 30660, [
         ['Finn Dahmen', 'GK', 27, 76, 'GER'], ['Jeffrey Gouweleeuw', 'CB', 34, 74, 'NED'], ['Cédric Zesiger', 'CB', 27, 74, 'SUI'], ['Kristijan Jakić', 'DM', 28, 74, 'CRO'],
         ['Alexis Claude-Maurice', 'AM', 27, 75, 'FRA'], ['Phillip Tietz', 'ST', 28, 73, 'GER']]),

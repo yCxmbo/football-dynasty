@@ -22,23 +22,24 @@ The game saves automatically in the browser (localStorage, compressed with lz-st
 ## What's playable (v0.1)
 
 - **New career:** pick a manager name, a currency (€ / $ / £) and a world, then a country, league and club.
-  - **Real world (default):** 2025/26 in 15 countries: England (Premier Division, Championship, Division One), Spain, Italy, Germany, France, Portugal, the Netherlands, Belgium, Turkey, Scotland, Brazil, Argentina, the USA, Saudi Arabia and Mexico. 358 clubs, about 1,350 real players with estimated ratings, and generated players to complete each squad.
+  - **Real world (default):** 2025/26 in 15 countries: England (Premier League, Championship, League One), Spain, Italy, Germany, France, Portugal, the Netherlands, Belgium, Turkey, Scotland, Brazil, Argentina, the USA, Saudi Arabia and Mexico. 358 clubs, about 1,350 real players with estimated ratings, and generated players to complete each squad.
   - **Fictional world:** invented clubs and players in five countries.
   - **Load a world file:** your own leagues, clubs and players. See [WORLD_FILES.md](WORLD_FILES.md).
+- **Real competition names:** leagues, cups, super cups and continental competitions use their real names (Premier League, LaLiga, FA Cup, Copa del Rey, UEFA Champions League, Copa Libertadores…).
 - **Club names and badges:** clubs have names close to the real ones (for example *Merseyside Reds*, *Madrid Merengues*), and badges generated from each club's colours. Real club crests are protected designs, so the game doesn't copy them.
 - **Leagues:** every league is a double round robin. England has promotion and relegation between its three divisions (top two up, places 3–6 in play-offs, three down; Division One has no relegation). The other countries have one top league each.
-- **Competitions** (names close to the real ones):
+- **Competitions:**
 
-  | Competition | Modelled on | Format |
-  | --- | --- | --- |
-  | Domestic cups (English FA Trophy, Copa del Reino, Coppa Italica, German Pokal…) | each country's cup | Knockout. With an awkward number of clubs, the lowest-ranked play a first round and the rest get byes. Neutral semi-finals (main cups) and final. |
-  | English and Scottish League Cups | League cups | Knockout, neutral final. |
-  | Super Cups | Community Shield, Supercopa… | League champions against the main cup winners, before the season. |
-  | European Champions Cup | Champions League | 32 clubs: the top of each European league plus clubs from the rest of Europe. 8 groups of four, then round of 16, quarter-finals, semi-finals and a neutral final. |
-  | European Euro Cup | Europa League | 32 clubs: the next places in each league plus cup winners. |
-  | Copa Libertad | Copa Libertadores | 16 clubs from Brazil, Argentina and the rest of South America. |
-  | North American Champions Cup | CONCACAF Champions Cup | 16 clubs from Mexico and the USA. |
-  | Asian Champions Cup | AFC Champions League | 16 clubs from Saudi Arabia and the rest of Asia. |
+  | Competition | Format |
+  | --- | --- |
+  | Domestic cups (FA Cup, Copa del Rey, Coppa Italia, DFB-Pokal, Coupe de France…) | Knockout. With an awkward number of clubs, the lowest-ranked play a first round and the rest get byes. Neutral semi-finals (main cups) and final. |
+  | EFL Cup and Scottish League Cup | Knockout, neutral final. |
+  | Super cups (Community Shield, Supercopa de España, Supercoppa Italiana, DFL-Supercup, Trophée des Champions…) | League champions against the main cup winners, before the season. |
+  | UEFA Champions League | 32 clubs: the top of each European league plus clubs from the rest of Europe. 8 groups of four, then round of 16, quarter-finals, semi-finals and a neutral final. |
+  | UEFA Europa League | 32 clubs: the next places in each league plus cup winners. |
+  | Copa Libertadores | 16 clubs from Brazil, Argentina and the rest of South America. |
+  | CONCACAF Champions Cup | 16 clubs from Mexico and the USA. |
+  | AFC Champions League Elite | 16 clubs from Saudi Arabia and the rest of Asia. |
 
   National teams and the World Cup, Euro and Copa América are planned next.
 - **Calendar:** dated slots for the whole season (league weekends, cup and continental midweeks, play-offs, finals). Shorter leagues are spread over the same season. Every match in the world is played, not just your league.
@@ -126,4 +127,4 @@ public/            the game crest at several sizes and the title-screen backgrou
 
 ## Naming
 
-The real world uses real player names with estimated ratings, and club and competition names that are close to, but not the same as, the real ones. Badges are generated from club colours rather than copied. Using real player names in a commercial game generally needs a licence from the players' representatives (in many countries through their players' union); check before any commercial release. The fictional world has no real names at all.
+The real world uses real player names with estimated ratings, real competition names, and club names that are close to, but not the same as, the real ones. Badges are generated from club colours rather than copied. Using real player names in a commercial game generally needs a licence from the players' representatives (in many countries through their players' union); check before any commercial release. The same goes for competition names, which are trademarks of their organisers. The fictional world has no real names at all.

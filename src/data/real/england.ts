@@ -1,10 +1,10 @@
 import { c, type RCountry } from './types';
 
 export const ENGLAND: RCountry = {
-  id: 'eng', name: 'England',
-  cups: [{ id: 'eng-fa', name: 'English FA Trophy', tiers: [1, 2, 3], main: true }, { id: 'eng-lc', name: 'English League Cup', tiers: [1, 2, 3] }],
+  id: 'eng', name: 'England', superCup: 'Community Shield',
+  cups: [{ id: 'eng-fa', name: 'FA Cup', tiers: [1, 2, 3], main: true }, { id: 'eng-lc', name: 'EFL Cup', tiers: [1, 2, 3] }],
   leagues: [
-    { id: 'eng1', name: 'English Premier Division', short: 'Premier', tier: 1, promote: 0, relegate: 3, tv: 1_400_000, clubs: [
+    { id: 'eng1', name: 'Premier League', short: 'Premier League', tier: 1, promote: 0, relegate: 3, tv: 1_400_000, clubs: [
       c('arsenal', 'London Gunners', 'LGU', 90, ['#EF0107', '#FFFFFF'], 'Gunners Stadium', 60704, [
         ['David Raya', 'GK', 29, 87, 'ESP'], ['William Saliba', 'CB', 24, 88, 'FRA'], ['Gabriel Magalhães', 'CB', 27, 87, 'BRA'], ['Jurriën Timber', 'RB', 24, 84, 'NED'],
         ['Riccardo Calafiori', 'LB', 23, 81, 'ITA'], ['Ben White', 'RB', 27, 82, 'ENG'], ['Declan Rice', 'CM', 26, 87, 'ENG'], ['Martin Zubimendi', 'DM', 26, 85, 'ESP'],
@@ -98,7 +98,7 @@ export const ENGLAND: RCountry = {
         ['Matt Doherty', 'RB', 33, 74, 'IRL'], ['André', 'CM', 24, 77, 'BRA'], ['João Gomes', 'DM', 24, 79, 'BRA'], ['Jean-Ricner Bellegarde', 'AM', 27, 76, 'FRA'],
         ['Marshall Munetsi', 'CM', 29, 74, 'ZIM'], ['Jhon Arias', 'RW', 27, 76, 'COL'], ['Hwang Hee-chan', 'ST', 29, 76, 'KOR'], ['Jørgen Strand Larsen', 'ST', 25, 78, 'NOR']]),
     ] },
-    { id: 'eng2', name: 'English Championship', short: 'Championship', tier: 2, promote: 2, playoff: [3, 6], relegate: 3, tv: 500_000, clubs: [
+    { id: 'eng2', name: 'EFL Championship', short: 'Championship', tier: 2, promote: 2, playoff: [3, 6], relegate: 3, tv: 500_000, clubs: [
       c('birmingham', 'Birmingham Blues', 'BIR', 58, ['#0000FF', '#FFFFFF'], 'St Andrew\'s Road', 29409), c('blackburn', 'Lancashire Rovers', 'BLR', 55, ['#009EE0', '#FFFFFF'], 'Ewood Lane', 31367),
       c('bristolcity', 'Bristol Reds', 'BRC', 54, ['#E21B23', '#FFFFFF'], 'Ashton Park', 27000), c('charlton', 'Charlton Addicks', 'CHA', 52, ['#D4021D', '#FFFFFF'], 'The Valley Road', 27111),
       c('coventry', 'Coventry Sky Blues', 'COV', 56, ['#6CABDD', '#FFFFFF'], 'Sky Blue Arena', 32609), c('derby', 'Derby Rams', 'DER', 55, ['#FFFFFF', '#000000'], 'Pride Park Road', 33597),
@@ -112,7 +112,7 @@ export const ENGLAND: RCountry = {
       c('swansea', 'Swansea Swans', 'SWA', 52, ['#FFFFFF', '#000000'], 'Swansea Bay Stadium', 21088), c('watford', 'Hertfordshire Hornets', 'WAT', 53, ['#FBEE23', '#ED2127'], 'Vicarage Lane', 22200),
       c('westbrom', 'West Bromwich Throstles', 'WBA', 56, ['#122F67', '#FFFFFF'], 'Hawthorns Road', 26850), c('wrexham', 'Wrexham Red Dragons', 'WRE', 54, ['#D71920', '#FFFFFF'], 'Racecourse Road', 12600),
     ] },
-    { id: 'eng3', name: 'English Division One', short: 'Division One', tier: 3, promote: 2, playoff: [3, 6], relegate: 0, tv: 220_000, clubs: [
+    { id: 'eng3', name: 'EFL League One', short: 'League One', tier: 3, promote: 2, playoff: [3, 6], relegate: 0, tv: 220_000, clubs: [
       c('wimbledon', 'Wimbledon Dons', 'WIM', 38, ['#00008B', '#FFD700'], 'Plough Road', 9215), c('barnsley', 'Barnsley Tykes', 'BAR', 42, ['#D71920', '#FFFFFF'], 'Oakwell Road', 23287),
       c('blackpool', 'Blackpool Seasiders', 'BLP', 42, ['#F68712', '#FFFFFF'], 'Bloomfield Lane', 16616), c('bolton', 'Bolton Trotters', 'BOL', 46, ['#FFFFFF', '#263C7E'], 'Trotters Stadium', 28723),
       c('bradford', 'Bradford Bantams', 'BRA', 40, ['#8B0000', '#FFB81C'], 'Valley Parade Road', 25136), c('burton', 'Burton Brewers', 'BUR', 34, ['#FFD200', '#000000'], 'Brewers Ground', 6912),

@@ -1,9 +1,9 @@
 import { c, type RCountry } from './types';
 
 export const SAUDI: RCountry = {
-  id: 'ksa', name: 'Saudi Arabia',
-  cups: [{ id: 'ksa-cup', name: 'Saudi Crown Cup', tiers: [1], main: true }],
-  leagues: [{ id: 'ksa1', name: 'Saudi Pro Division', short: 'Saudi Pro', tier: 1, promote: 0, relegate: 0, tv: 400_000, clubs: [
+  id: 'ksa', name: 'Saudi Arabia', superCup: 'Saudi Super Cup',
+  cups: [{ id: 'ksa-cup', name: 'King\'s Cup', tiers: [1], main: true }],
+  leagues: [{ id: 'ksa1', name: 'Saudi Pro League', short: 'Saudi Pro League', tier: 1, promote: 0, relegate: 0, tv: 400_000, clubs: [
     c('hilal', 'Riyadh Blue Waves', 'HIL', 78, ['#0055A4', '#FFFFFF'], 'Kingdom Park', 26000, [
       ['Yassine Bounou', 'GK', 34, 82, 'MAR'], ['Kalidou Koulibaly', 'CB', 34, 78, 'SEN'], ['Ali Al-Bulaihi', 'CB', 35, 72, 'KSA'], ['João Cancelo', 'RB', 31, 81, 'POR'],
       ['Theo Hernández', 'LB', 27, 83, 'FRA'], ['Rúben Neves', 'DM', 28, 82, 'POR'], ['Sergej Milinković-Savić', 'CM', 30, 82, 'SRB'], ['Malcom', 'RW', 28, 80, 'BRA'],

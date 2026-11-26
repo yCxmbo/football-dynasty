@@ -168,6 +168,8 @@ export interface GameState {
   internationals?: import('./international').Tournament[];
   /** The national team you manage alongside your club, if any. */
   nationalJob?: import('./nationaljob').NationalJob;
+  /** All-time records across the world. */
+  records?: import('./records').Records;
   /** Achievements unlocked, with the season. */
   achievements?: Record<string, string>;
   /** The summer tournament you're managing live, if any (your results so far). */

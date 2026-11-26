@@ -1,6 +1,7 @@
 import { noteJoined } from './index';
 import { scoutPerMatchday } from './staff';
 import { afterTransfer } from './achievements';
+import { recordTransfer } from './records';
 /* Transfers, scouting and contracts. Pure functions over GameState (mutating the draft). */
 import { clamp } from './ratings';
 import { currentWeek } from './competitions';
@@ -171,6 +172,7 @@ export function completeTransfer(s: GameState, p: Player, o: OfferTerms) {
   const from = p.clubId;
   const upfront = Math.round((o.fee * o.upfront) / 100);
   afterTransfer(s, o.fee, false);
+  recordTransfer(s, p.name, s.clubs[p.clubId]?.name ?? 'Free agent', s.clubs[s.userClubId].name, o.fee, seasonLabel(s.year));
   club.transferBudget -= upfront + o.signingBonus + o.agentFee;
   club.balance -= upfront + o.signingBonus + o.agentFee;
   if (s.ledger) s.ledger.expenses.transfers += upfront + o.signingBonus + o.agentFee;
@@ -225,6 +227,7 @@ export function respondToBid(s: GameState, bidId: string, accept: boolean) {
   const buyer = s.clubs[b.fromClubId], club = s.clubs[s.userClubId];
   b.status = 'accepted';
   afterTransfer(s, b.fee, true);
+  recordTransfer(s, p.name, club.name, buyer.name, b.fee, seasonLabel(s.year));
   buyer.transferBudget -= b.fee; buyer.balance -= b.fee;
   club.balance += b.fee; club.transferBudget += Math.round(b.fee * 0.6);
   if (s.ledger) s.ledger.income.sales += b.fee;

@@ -6,6 +6,7 @@ import { nationRanking, playSummer } from './international';
 import { summerStep } from './summer';
 import { jobOffers, managerReputation, tidySelection } from './nationaljob';
 import { returnLoans } from './loans';
+import { recordSeason, recordTransfer } from './records';
 import { afterMatch, afterSeason, afterTournament } from './achievements';
 import { finishBuilding, trainingFacilityBoost, youthFacilityBonus } from './facilities';
 import { pressAfterMatch, weeklyMood } from './media';
@@ -468,6 +469,7 @@ function rollover(state: GameState) {
   }
   tidySelection(state);
 
+  recordSeason(state, label);
   for (const p of Object.values(state.players)) {
     if (p.current.apps) p.career.unshift({ season: label, club: `${state.clubs[p.clubId]?.name ?? 'Free agent'}${p.loan ? ' (loan)' : ''}`, apps: p.current.apps, goals: p.current.goals, rating: Math.round((p.current.ratingSum / p.current.apps) * 100) / 100, honour: honours[p.clubId] });
     if (p.career.length > 12) p.career.length = 12;
@@ -601,6 +603,7 @@ function aiTransfers(state: GameState, rng: ReturnType<typeof createRng>) {
       const buyer = rng.pick(abroad);
       c.balance += star.value; c.transferBudget += Math.round(star.value * 0.5);
       Object.assign(star, { clubId: buyer.id, number: freeNumber(state, buyer.id), captain: false, joined: state.year });
+      recordTransfer(state, star.name, c.name, buyer.name, star.value, seasonLabel(state.year));
       continue;
     }
     let spend = (c.balance - reserve) * 0.5;

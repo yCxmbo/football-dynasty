@@ -24,6 +24,7 @@ import NewGame from './screens/NewGame';
 import International from './screens/International';
 import Career from './screens/Career';
 import Staff from './screens/Staff';
+import Records from './screens/Records';
 import { simulate } from './sim/client';
 import NationalMatch from './screens/NationalMatch';
 import { beginSummer, summerLabel, summerStep, summerTournamentFor } from './engine/summer';
@@ -164,6 +165,7 @@ export default function App() {
     case 'fixtures': body = <Fixtures g={g} go={go} />; break;
     case 'table': body = <Table g={g} go={go} />; break;
     case 'nationalMatch': body = <NationalMatch key={`${g.summer?.results.length}`} g={g} go={go} update={update} />; break;
+    case 'records': body = <Records g={g} />; break;
     case 'facilities': body = <FacilitiesScreen g={g} update={update} />; break;
     case 'staff': body = <Staff g={g} update={update} />; break;
     case 'career': body = <Career g={g} go={go} update={update} />; break;

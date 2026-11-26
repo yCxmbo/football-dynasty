@@ -49,6 +49,7 @@ The game saves automatically in the browser (localStorage, compressed with lz-st
 - **Calendar:** dated slots for the whole season (league weekends, cup and continental midweeks, play-offs, finals). Shorter leagues are spread over the same season. Every match in the world is played, not just your league.
   - *Play match* plays your next game.
   - *Continue* skips days when you don't play.
+  - *Sim* plays ahead without watching: this match, four weeks, or the rest of the season (about 10 seconds for a whole season in the real world). Your matches use your current tactics, and a Stop button halts it.
 - **Prize money** for every competition, gate receipts for cup ties (split at neutral venues) and Continental Cup TV money.
 - Computer-run clubs spend surplus money on better players and sell their stars abroad when deep in debt.
 - **Match day:** your match is simulated minute by minute as you watch (pause, 1×, 2×, 4×, sim to end), with commentary, stats, live ratings and each player's condition.

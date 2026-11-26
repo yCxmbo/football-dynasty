@@ -1,3 +1,4 @@
+import { noteJoined } from './index';
 /* Transfers, scouting and contracts. Pure functions over GameState (mutating the draft). */
 import { clamp } from './ratings';
 import { currentWeek } from './competitions';
@@ -222,7 +223,7 @@ export function respondToBid(s: GameState, bidId: string, accept: boolean) {
   buyer.transferBudget -= b.fee; buyer.balance -= b.fee;
   club.balance += b.fee; club.transferBudget += Math.round(b.fee * 0.6);
   if (s.ledger) s.ledger.income.sales += b.fee;
-  p.clubId = buyer.id; p.number = freeNumber(s, buyer.id); p.captain = false; p.joined = s.year;
+  p.clubId = buyer.id; noteJoined(s, p); p.number = freeNumber(s, buyer.id); p.captain = false; p.joined = s.year;
   s.lineup = s.lineup.filter((id) => id !== p.id);
   s.transferListed = s.transferListed.filter((id) => id !== p.id);
   for (const o of s.bids) if (o.playerId === p.id && o.status === 'open') o.status = 'expired';
@@ -263,7 +264,7 @@ export function expireContracts(s: GameState) {
       inbox(s, { category: 'transfers', from: 'Director of football', subject: `${p.name} leaves on a free transfer`, body: [`${p.name}'s contract has run out and he has left the club.`] });
       s.lineup = s.lineup.filter((id) => id !== p.id);
     }
-    p.clubId = FREE_AGENT; p.captain = false; p.squad = 'First team'; p.contractType = 'full-time';
+    p.clubId = FREE_AGENT; noteJoined(s, p); p.captain = false; p.squad = 'First team'; p.contractType = 'full-time';
   }
 }
 

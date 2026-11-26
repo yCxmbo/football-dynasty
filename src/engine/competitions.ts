@@ -10,7 +10,18 @@ export const compInfo = (s: GameState, id: CompId): CompInfo => s.comps[id] ?? {
 export const compName = (s: GameState, id: CompId) => compInfo(s, id).name;
 export const leagueDef = (s: GameState, id: string | undefined) => (id ? s.world.leagues.find((l) => l.id === id) : undefined);
 export const countryName = (s: GameState, id: string) => s.world.countries.find((c) => c.id === id)?.name ?? id;
-export const clubsInLeague = (s: GameState, leagueId: string) => Object.values(s.clubs).filter((c) => c.league === leagueId).map((c) => c.id);
+const leagueCache = new WeakMap<object, Map<string, string[]>>();
+/** Club ids in a league (cached; call resetLeagueCache after clubs change league). */
+export function clubsInLeague(s: GameState, leagueId: string) {
+  let m = leagueCache.get(s.clubs);
+  if (!m) {
+    m = new Map();
+    for (const c of Object.values(s.clubs)) if (c.league) { const l = m.get(c.league); if (l) l.push(c.id); else m.set(c.league, [c.id]); }
+    leagueCache.set(s.clubs, m);
+  }
+  return [...(m.get(leagueId) ?? [])];
+}
+export const resetLeagueCache = (s: GameState) => { leagueCache.delete(s.clubs); };
 export const leaguesOf = (s: GameState, country: string) => s.world.leagues.filter((l) => l.country === country).sort((a, b) => a.tier - b.tier);
 export const topLeague = (s: GameState, country: string) => leaguesOf(s, country)[0];
 export const isLeague = (s: GameState, id: CompId) => compInfo(s, id).kind === 'league';

@@ -156,9 +156,14 @@ export function buildWorld(def: WorldDef, rng: Rng, year: number, userCountry: s
     players[p.id] = p;
   }
   // fill squads: first team to 22 by position; youth squads only in the user's country
+  const byClub = new Map<string, Player[]>();
+  for (const p of Object.values(players)) { const l = byClub.get(p.clubId); if (l) l.push(p); else byClub.set(p.clubId, [p]); }
+  const add = (p: Player) => { players[p.id] = p; const l = byClub.get(p.clubId); if (l) l.push(p); else byClub.set(p.clubId, [p]); };
   for (const c of def.clubs) {
     const club = clubs[c.id];
-    const mine = Object.values(players).filter((p) => p.clubId === c.id && p.squad === 'First team');
+    const own = () => byClub.get(c.id) ?? [];
+    let squad = own();
+    const mine = squad.filter((p) => p.squad === 'First team');
     const need: Record<string, number> = {};
     for (const pos of SQUAD_TEMPLATE) need[pos] = (need[pos] ?? 0) + 1;
     for (const p of mine) if (need[p.pos]) need[p.pos]--;
@@ -172,21 +177,22 @@ export function buildWorld(def: WorldDef, rng: Rng, year: number, userCountry: s
       const p = makePlayer(rng, { id: `p${n++}`, clubId: c.id, pos: pos as Position, ca, pa: clamp(ca + growth, ca, 200), age, squad: 'First team', number: 0, year, reputation: c.reputation, country: c.country });
       p.number = numberFor(c.id);
       if (def.players?.length) p.filler = true; // squad filler next to named players
-      players[p.id] = p;
+      add(p);
     }
-    if (youthCountry(def, c, userCountry) && !Object.values(players).some((p) => p.clubId === c.id && p.squad !== 'First team')) {
+    if (youthCountry(def, c, userCountry) && !(squad = own()).some((p) => p.squad !== 'First team')) {
       for (const squad of ['U21', 'U18'] as Squad[]) for (const pos of ['GK', 'CB', 'CB', 'LB', 'CM', 'CM', 'AM', 'RW', 'ST'] as Position[]) {
         const age = squad === 'U21' ? rng.int(18, 20) : rng.int(15, 17);
         const ca = clamp(Math.round(rng.normal(squad === 'U21' ? 50 + c.reputation * 0.5 : 30 + c.reputation * 0.5, 10)), 30, 120);
         const pa = clamp(Math.round(rng.normal(110 + c.reputation * 0.45, 18)), ca + 10, 195);
         const p = makePlayer(rng, { id: `p${n++}`, clubId: c.id, pos, ca, pa, age, squad, number: 0, year, reputation: c.reputation, country: c.country });
         p.number = numberFor(c.id) + 30;
-        players[p.id] = p;
+        add(p);
       }
     }
-    const bill = Object.values(players).filter((p) => p.clubId === c.id).reduce((a, p) => a + p.wage, 0);
+    squad = own();
+    const bill = squad.reduce((a, p) => a + p.wage, 0);
     club.wageBudget = Math.round(bill * 1.1 / 1000) * 1000;
-    const best = Object.values(players).filter((p) => p.clubId === c.id && p.squad === 'First team').sort((a, b) => b.ability - a.ability)[0];
+    const best = squad.filter((p) => p.squad === 'First team').sort((a, b) => b.ability - a.ability)[0];
     if (best) best.captain = true;
   }
   return { clubs, players, nextId: n };

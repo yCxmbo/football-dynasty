@@ -13,9 +13,9 @@ import { defaultTraining, developStep, effects, trainingWeek } from './training'
 import { cupGate, emptyLedger, financeWeek, seasonFinances } from './finance';
 import {
   advanceCups, buildComps, clubsInLeague, compInfo, cupResult, currentSlot, currentWeek, leagueDef, leagueTableOf, makeCalendar,
-  promotionsAndRelegations, qualifiers, setupPlayoffs, setupSeason, winnerOf, type TableRow, withThe } from './competitions';
+  promotionsAndRelegations, qualifiers, resetLeagueCache, setupPlayoffs, setupSeason, winnerOf, type TableRow, withThe } from './competitions';
 import { buildWorld, type WorldDef } from './worlddef';
-import { squadOf, withSquadIndex } from './index';
+import { noteJoined, squadOf, withSquadIndex } from './index';
 import { builtinWorld } from './builtin';
 
 export type { TableRow };
@@ -342,6 +342,10 @@ const STAGE = ['Winners', 'Final', 'Semi-final', 'Quarter-final', 'Round of 16',
 
 export function startNewSeason(state: GameState) {
   if (!seasonOver(state)) throw new Error('Season not finished');
+  withSquadIndex(state, () => rollover(state));
+}
+
+function rollover(state: GameState) {
   const rng = createRng(state.rngState ^ 0x9e3779b9);
   const label = seasonLabel(state.year);
   const { moves, champions } = promotionsAndRelegations(state);
@@ -414,6 +418,7 @@ export function startNewSeason(state: GameState) {
     c.division = leagueDef(state, m.to)!.tier;
     c.reputation = clamp(c.reputation + (m.dir === 'promoted' ? 4 : -4), 15, 95);
   }
+  resetLeagueCache(state);
   const userMove = moves[state.userClubId]?.dir;
 
   state.year++;
@@ -488,7 +493,7 @@ function refillSquad(state: GameState, rng: ReturnType<typeof createRng>, c: Clu
       const age = rng.int(22, 29);
       const ca = clamp(Math.round(rng.normal(60 + c.reputation * 1.1, 8)), 60, 185);
       const p = makePlayer(rng, { id: `p${state.nextId++}`, clubId: c.id, pos: pos as Player['pos'], ca, pa: ca + rng.int(0, 10), age, squad: 'First team', number: freeNumber(state, c.id), year: state.year, reputation: c.reputation, country: c.country });
-      state.players[p.id] = p;
+      state.players[p.id] = p; noteJoined(state, p);
       if (c.id === state.userClubId) addMessage(state, { category: 'transfers', from: 'Director of football', subject: `${p.name} (${p.pos}) joins on a free transfer`, body: [`To keep the squad at full strength, we have signed ${p.name}, ${p.age}, a ${p.pos}.`] });
     }
   }
@@ -522,7 +527,7 @@ function aiTransfers(state: GameState, rng: ReturnType<typeof createRng>) {
       if (fee > spend) break;
       const p = makePlayer(rng, { id: `p${state.nextId++}`, clubId: c.id, pos: weakest.pos, ca, pa: ca + rng.int(0, 8), age, squad: 'First team', number: weakest.number, year: state.year, reputation: c.reputation, country: c.country });
       p.joined = state.year;
-      state.players[p.id] = p;
+      state.players[p.id] = p; noteJoined(state, p);
       Object.assign(weakest, { clubId: FREE_AGENT, captain: false });
       c.balance -= fee; spend -= fee;
     }
@@ -555,7 +560,7 @@ function youthIntake(state: GameState, rng: ReturnType<typeof createRng>) {
       const pos = rng.pick(['GK', 'CB', 'LB', 'RB', 'DM', 'CM', 'AM', 'LW', 'RW', 'ST'] as const);
       const pa = clamp(Math.round(rng.normal(115 + c.reputation * 0.35, 20)), 70, 195);
       const p = makePlayer(rng, { id: `p${state.nextId++}`, clubId: c.id, pos, ca: rng.int(40, 70), pa, age: rng.int(15, 16), squad: 'U18', number: freeNumber(state, c.id), year: state.year, reputation: c.reputation, country: c.country });
-      state.players[p.id] = p; names.push(`${p.name} (${p.pos})`);
+      state.players[p.id] = p; noteJoined(state, p); names.push(`${p.name} (${p.pos})`);
     }
     if (c.id === state.userClubId) addMessage(state, { category: 'youth', from: 'Head of youth development', subject: 'Youth intake has arrived', body: [`${n} new players join the U18s: ${names.join(', ')}.`, 'Keep an eye on their development in the Academy.'] });
   }

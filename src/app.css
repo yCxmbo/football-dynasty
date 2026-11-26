@@ -147,3 +147,14 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .intl-hero { display: flex; gap: var(--space-4); align-items: center; }
 .intl-line { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: baseline; font-size: 14px; }
 .intl-won { color: var(--gold-ink); font-weight: 600; }
+
+.sim-actions { display: flex; gap: var(--space-2); align-items: center; }
+.sim-menu { position: relative; }
+.sim-menu__list { position: absolute; right: 0; top: calc(100% + 6px); z-index: 50; min-width: 230px; display: flex; flex-direction: column; padding: 6px; border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--line-strong); box-shadow: 0 12px 32px rgba(0,0,0,.35); }
+.sim-menu__list button { text-align: left; padding: 10px 12px; border: 0; border-radius: var(--radius-sm, 6px); background: none; color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+.sim-menu__list button:hover, .sim-menu__list button:focus-visible { background: var(--surface); outline: none; }
+.sim-overlay { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: rgba(6,14,32,.6); }
+.sim-overlay__box { display: flex; flex-direction: column; gap: var(--space-2); align-items: center; text-align: center; max-width: 360px; padding: var(--space-6); }
+.sim-overlay__box strong { font: 700 20px/24px var(--font-display); text-transform: uppercase; }
+@media (max-width: 640px) { .sim-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } .sim-menu__list { right: auto; left: 0; } }
+@media (max-width: 640px) { .fd-topbar__right > .fd-currency { display: none; } .fd-topbar__date { display: none; } .sim-actions { gap: 6px; } }

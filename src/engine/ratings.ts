@@ -38,11 +38,15 @@ export function attributeWeight(attr: string, pos: string): 0 | 1 | 2 | 3 {
 }
 
 /** Position-weighted average of 1–20 attributes → Current Ability 1–200. */
+const WEIGHTS = new Map<string, Map<string, number>>();
 export function abilityFromAttributes(attributes: Record<string, number>, pos: string): number {
+  let table = WEIGHTS.get(pos);
+  if (!table) { table = new Map(); WEIGHTS.set(pos, table); }
   let sum = 0, w = 0;
-  for (const [k, v] of Object.entries(attributes)) {
-    const wt = attributeWeight(k, pos);
-    sum += v * wt; w += wt;
+  for (const k in attributes) {
+    let wt = table.get(k);
+    if (wt === undefined) { wt = attributeWeight(k, pos); table.set(k, wt); }
+    sum += attributes[k] * wt; w += wt;
   }
   if (!w) return 1;
   return clamp(Math.round(((sum / w - 1) / 19) * 199 + 1), 1, 200);

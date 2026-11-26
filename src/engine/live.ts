@@ -53,14 +53,33 @@ export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; 
   };
 }
 
+const ROLE_IDX = new Map<string, number[]>();
+function roleIdx(f: Formation, r: string) {
+  const key = `${f}|${r}`;
+  let v = ROLE_IDX.get(key);
+  if (!v) { v = slotsOf(f).map((x, i) => (ROLE[x] === r ? i : -1)).filter((i) => i >= 0); ROLE_IDX.set(key, v); }
+  return v;
+}
+
+/** Team strength changes slowly (fatigue) or on a change of personnel: recompute every three minutes or when the XI changes. */
+const strengthCache = new WeakMap<LiveSide, { at: number; sig: string; val: ReturnType<typeof computeStrength> }>();
 function strength(lm: LiveMatch, s: LiveSide) {
+  const sig = s.xi.join(',') + s.boost;
+  const c = strengthCache.get(s);
+  if (c && c.sig === sig && lm.minute - c.at < 3) return c.val;
+  const val = computeStrength(lm, s);
+  strengthCache.set(s, { at: lm.minute, sig, val });
+  return val;
+}
+
+function computeStrength(lm: LiveMatch, s: LiveSide) {
   const slots = slotsOf(s.formation);
   const eff = (id: string | null, i: number) => {
     if (!id) return 0;
     const p = lm.players[id];
     return p.ability * fitFor(p as unknown as Player, slots[i]) * (p.morale === 'high' ? 1.03 : p.morale === 'low' ? 0.96 : 1) * conditionFactor(p.condition);
   };
-  const idx = (r: string) => slots.map((x, i) => (ROLE[x] === r ? i : -1)).filter((i) => i >= 0);
+  const idx = (r: string) => roleIdx(s.formation, r);
   const avg = (ix: number[]) => ix.reduce((a, i) => a + eff(s.xi[i], i), 0) / ix.length;
   const k = s.boost;
   return { gk: eff(s.xi[0], 0) * k, defence: avg(idx('def')) * k, mid: avg(idx('mid')) * k, attack: avg(idx('att')) * k, defIdx: [0, ...idx('def')] };

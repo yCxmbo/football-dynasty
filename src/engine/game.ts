@@ -20,7 +20,7 @@ import { defaultTraining, developStep, effects, trainingWeek } from './training'
 import { cupGate, emptyLedger, financeWeek, seasonFinances } from './finance';
 import {
   advanceCups, buildComps, clubsInLeague, compInfo, cupResult, currentSlot, currentWeek, leagueDef, leagueTableOf, makeCalendar,
-  promotionsAndRelegations, qualifiers, resetLeagueCache, setupPlayoffs, setupSeason, winnerOf, type TableRow, withThe } from './competitions';
+  promotionsAndRelegations, qualifiers, resetLeagueCache, setupSplit, isLeague, setupPlayoffs, setupSeason, winnerOf, type TableRow, withThe } from './competitions';
 import { buildWorld, type WorldDef } from './worlddef';
 import { noteJoined, squadOf, withSquadIndex } from './index';
 import { builtinWorld } from './builtin';
@@ -237,6 +237,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     if ((p.condition ?? 100) < 100) p.condition = Math.min(100, Math.round((p.condition ?? 100) + days * recoveryPerDay(state, p)));
   }
   const cupNews = advanceCups(state, rng, slot);
+  for (const e of slot.entries) if (isLeague(state, e.comp)) setupSplit(state, e.comp, Number(e.round.replace('Matchday ', '')));
   if (leagueWeek) {
     financeWeek(state, leagueIds, homeIds, positions);
     for (const p of squadOf(state, state.userClubId)) if (p.morale === 'low' && rng.chance(moraleRecoveryChance(state))) p.morale = 'ok';
@@ -336,7 +337,10 @@ function seasonEndMessage(state: GameState) {
   const target = boardTarget(state, us.id);
   const mv = promotionsAndRelegations(state).moves[us.id];
   const ok = pos <= target.pos || mv?.dir === 'promoted';
-  addMessage(state, { category: 'board', from: 'The board', role: us.name, subject: pos === 1 ? 'Champions! The board is overjoyed' : mv?.dir === 'promoted' ? 'Promoted! The board is delighted' : mv?.dir === 'relegated' ? 'Relegated. A painful day for the club' : ok ? 'Season review: target met' : 'Season review: below expectations',
+  const l = leagueDef(state, us.league);
+  const title = l?.titlePlayoff ? state.cups[`tp-${l.id}`] : undefined;
+  const champion = l?.titlePlayoff ? title?.winner === us.id : pos === 1;
+  addMessage(state, { category: 'board', from: 'The board', role: us.name, subject: champion ? `Champions! ${l?.titlePlayoff ? `You won the ${l.titlePlayoff.trophy}. ` : ''}The board is overjoyed` : mv?.dir === 'promoted' ? 'Promoted! The board is delighted' : mv?.dir === 'relegated' ? 'Relegated. A painful day for the club' : ok ? 'Season review: target met' : 'Season review: below expectations',
     body: [`We finished ${ordinal(pos)} in ${withThe(leagueName(state, us.league))}. The target was ${target.text}.`,
       mv ? `Next season we play in ${withThe(leagueName(state, mv.to))}.${mv.dir === 'relegated' ? ' The board expects an immediate return.' : ''}` : ok ? 'The board is pleased with your work.' : 'The board expects improvement next season.',
       'Start the new season from the home screen when you are ready.'] });
@@ -380,7 +384,7 @@ function rollover(state: GameState) {
     t.forEach((row, i) => {
       const squad = squadOf(state, row.clubId);
       const top = squad.slice().sort((a, b) => b.current.goals - a.current.goals)[0];
-      const rec: SeasonRecord = { season: label, division: l.name, pos: i + 1, pts: row.pts, champion: state.clubs[t[0].clubId].name,
+      const rec: SeasonRecord = { season: label, division: l.name, pos: i + 1, pts: row.pts, champion: state.clubs[champions[l.id] ?? t[0].clubId].name,
         topScorer: top && top.current.goals ? { name: top.name, goals: top.current.goals } : undefined,
         manager: row.clubId === state.userClubId ? state.managerName : 'AI manager', isYou: row.clubId === state.userClubId,
         movement: moves[row.clubId]?.dir,
@@ -388,10 +392,11 @@ function rollover(state: GameState) {
         europe: best(row.clubId, ['continental']) };
       (state.history[row.clubId] ??= []).unshift(rec);
     });
-    if (champions[l.id]) { award(state, champions[l.id], l.name, 'league', label); honours[champions[l.id]] = l.name; }
+    if (champions[l.id]) { const name = l.titlePlayoff?.trophy ?? l.name; award(state, champions[l.id], name, 'league', label); honours[champions[l.id]] = name; }
+    if (l.titlePlayoff?.shield && t[0]) award(state, t[0].clubId, l.titlePlayoff.shield, 'cup', label);
   }
   for (const c of Object.values(state.comps)) {
-    if (c.kind === 'league' || c.kind === 'playoff') continue;
+    if (c.kind === 'league' || c.kind === 'playoff' || c.kind === 'title') continue;
     const w = state.cups[c.id]?.winner;
     if (!w) continue;
     award(state, w, c.name, c.kind === 'continental' ? 'continental' : c.kind === 'super' ? 'super' : 'cup', label);

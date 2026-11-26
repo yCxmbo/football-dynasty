@@ -41,6 +41,8 @@ Ids are short strings you choose. They must be unique and are how everything ref
 | `playoff` | Four places just below promotion that play off for one more place, e.g. `[3, 6]`. Optional. |
 | `relegate` | Relegation places (0 for the bottom league). Must equal the promotion places of the league below (+1 if it has play-offs). |
 | `tv` | League TV money per matchday, in euros. |
+| `titlePlayoff` | Optional `{ "name": "MLS Cup Playoffs", "trophy": "MLS Cup", "shield": "Supporters' Shield" }`: the top eight play off for the title (1 v 8, 4 v 5, 2 v 7, 3 v 6, at the better seed's ground). The winner is champion and gets `trophy`; `shield`, if set, goes to the club top of the table. Needs at least 8 clubs. |
+| `split` | Optional `true`: Scottish-style split. Everyone plays everyone three times, then the top and bottom halves play each other once more, and clubs stay in their half of the table. |
 
 A league needs an even number of clubs, at least 4.
 

@@ -18,7 +18,7 @@ export default function Home({ g, go, onPlay }: { g: GameState; go: (s: Screen, 
   const next = nextUserFixture(g);
   const isNow = next && next.matchday === g.matchday;
   const last = g.fixtures.filter((f) => f.result && (f.homeId === g.userClubId || f.awayId === g.userClubId)).sort((a, b) => a.matchday - b.matchday).pop();
-  const cups = Object.values(g.comps).filter((c) => c.kind === 'cup' || c.kind === 'continental').map((c) => ({ c: c.id, r: cupResult(g, c.id, club.id) })).filter((x) => x.r);
+  const cups = Object.values(g.comps).filter((c) => c.kind === 'cup' || c.kind === 'continental' || c.kind === 'title').map((c) => ({ c: c.id, r: cupResult(g, c.id, club.id) })).filter((x) => x.r);
   void topLeague;
   const over = seasonOver(g);
   const conf = boardConfidence(g, target);

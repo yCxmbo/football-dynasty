@@ -17,6 +17,10 @@ export interface LeagueDef {
   /** Play-off places for one more promotion spot, e.g. [3, 6]. Always four clubs. */ playoff?: [number, number] | null;
   /** Relegation places (0 for a country's bottom league). */ relegate: number;
   /** League TV money per matchday, in euros. */ tv: number;
+  /** The title is decided by play-offs among the top eight (MLS Cup, Liguilla). The trophy goes to the winner; `shield`, if set, to the club top of the table. */
+  titlePlayoff?: { name: string; trophy: string; shield?: string } | null;
+  /** Scottish-style split: everyone plays everyone three times, then the top and bottom halves play each other once more; clubs stay in their half. */
+  split?: boolean;
 }
 export interface CupDef { id: string; name: string; country: string; /** League tiers that enter. */ tiers: number[]; /** The main cup's winner plays in the super cup and second continental competition. */ main?: boolean }
 export interface ContinentalDef { id: string; name: string; short?: string; rank: 1 | 2 | 3; size: 16 | 32 | 36; /** "league": a 36-club league phase (eight matches each, one table) instead of groups of four. */ format?: 'groups' | 'league'; /** Places per country from the top league (rank 1: top N; rank 2: the next N, and so on). */ places: Record<string, number>; /** Main cup winners also qualify (if not already in a higher competition). */ cupWinners?: boolean; /** Clubs without a league that fill any empty places, best first. */ fillers?: string[] }

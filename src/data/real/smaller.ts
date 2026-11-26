@@ -119,7 +119,7 @@ export const TURKEY: RCountry = {
 export const SCOTLAND: RCountry = {
   id: 'sco', name: 'Scotland', superCup: false,
   cups: [{ id: 'sco-cup', name: 'Scottish Cup', tiers: [1], main: true }, { id: 'sco-lc', name: 'Scottish League Cup', tiers: [1] }],
-  leagues: [{ id: 'sco1', name: 'Scottish Premiership', short: 'Premiership', tier: 1, promote: 0, relegate: 0, tv: 120_000, clubs: [
+  leagues: [{ id: 'sco1', name: 'Scottish Premiership', short: 'Premiership', tier: 1, promote: 0, relegate: 0, tv: 120_000, split: true, clubs: [
     c('aberdeen', 'Granite City Dons', 'ABE', 50, ['#E30613', '#FFFFFF'], 'Pittodrie Park', 20866, [['Dimitar Mitov', 'GK', 28, 72, 'BUL'], ['Kevin Nisbet', 'ST', 28, 70, 'SCO']]),
     c('celtic', 'Glasgow Hoops', 'CEL', 72, ['#018749', '#FFFFFF'], 'Parkhead Park', 60411, [
       ['Kasper Schmeichel', 'GK', 38, 76, 'DEN'], ['Cameron Carter-Vickers', 'CB', 27, 77, 'USA'], ['Liam Scales', 'CB', 26, 73, 'IRL'], ['Alistair Johnston', 'RB', 26, 75, 'CAN'],

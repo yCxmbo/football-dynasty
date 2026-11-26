@@ -1,6 +1,6 @@
 /* A manager's career across clubs: board confidence carried between seasons, the sack, offers from other
    clubs, applying for vacancies, and moving to a new club (in any country). */
-import { clubsInLeague, leagueDef, leagueTableOf, leagueRounds } from './competitions';
+import { clubsInLeague, leagueDef, leagueTableOf, roundsOf } from './competitions';
 import { noteJoined } from './index';
 import { pickLineup } from './match';
 import { managerReputation } from './nationaljob';
@@ -45,7 +45,7 @@ export function boardConfidence(s: GameState, target: Target) {
   if (!played) return c.trust;
   const pos = row + 1;
   const now = clamp(100 - (pos - target.pos) * 12 - (pos > target.pos ? 10 : 0), 5, 98);
-  const weight = Math.min(0.85, (played / leagueRounds(t.length)) * 1.3);
+  const weight = Math.min(0.85, (played / roundsOf(s, club.league)) * 1.3);
   return Math.round(c.trust * (1 - weight) + now * weight);
 }
 

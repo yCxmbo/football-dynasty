@@ -96,7 +96,7 @@ export interface Club {
 
 export type CompId = string;
 export interface CompInfo {
-  id: string; name: string; short: string; kind: 'league' | 'cup' | 'continental' | 'super' | 'playoff';
+  id: string; name: string; short: string; kind: 'league' | 'cup' | 'continental' | 'super' | 'playoff' | 'title';
   country?: string; tier?: number; rounds?: string[]; leagueId?: string; rank?: number; size?: number; main?: boolean;
 }
 

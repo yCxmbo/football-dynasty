@@ -45,7 +45,7 @@ export default function Table({ g, go }: { g: GameState; go: (s: Screen, id?: st
   const [country, setCountry] = useState(userClub.country);
   const [tab, setTab] = useState<string>(userClub.league ?? leaguesOf(g, country)[0]?.id ?? '');
   const comps = Object.values(g.comps);
-  const local = comps.filter((c) => c.country === country && c.kind !== 'super').sort((a, b) => ['league', 'playoff', 'cup'].indexOf(a.kind) - ['league', 'playoff', 'cup'].indexOf(b.kind) || (a.tier ?? 0) - (b.tier ?? 0));
+  const local = comps.filter((c) => c.country === country && c.kind !== 'super').sort((a, b) => ['league', 'title', 'playoff', 'cup'].indexOf(a.kind) - ['league', 'title', 'playoff', 'cup'].indexOf(b.kind) || (a.tier ?? 0) - (b.tier ?? 0));
   const continental = comps.filter((c) => c.kind === 'continental').sort((a, b) => (a.rank ?? 1) - (b.rank ?? 1));
   const tabs = [...local, ...continental];
   const active = compInfo(g, tabs.some((t) => t.id === tab) ? tab : tabs[0]?.id ?? '');
@@ -89,7 +89,7 @@ export default function Table({ g, go }: { g: GameState; go: (s: Screen, id?: st
         <FD.Field label="Country"><FD.Select value={country} label="Country" options={countries.map((c) => ({ value: c.id, label: c.name }))} onChange={(v: string) => { setCountry(v); setTab(leaguesOf(g, v)[0]?.id ?? ''); }} /></FD.Field>
       </div>
       <div className="fd-tabs comp-tabs" role="tablist" style={{ margin: 0 }}>
-        {tabs.map((c) => <button key={c.id} type="button" role="tab" aria-selected={active.id === c.id} className={'fd-tab' + (active.id === c.id ? ' is-on' : '')} onClick={() => setTab(c.id)}>{c.kind === 'playoff' ? c.name : c.short}</button>)}
+        {tabs.map((c) => <button key={c.id} type="button" role="tab" aria-selected={active.id === c.id} className={'fd-tab' + (active.id === c.id ? ' is-on' : '')} onClick={() => setTab(c.id)}>{c.kind === 'playoff' || c.kind === 'title' ? c.name : c.short}</button>)}
       </div>
       {body}
     </div>

@@ -1,6 +1,6 @@
 /* Club finances: weekly income and costs for every club; budgets and prize money at season end. */
 import { clamp } from './ratings';
-import { clubsInLeague, compInfo, cupResult, leagueDef, leagueRounds, type TableRow } from './competitions';
+import { clubsInLeague, compInfo, cupResult, leagueDef, roundsOf, type TableRow } from './competitions';
 import type { Club, Fixture, GameState, Ledger } from './types';
 
 export function emptyLedger(): Ledger {
@@ -34,7 +34,7 @@ export function financeWeek(s: GameState, leagueIds: Set<string>, homeIds: Set<s
     if (!c.league || !leagueIds.has(c.league)) continue;
     const l = leagueDef(s, c.league)!;
     const n = clubsInLeague(s, l.id).length;
-    const w = 52 / leagueRounds(n);
+    const w = 52 / roundsOf(s, l.id);
     const gate = homeIds.has(c.id) ? attendance(c, positions[c.id] ?? n, n) * ticketPrice(c) : 0;
     const income = { gate, tv: l.tv, sponsorship: Math.round(sponsorshipPerWeek(c) * w), merchandise: Math.round(merchandisePerWeek(c) * w) };
     // your own backroom staff are on the books by name; other clubs' staff are a cost by reputation
@@ -94,7 +94,7 @@ export function seasonFinances(s: GameState, tables: Record<string, TableRow[]>)
       const expected = byRep.findIndex((x) => x.id === c.id) + 1;
       const repChange = clamp(Math.round((expected - pos) / 3) + (pos === 1 ? 2 : 0), -3, 4);
       c.reputation = clamp(c.reputation + repChange, 15, 95);
-      const rounds = leagueRounds(n);
+      const rounds = roundsOf(s, c.league!);
       const weeklyIncome = (rounds * l.tv + (rounds / 2) * attendance(c, pos, n) * ticketPrice(c)) / 52 + sponsorshipPerWeek(c) + merchandisePerWeek(c);
       const bill = wageBillOf(s, c.id);
       const affordable = (weeklyIncome - staffPerWeek(c)) * 0.85 + Math.max(0, c.balance) / 520;

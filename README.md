@@ -28,6 +28,7 @@ The game saves automatically in the browser (IndexedDB), and you can keep severa
 - **Real competition names:** leagues, cups, super cups and continental competitions use their real names (Premier League, LaLiga, FA Cup, Copa del Rey, UEFA Champions League, Copa Libertadores…).
 - **Club names and badges:** clubs have names close to the real ones (for example *Merseyside Reds*, *Madrid Merengues*), and badges generated from each club's colours. Real club crests are protected designs, so the game doesn't copy them.
 - **Leagues:** every league is a double round robin. England, Spain, Italy, Germany and France have promotion and relegation: the top two go up, places 3–6 play off for a third place, and three go down. England's League One and the other second divisions are the bottom of their pyramids. The other countries have one league each.
+- **League formats:** most leagues are a double round robin. MLS and Liga MX decide their champions in title play-offs among the top eight (MLS Cup, with the Supporters' Shield for the table winner; the Liguilla). The Scottish Premiership splits after 33 rounds into top and bottom six for five more rounds.
 - **Competitions:**
 
   | Competition | Format |

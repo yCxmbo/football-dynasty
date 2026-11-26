@@ -27,6 +27,11 @@ export const topLeague = (s: GameState, country: string) => leaguesOf(s, country
 export const isLeague = (s: GameState, id: CompId) => compInfo(s, id).kind === 'league';
 export const userLeague = (s: GameState) => s.clubs[s.userClubId].league;
 export const leagueRounds = (n: number) => 2 * (n - 1);
+/** Rounds in a league this season: a double round robin, or three rounds plus the split (12 clubs: 33 + 5). */
+export function roundsOf(s: GameState, leagueId: string) {
+  const n = clubsInLeague(s, leagueId).length;
+  return leagueDef(s, leagueId)?.split ? 3 * (n - 1) + (n / 2 - 1) : leagueRounds(n);
+}
 
 /** Knockout round names for a number of entrants; a first round thins the field to a power of two. */
 /** "the Premier League" but "LaLiga", "Serie A", "Liga MX", "MLS": names used in English without an article. */
@@ -60,6 +65,7 @@ export function buildComps(s: GameState) {
   const comps: Record<string, CompInfo> = {};
   for (const l of s.world.leagues) {
     comps[l.id] = { id: l.id, name: l.name, short: l.short ?? l.name, kind: 'league', country: l.country, tier: l.tier, size: clubsInLeague(s, l.id).length };
+    if (l.titlePlayoff && clubsInLeague(s, l.id).length >= 8) comps[`tp-${l.id}`] = { id: `tp-${l.id}`, name: l.titlePlayoff.name, short: l.titlePlayoff.name, kind: 'title', country: l.country, tier: l.tier, leagueId: l.id, rounds: ['Quarter-final', 'Semi-final', 'Final'] };
     if (l.playoff) comps[`po-${l.id}`] = { id: `po-${l.id}`, name: `${l.name} play-offs`, short: 'Play-offs', kind: 'playoff', country: l.country, tier: l.tier, leagueId: l.id, rounds: ['Semi-final', 'Final'] };
   }
   for (const c of s.world.cups) comps[c.id] = { id: c.id, name: c.name, short: c.name, kind: 'cup', country: c.country, rounds: cupRoundNames(cupEntrants(s, c.id).length), main: c.main };
@@ -85,7 +91,7 @@ interface Entry { week: number; day: Slot['day']; comp: CompId; round: string }
 const OFFSET: Record<Slot['day'], number> = { Sat: 0, Sun: 1, Tue: 3, Wed: 4, Thu: 5 };
 
 export function makeCalendar(s: GameState, year: number): Slot[] {
-  const leagues = s.world.leagues.map((l) => ({ l, r: leagueRounds(clubsInLeague(s, l.id).length) }));
+  const leagues = s.world.leagues.map((l) => ({ l, r: roundsOf(s, l.id) }));
   const W = Math.max(...leagues.map((x) => x.r));
   s.leagueWeeks = W;
   const entries: Entry[] = [];
@@ -129,6 +135,10 @@ export function makeCalendar(s: GameState, year: number): Slot[] {
   // play-offs straight after the league
   for (const c of Object.values(s.comps).filter((x) => x.kind === 'playoff')) {
     entries.push({ week: W, day: 'Wed', comp: c.id, round: 'Semi-final' }, { week: W + 1, day: 'Sun', comp: c.id, round: 'Final' });
+  }
+  // title play-offs after the regular season, at the higher seed's ground
+  for (const c of Object.values(s.comps).filter((x) => x.kind === 'title')) {
+    entries.push({ week: W + 1, day: 'Tue', comp: c.id, round: 'Quarter-final' }, { week: W + 2, day: 'Sun', comp: c.id, round: 'Semi-final' }, { week: W + 3, day: 'Sun', comp: c.id, round: 'Final' });
   }
   const start = new Date(Date.UTC(year, 7, 8));
   while (start.getUTCDay() !== 6) start.setUTCDate(start.getUTCDate() + 1);
@@ -191,7 +201,30 @@ export function tableOf(s: GameState, comp: CompId, ids: string[], group?: numbe
   return Object.values(rows).map((r) => ({ ...r, form: r.form.slice(-5) }))
     .sort((a, b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf || a.club.localeCompare(b.club));
 }
-export const leagueTableOf = (s: GameState, leagueId: string) => tableOf(s, leagueId, clubsInLeague(s, leagueId));
+export function leagueTableOf(s: GameState, leagueId: string) {
+  const t = tableOf(s, leagueId, clubsInLeague(s, leagueId));
+  const halves = s.groups[`split-${leagueId}`];
+  if (!halves) return t;
+  // after the split, a club stays in its half whatever the points
+  const top = new Set(halves[0]);
+  return [...t.filter((r) => top.has(r.clubId)), ...t.filter((r) => !top.has(r.clubId))];
+}
+
+/** After the third round robin of a split league: the halves, and their last five rounds. */
+export function setupSplit(s: GameState, leagueId: string, leagueRound: number) {
+  for (const l of s.world.leagues.filter((x) => x.id === leagueId)) {
+    if (!l.split || s.groups[`split-${l.id}`]) continue;
+    const n = clubsInLeague(s, l.id).length;
+    if (leagueRound !== 3 * (n - 1)) continue;
+    const t = leagueTableOf(s, l.id).map((r) => r.clubId);
+    const halves = [t.slice(0, n / 2), t.slice(n / 2)];
+    s.groups[`split-${l.id}`] = halves;
+    for (const half of halves) {
+      const single = roundRobin(half).slice(0, half.length - 1);
+      single.forEach((pairs, i) => pairs.forEach(([h, a]) => add(s, l.id, `Matchday ${3 * (n - 1) + i + 1}`, h, a)));
+    }
+  }
+}
 export const leagueDone = (s: GameState) => s.fixtures.filter((f) => isLeague(s, f.comp)).every((f) => f.result);
 
 const byRep = (s: GameState) => (a: string, b: string) => s.clubs[b].reputation - s.clubs[a].reputation;
@@ -213,7 +246,12 @@ export function setupSeason(s: GameState, rng: Rng) {
   s.fixtures = [];
   s.cups = {};
   s.groups = {};
-  for (const l of s.world.leagues) roundRobin(clubsInLeague(s, l.id)).forEach((pairs, i) => pairs.forEach(([h, a]) => add(s, l.id, `Matchday ${i + 1}`, h, a)));
+  for (const l of s.world.leagues) {
+    const rr = roundRobin(clubsInLeague(s, l.id));
+    // split leagues play a third round (first half again, home and away swapped from the season's start)
+    const rounds = l.split ? [...rr, ...rr.slice(0, rr.length / 2).map((ps) => ps.map(([h, a]) => [a, h] as [string, string]))] : rr;
+    rounds.forEach((pairs, i) => pairs.forEach(([h, a]) => add(s, l.id, `Matchday ${i + 1}`, h, a)));
+  }
   for (const c of Object.values(s.comps)) {
     if (c.kind === 'super') {
       const [a, b] = s.qualified[c.id] ?? [];
@@ -319,6 +357,22 @@ export function advanceCups(s: GameState, rng: Rng, slot: Slot): string[] {
       cup.round = c.rounds!.indexOf('Round of 16');
       continue;
     }
+    if (c.kind === 'title' && e.round !== 'Final' && cup.seeds) {
+      // the bracket is fixed: winners of neighbouring ties meet, the better seed at home
+      for (const f of played) cup.exits[loserOf(f)] = e.round;
+      const ties = s.fixtures.filter((f) => f.comp === c.id && f.round === e.round);
+      const winners = ties.map(winnerOf);
+      const seed = (id: string) => cup.seeds!.indexOf(id);
+      const next = e.round === 'Quarter-final' ? 'Semi-final' : 'Final';
+      for (let i = 0; i < winners.length; i += 2) {
+        const [x, y] = [winners[i], winners[i + 1]];
+        const [h, a] = seed(x) <= seed(y) ? [x, y] : [y, x];
+        add(s, c.id, next, h, a, { ko: true });
+      }
+      cup.alive = winners;
+      cup.round = c.rounds!.indexOf(next);
+      continue;
+    }
     if (e.round.startsWith('Group')) {
       if (e.round !== GROUP_ROUNDS[5]) continue;
       const groups = s.groups[c.id] ?? [];
@@ -356,8 +410,13 @@ export function advanceCups(s: GameState, rng: Rng, slot: Slot): string[] {
   return news;
 }
 
-/** After the last league round: play-off semi-finals for leagues that have them. */
+/** After the last league round: promotion play-off semi-finals, and title play-off quarter-finals (1 v 8, 4 v 5, 2 v 7, 3 v 6). */
 export function setupPlayoffs(s: GameState) {
+  for (const c of Object.values(s.comps).filter((x) => x.kind === 'title')) {
+    const top = leagueTableOf(s, c.leagueId!).slice(0, 8).map((r) => r.clubId);
+    s.cups[c.id] = { round: 0, alive: top, exits: {}, seeds: top };
+    for (const [a, b] of [[0, 7], [3, 4], [1, 6], [2, 5]]) add(s, c.id, 'Quarter-final', top[a], top[b], { ko: true });
+  }
   for (const c of Object.values(s.comps).filter((x) => x.kind === 'playoff')) {
     const l = leagueDef(s, c.leagueId)!;
     const t = leagueTableOf(s, l.id);
@@ -388,7 +447,7 @@ export function promotionsAndRelegations(s: GameState) {
     ls.forEach((l, i) => {
       const t = leagueTableOf(s, l.id);
       if (!t.length) return;
-      champions[l.id] = t[0].clubId;
+      champions[l.id] = s.cups[`tp-${l.id}`]?.winner ?? t[0].clubId; // with title play-offs, their winner is champion
       const up = ls[i - 1], down = ls[i + 1];
       if (down && l.relegate) for (const r of t.slice(-l.relegate)) moves[r.clubId] = { to: down.id, dir: 'relegated' };
       if (up) {

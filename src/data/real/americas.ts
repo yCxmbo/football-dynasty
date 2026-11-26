@@ -51,7 +51,7 @@ export const ARGENTINA: RCountry = {
 export const USA: RCountry = {
   id: 'usa', name: 'United States', superCup: false,
   cups: [{ id: 'usa-cup', name: 'U.S. Open Cup', tiers: [1], main: true }],
-  leagues: [{ id: 'usa1', name: 'Major League Soccer', short: 'MLS', tier: 1, promote: 0, relegate: 0, tv: 320_000, clubs: [
+  leagues: [{ id: 'usa1', name: 'Major League Soccer', short: 'MLS', tier: 1, promote: 0, relegate: 0, tv: 320_000, titlePlayoff: { name: 'MLS Cup Playoffs', trophy: 'MLS Cup', shield: 'Supporters\' Shield' }, clubs: [
     c('miami', 'Miami Herons', 'MIA', 66, ['#F7B5CD', '#231F20'], 'Fort Lauderdale Park', 21550, [
       ['Óscar Ustari', 'GK', 39, 70, 'ARG'], ['Jordi Alba', 'LB', 36, 76, 'ESP'], ['Sergio Busquets', 'DM', 37, 76, 'ESP'], ['Rodrigo De Paul', 'CM', 31, 80, 'ARG'],
       ['Lionel Messi', 'RW', 38, 86, 'ARG'], ['Luis Suárez', 'ST', 38, 76, 'URU'], ['Tadeo Allende', 'RW', 26, 72, 'ARG']]),
@@ -77,7 +77,7 @@ export const USA: RCountry = {
 export const MEXICO: RCountry = {
   id: 'mex', name: 'Mexico', superCup: 'Campeón de Campeones',
   cups: [],
-  leagues: [{ id: 'mex1', name: 'Liga MX', short: 'Liga MX', tier: 1, promote: 0, relegate: 0, tv: 240_000, clubs: [
+  leagues: [{ id: 'mex1', name: 'Liga MX', short: 'Liga MX', tier: 1, promote: 0, relegate: 0, tv: 240_000, titlePlayoff: { name: 'Liguilla', trophy: 'Liga MX' }, clubs: [
     c('america', 'Mexico City Eagles', 'AME', 68, ['#FFD200', '#002F6C'], 'Aztec Park', 83264, [['Luis Malagón', 'GK', 28, 74, 'MEX'], ['Álvaro Fidalgo', 'CM', 28, 75, 'ESP'], ['Alejandro Zendejas', 'RW', 27, 73, 'USA'], ['Brian Rodríguez', 'LW', 25, 73, 'URU']]),
     c('chivas', 'Guadalajara Goats', 'GDL', 62, ['#E30613', '#FFFFFF'], 'Akron Park', 48071, [['Raúl Rangel', 'GK', 25, 72, 'MEX'], ['Roberto Alvarado', 'RW', 26, 73, 'MEX'], ['Javier Hernández', 'ST', 37, 68, 'MEX']]),
     c('cruzazul', 'Mexico City Cement Makers', 'CAZ', 66, ['#0055A4', '#FFFFFF'], 'Ciudad de los Deportes Park', 33000, [['Kevin Mier', 'GK', 25, 74, 'COL'], ['Jorge Sánchez', 'RB', 27, 72, 'MEX'], ['Ángel Sepúlveda', 'ST', 34, 72, 'MEX']]),

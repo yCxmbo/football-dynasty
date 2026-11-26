@@ -173,3 +173,10 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .talk-panel { max-width: 560px; display: flex; flex-direction: column; gap: var(--space-4); }
 .talk-options { display: flex; flex-direction: column; gap: var(--space-2); }
 .talk-options .fd-btn { justify-content: flex-start; }
+.fac-card { display: flex; flex-direction: column; gap: var(--space-2); align-items: flex-start; }
+.fac-card .pg-row { width: 100%; }
+.fac-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+@media (max-width: 900px) { .fac-grid { grid-template-columns: 1fr; } }
+.fac-pips { display: inline-flex; gap: 4px; }
+.fac-pips span { width: 18px; height: 8px; border-radius: 2px; background: var(--line-strong); }
+.fac-pips span.is-on { background: var(--gold); }

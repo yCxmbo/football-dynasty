@@ -76,6 +76,7 @@ The game saves automatically in the browser (IndexedDB), and you can keep severa
   - Before kickoff and at half-time the match waits for your team talk: encourage, demand more, keep calm, or say nothing. What works depends on the moment (calm when on top, demands when behind, encouragement when even); the players' reaction appears in the commentary and nudges their performance a few percent.
   - After heavy wins and defeats (and some other games) the press want a word: answer in the inbox. Taking responsibility pleases the board; blaming the players hurts morale; praising a player lifts him.
   - Regulars who are unhappy and not playing ask to leave: promise more games (then keep it: three games in six weeks, or he goes public and onto the transfer list), transfer-list him, or tell him to fight for his place.
+- **Stadium and facilities:** expand the stadium (2,500 to 10,000 seats at a time; the new stands open next season), and upgrade the training ground (faster development) and youth academy (better intakes) through five levels. Crowds are limited by the fan base, which grows with reputation, so seats only pay when the demand is there. Building work is paid from the balance and the transfer budget; facilities cost upkeep each week.
 - **Inbox:** board, media, medical, youth, league and transfer messages; bids can be accepted or rejected from the inbox.
 - **Transfers:**
   - Two windows: pre-season through league week 4, and three weeks in mid-season.
@@ -126,6 +127,7 @@ src/
     builtin.ts     the fictional world and the template world file
     nations.ts     national teams: confederations, strength, colours, nationalities for generated players
     namepools.ts   invented names that fit each nationality
+    facilities.ts  stadium expansion, training ground and academy levels
     media.ts       press conferences, transfer requests, promises
     staff.ts       backroom staff, their effects, hiring
     loans.ts       loans out and in, recalls, returns at season end

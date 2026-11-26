@@ -5,6 +5,7 @@ import { POS_GROUP, abilityFromAttributes, clamp, POSITION_WEIGHTS } from './rat
 import { nationRanking, playSummer } from './international';
 import { jobOffers, managerReputation, tidySelection } from './nationaljob';
 import { returnLoans } from './loans';
+import { finishBuilding, trainingFacilityBoost, youthFacilityBonus } from './facilities';
 import { pressAfterMatch, weeklyMood } from './media';
 import { developmentBoost, initStaff, injuryLengthFactor, moraleRecoveryChance, recoveryBonus, refreshPool, youthPotentialBonus } from './staff';
 import { career, makeOffers, midSeasonVerdict, seasonVerdict, vacanciesAfterSeason } from './career';
@@ -247,7 +248,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
       for (const p of Object.values(state.players)) {
         if (p.clubId === FREE_AGENT) continue;
         const mine = p.clubId === state.userClubId;
-        developStep(rng, p, 0.6 / Math.floor(state.leagueWeeks / every), mine ? te.development * developmentBoost(state) : 1, mine ? state.training.focus[p.id] : undefined);
+        developStep(rng, p, 0.6 / Math.floor(state.leagueWeeks / every), mine ? te.development * developmentBoost(state) * trainingFacilityBoost(state) : 1, mine ? state.training.focus[p.id] : undefined);
       }
     }
     if (slot.week === state.leagueWeeks) setupPlayoffs(state);
@@ -491,6 +492,8 @@ function rollover(state: GameState) {
   for (const c of Object.values(state.clubs)) refillSquad(state, rng, c);
   youthIntake(state, rng);
   refreshPool(state, rng);
+  const opened = finishBuilding(state);
+  if (opened) addMessage(state, { category: 'board', from: 'The board', role: state.clubs[state.userClubId].name, subject: 'The new stands are open', body: [opened] });
   state.qualified = nextQualified;
   buildComps(state);
   state.calendar = makeCalendar(state, state.year);
@@ -629,7 +632,7 @@ function youthIntake(state: GameState, rng: ReturnType<typeof createRng>) {
     const names: string[] = [];
     for (let i = 0; i < n; i++) {
       const pos = rng.pick(['GK', 'CB', 'LB', 'RB', 'DM', 'CM', 'AM', 'LW', 'RW', 'ST'] as const);
-      const pa = clamp(Math.round(rng.normal(115 + c.reputation * 0.35 + (c.id === state.userClubId ? youthPotentialBonus(state) : 0), 20)), 70, 195);
+      const pa = clamp(Math.round(rng.normal(115 + c.reputation * 0.35 + (c.id === state.userClubId ? youthPotentialBonus(state) + youthFacilityBonus(state) : 0), 20)), 70, 195);
       const p = makePlayer(rng, { id: `p${state.nextId++}`, clubId: c.id, pos, ca: rng.int(40, 70), pa, age: rng.int(15, 16), squad: 'U18', number: freeNumber(state, c.id), year: state.year, reputation: c.reputation, country: c.country });
       state.players[p.id] = p; noteJoined(state, p); names.push(`${p.name} (${p.pos})`);
     }

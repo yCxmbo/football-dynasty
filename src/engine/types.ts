@@ -62,7 +62,7 @@ export interface Training { week: Record<Day, SessionType[]>; intensity: Intensi
 
 export interface Ledger {
   income: { gate: number; tv: number; sponsorship: number; merchandise: number; prize: number; sales: number };
-  expenses: { wages: number; staff: number; transfers: number };
+  expenses: { wages: number; staff: number; transfers: number; facilities?: number };
   balanceHistory: number[];
 }
 
@@ -78,6 +78,8 @@ export interface Club {
   reputation: number; // 1–100
   stadium: string;
   capacity: number;
+  /** Training ground and academy levels, and building work (your club; others use defaults). */
+  facilities?: import('./facilities').Facilities;
   nickname: string;
   founded: number;
   balance: number;

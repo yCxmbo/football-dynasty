@@ -5,7 +5,7 @@ import { FREE_AGENT, type Currency, type GameState, type Player } from '../engin
 import { seasonLabel } from '../engine/types';
 import { toCur } from '../store';
 
-export type Screen = 'home' | 'inbox' | 'squad' | 'player' | 'tactics' | 'fixtures' | 'table' | 'match' | 'youth' | 'history' | 'settings' | 'transfers' | 'training' | 'scouting' | 'finances' | 'offer' | 'contract' | 'international' | 'career' | 'staff';
+export type Screen = 'home' | 'inbox' | 'squad' | 'player' | 'tactics' | 'fixtures' | 'table' | 'match' | 'youth' | 'history' | 'settings' | 'transfers' | 'training' | 'scouting' | 'finances' | 'offer' | 'contract' | 'international' | 'career' | 'staff' | 'facilities';
 
 export const NAV = (unread: number) => [
   { id: 'home', label: 'Home', icon: 'home' }, { id: 'inbox', label: 'Inbox', icon: 'inbox', badge: unread || undefined },
@@ -13,7 +13,7 @@ export const NAV = (unread: number) => [
   { id: 'fixtures', label: 'Fixtures', icon: 'fixtures' }, { id: 'table', label: 'Competitions', icon: 'league-table' },
   { id: 'international', label: 'International', icon: 'crown' },
   { id: 'youth', label: 'Academy', icon: 'youth' }, { id: 'history', label: 'Club history', icon: 'trophy' }, { id: 'career', label: 'Career', icon: 'contract' },
-  { id: 'transfers', label: 'Transfers', icon: 'transfers' }, { id: 'scouting', label: 'Scouting', icon: 'scouting' }, { id: 'training', label: 'Training', icon: 'training' }, { id: 'staff', label: 'Staff', icon: 'captain' },
+  { id: 'transfers', label: 'Transfers', icon: 'transfers' }, { id: 'scouting', label: 'Scouting', icon: 'scouting' }, { id: 'training', label: 'Training', icon: 'training' }, { id: 'staff', label: 'Staff', icon: 'captain' }, { id: 'facilities', label: 'Facilities', icon: 'stadium' },
   { id: 'finances', label: 'Finances', icon: 'finances' }, { id: 'settings', label: 'Settings', icon: 'settings' },
 ];
 

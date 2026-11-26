@@ -6,7 +6,7 @@ import { seasonLabel } from '../engine/types';
 import { toCur } from '../store';
 
 const INCOME: Array<[keyof Ledger['income'], string]> = [['gate', 'Gate receipts'], ['tv', 'TV money'], ['sponsorship', 'Sponsorship'], ['merchandise', 'Merchandise'], ['prize', 'Prize money'], ['sales', 'Player sales']];
-const EXPENSES: Array<[keyof Ledger['expenses'], string]> = [['wages', 'Player wages'], ['staff', 'Staff and facilities'], ['transfers', 'Transfer fees']];
+const EXPENSES: Array<[keyof Ledger['expenses'], string]> = [['wages', 'Player wages'], ['staff', 'Staff and upkeep'], ['facilities', 'Building work'], ['transfers', 'Transfer fees']];
 
 function Breakdown({ title, rows, cur }: { title: string; rows: Array<[string, number]>; cur: GameState['currency'] }) {
   const total = rows.reduce((a, [, v]) => a + v, 0);
@@ -48,7 +48,7 @@ export default function Finances({ g }: { g: GameState }) {
       </div>
       <div className="fn-grid">
         <Breakdown title="Income" rows={INCOME.map(([k, l]) => [l, L.income[k]])} cur={cur} />
-        <Breakdown title="Expenses" rows={EXPENSES.map(([k, l]) => [l, L.expenses[k]])} cur={cur} />
+        <Breakdown title="Expenses" rows={EXPENSES.map(([k, l]) => [l, L.expenses[k] ?? 0])} cur={cur} />
       </div>
       <section className="pg-card">
         <h2 className="pg-h">Prize money</h2>

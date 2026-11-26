@@ -20,12 +20,13 @@ export const ticketPrice = (c: Club) => Math.round(20 + c.reputation * 0.5);
 /** Fill rate from reputation and league position (1 = top). */
 export function attendance(c: Club, leaguePos: number, clubs: number) {
   const fill = clamp(0.55 + c.reputation / 250 + (clubs - leaguePos) / clubs / 8, 0.45, 1);
-  return Math.round(c.capacity * fill);
+  return Math.round(Math.min(c.capacity, fanBase(c)) * fill);
 }
 
 export { wageBillOf } from './index';
 import { wageBillOf } from './index';
 import { staffWageBill } from './staff';
+import { fanBase, upkeepPerWeek } from './facilities';
 
 /** One league round of money for clubs in the leagues playing this slot. Each round carries 52 / rounds weeks of costs. */
 export function financeWeek(s: GameState, leagueIds: Set<string>, homeIds: Set<string>, positions: Record<string, number>) {
@@ -37,7 +38,7 @@ export function financeWeek(s: GameState, leagueIds: Set<string>, homeIds: Set<s
     const gate = homeIds.has(c.id) ? attendance(c, positions[c.id] ?? n, n) * ticketPrice(c) : 0;
     const income = { gate, tv: l.tv, sponsorship: Math.round(sponsorshipPerWeek(c) * w), merchandise: Math.round(merchandisePerWeek(c) * w) };
     // your own backroom staff are on the books by name; other clubs' staff are a cost by reputation
-    const wages = Math.round(wageBillOf(s, c.id) * w), staff = Math.round((c.id === s.userClubId ? staffPerWeek(c) * 0.5 + staffWageBill(s) : staffPerWeek(c)) * w);
+    const wages = Math.round(wageBillOf(s, c.id) * w), staff = Math.round((c.id === s.userClubId ? staffPerWeek(c) * 0.5 + staffWageBill(s) + upkeepPerWeek(s, c.id) : staffPerWeek(c)) * w);
     c.balance += income.gate + income.tv + income.sponsorship + income.merchandise - wages - staff;
     if (c.id === s.userClubId) {
       const L = s.ledger;

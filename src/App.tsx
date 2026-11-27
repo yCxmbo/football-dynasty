@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FD } from './ds';
 import { currentDate, markRead, newGame, playMatchday, promote, seasonOver, setAutoRotate, setTactics, startUserMatch, userFixture } from './engine/game';
 import type { Formation } from './engine/match';
@@ -41,7 +41,7 @@ import Squad from './screens/Squad';
 import Table from './screens/Table';
 import Tactics from './screens/Tactics';
 import Youth from './screens/Youth';
-import { NAV, type Screen } from './screens/shared';
+import { NAV, type Screen, NAV_LABEL } from './screens/shared';
 
 function liveFx0(g: NonNullable<ReturnType<typeof useGame>['game']>, live: LiveState | null) {
   return live ? g.fixtures.find((f) => f.id === live.fixtureId) : undefined;
@@ -52,6 +52,14 @@ export default function App() {
   const [theme, setTheme] = useTheme();
   const [screen, setScreen] = useState<Screen>('home');
   const [param, setParam] = useState<string | undefined>();
+  // where you came from, for the Back button (and the browser's back)
+  const [hist, setHist] = useState<Array<{ s: Screen; p?: string }>>([]);
+  const backRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    const onPop = () => backRef.current();
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
   const [live, setLive] = useState<LiveState | null>(null);
   const [sim, setSim] = useState<string | null>(null);
   const [simMenu, setSimMenu] = useState(false);
@@ -65,10 +73,25 @@ export default function App() {
   }
 
   const go = (s: Screen, id?: string) => {
+    if (s !== screen || id !== param) {
+      setHist((h) => [...h.slice(-40), { s: screen, p: param }]);
+      try { window.history.pushState({ fd: true }, ''); } catch { /* not available */ }
+    }
     setScreen(s); setParam(id);
     if (s === 'inbox' && id) update((d) => markRead(d, id));
     document.querySelector('.fd-main')?.scrollTo(0, 0);
   };
+
+  const back = () => {
+    setHist((h) => {
+      if (!h.length) return h;
+      const last = h[h.length - 1];
+      setScreen(last.s); setParam(last.p);
+      document.querySelector('.fd-main')?.scrollTo(0, 0);
+      return h.slice(0, -1);
+    });
+  };
+  backRef.current = back;
 
   /** Starts the user's match live (nothing is saved until full time). Otherwise skips ahead to the next match. */
   const play = () => {
@@ -195,6 +218,11 @@ export default function App() {
       onCurrencyChange={(c: 'EUR' | 'USD' | 'GBP') => update((d) => { d.currency = c; })}
       active={navActive} nav={NAV(unread)} onNavigate={(id: Screen) => go(id)} primaryAction={primary}
     >
+      {hist.length && !(outOfWork && !live) ? (
+        <button type="button" className="nav-back" onClick={() => { try { window.history.back(); } catch { back(); } }} aria-label={`Back to ${NAV_LABEL[hist[hist.length - 1].s] ?? 'previous screen'}`}>
+          <span aria-hidden="true">←</span> Back{NAV_LABEL[hist[hist.length - 1].s] ? ` to ${NAV_LABEL[hist[hist.length - 1].s]}` : ''}
+        </button>
+      ) : null}
       {body}
       {sim && (
         <div className="sim-overlay" role="status" aria-live="polite">

@@ -66,3 +66,11 @@ export function profileData(state: GameState, p: Player, cur: Currency) {
 }
 
 export const ALL_GROUPS = ATTRIBUTE_GROUPS;
+
+/** Names for the Back button. */
+export const NAV_LABEL: Partial<Record<Screen, string>> = {
+  home: 'Home', inbox: 'Inbox', squad: 'Squad', player: 'player', tactics: 'Tactics', fixtures: 'Fixtures', table: 'Competitions', match: 'match',
+  youth: 'Academy', history: 'Club history', settings: 'Settings', transfers: 'Transfers', training: 'Training', scouting: 'Scouting', finances: 'Finances',
+  offer: 'offer', contract: 'contract', international: 'International', career: 'Career', staff: 'Staff', facilities: 'Facilities', nationalMatch: 'match',
+  records: 'Records', club: 'club', stats: 'Stats',
+};

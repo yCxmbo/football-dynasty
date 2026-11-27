@@ -341,3 +341,9 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .vis-chip--on-track { border-color: var(--gold); }
 .vis-chip--behind { border-color: var(--warn, #e0a030); }
 .vis-chip--failed { border-color: var(--card-red); color: var(--card-red); }
+/* inbox: decisions at the top of the open message, and the message list scrolls on its own */
+.inbox-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; padding: 0 0 12px; border-bottom: 1px solid var(--line); border-top: 0; }
+.fd-inbox__list .fd-msgs { max-height: 70vh; overflow-y: auto; }
+.nav-back { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 4px 0; margin: 0 0 8px; color: var(--teal); font: 600 14px/20px var(--font-sans); cursor: pointer; }
+.nav-back:hover { text-decoration: underline; }
+.nav-back:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 4px; }

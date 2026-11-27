@@ -199,6 +199,8 @@ export interface GameState {
   tactics?: import('./tactics').TacticsState;
   /** How well your squad knows each formation, 0–100. */
   familiarity?: Record<string, number>;
+  /** The board's vision for your club, and your requests to it. */
+  vision?: import('./vision').ClubVision;
   /** Mentoring pairs at your club (experienced player and youngster). */
   mentoring?: import('./dynamics').Mentoring[];
   /** Your shape without the ball, if different. */

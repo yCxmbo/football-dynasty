@@ -23,6 +23,7 @@ import { afterMatch, afterSeason, afterTournament } from './achievements';
 import { finishBuilding, trainingFacilityBoost, youthFacilityBonus } from './facilities';
 import { pressAfterMatch, weeklyMood } from './media';
 import { atmosphere, atmosphereFactor, weeklyDynamics } from './dynamics';
+import { judgeVision, maybeTakeover, renewVisionIfDone, visionOf } from './vision';
 import { developmentBoost, initStaff, injuryLengthFactor, moraleRecoveryChance, recoveryBonus, refreshPool, youthPotentialBonus } from './staff';
 import { career, compensation, makeOffers, managerWage, midSeasonVerdict, seasonVerdict, vacanciesAfterSeason } from './career';
 import { NATION, nationCode, nationName } from './nations';
@@ -531,7 +532,19 @@ function rollover(state: GameState) {
       const t = leagueTableOf(state, us.league);
       const pos = t.findIndex((r) => r.clubId === us.id) + 1;
       const won = Object.values(state.comps).filter((x) => x.kind !== 'league' && x.kind !== 'playoff' && state.cups[x.id]?.winner === us.id).length;
-      const sacked = seasonVerdict(state, target, { pos, champion: pos === 1, promoted: moves[us.id]?.dir === 'promoted', relegated: moves[us.id]?.dir === 'relegated', trophies: won });
+      let sacked = seasonVerdict(state, target, { pos, champion: pos === 1, promoted: moves[us.id]?.dir === 'promoted', relegated: moves[us.id]?.dir === 'relegated', trophies: won });
+      // the club vision: each objective judged, moving the board's trust
+      const vj = judgeVision(state);
+      c.trust = clamp(c.trust + vj.trust, 0, 100);
+      if (!sacked && c.trust < 25) sacked = true;
+      addMessage(state, { category: 'board', from: 'The board', role: us.name, subject: `Club vision: ${vj.trust >= 0 ? 'on course' : 'falling short'}`, body: [
+        ...vj.lines, vj.trust >= 0 ? `The board's trust in you rises (${vj.trust >= 0 ? '+' : ''}${vj.trust}).` : `The board's trust in you falls (${vj.trust}).`] });
+      if (!sacked) {
+        const renewed = renewVisionIfDone(state);
+        const takeover = maybeTakeover(state, createRng((state.rngState ^ 0x7a6b0e) >>> 0));
+        if (takeover) addMessage(state, { category: 'board', from: 'Club statement', role: us.name, subject: 'The club has new owners', body: [...takeover, 'See the new club vision on the Career screen.'] });
+        else if (renewed) addMessage(state, { category: 'board', from: 'The board', role: us.name, subject: 'A new club vision', body: [`The board has set new objectives: ${visionOf(state).goals.map((g) => g.text.toLowerCase()).join('; ')}.`] });
+      }
       c.vacancies = open;
       c.offers = sacked ? makeOffers(state, rng, c.vacancies, 'sacked') : c.trust >= 60 ? makeOffers(state, rng, c.vacancies, 'good') : [];
       // a contract that runs out now: renewed if the board still believes in you, otherwise you leave

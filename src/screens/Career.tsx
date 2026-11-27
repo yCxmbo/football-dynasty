@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FD } from '../ds';
 import { acceptOffer, applyChance, boardConfidence, career, clubLine, confidenceWord, currentSpell, interviewForJob, interviewQuestions, managerWage, requestNewContract, resign } from '../engine/career';
 import { toCur } from '../store';
+import { askBoard, makeVision, REQUESTS, type BoardRequest } from '../engine/vision';
 import { baseTarget, boardTarget } from '../engine/game';
 import { ACHIEVEMENTS } from '../engine/achievements';
 import { STYLES, setStyle, styleOf } from '../engine/style';
@@ -86,6 +87,8 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
           <FD.Button variant="ghost" onClick={() => { if (window.confirm(`Resign as ${club.name} manager? You'll have to find a new club before playing on.`)) update((d) => resign(d)); }}>Resign</FD.Button>
         </section>
       )}
+
+      {!c.sacked ? <VisionCard g={g} conf={conf} update={update} /> : null}
 
       <section className="pg-card">
         <h2 className="pg-h">Coaching style</h2>
@@ -246,6 +249,38 @@ function Managers({ g, rep }: { g: GameState; rep: number }) {
         </tbody></table>
       </div>
       <FD.Button size="sm" variant="secondary" onClick={() => setAll((v) => !v)}>{all ? 'Show fewer' : 'Show top 50'}</FD.Button>
+    </section>
+  );
+}
+
+/** The board's objectives for the club and requests you can make (once a season). */
+function VisionCard({ g, conf, update }: { g: GameState; conf: number; update: (fn: (d: GameState) => void) => void }) {
+  // the saved vision, or the one the board would set (building it changes nothing)
+  const v = g.vision && g.vision.clubId === g.userClubId ? g.vision : makeVision(g, g.userClubId);
+  const [note, setNote] = useState('');
+  const asked = g.vision?.asked === g.year && g.vision?.clubId === g.userClubId;
+  const LABEL: Record<string, string> = { met: 'Met', 'on track': 'On track', behind: 'Behind', failed: 'Failed' };
+  const chip = (st?: string) => <span className={'vis-chip vis-chip--' + (st ?? 'new').replace(' ', '-')}>{st ? LABEL[st] : 'Not judged yet'}</span>;
+  const ask = (r: BoardRequest) => {
+    let res = { ok: false, text: '' };
+    update((d) => { res = askBoard(d, r, conf); });
+    setTimeout(() => setNote(res.text), 0);
+  };
+  return (
+    <section className="pg-card">
+      <h2 className="pg-h">Club vision</h2>
+      {v.owners ? <p className="hm-note" style={{ marginTop: 0 }}>{v.owners}</p> : null}
+      <table className="fd-mini"><tbody>
+        {v.goals.map((x, i) => (
+          <tr key={i}><td>{x.text}{x.kind === 'league' && x.by ? <span className="fd-muted"> (by {seasonLabel(x.by)})</span> : null}</td><td>{chip(x.status)}</td><td className="fd-muted">{x.last ?? ''}</td></tr>
+        ))}
+      </tbody></table>
+      <p className="hm-note">Judged at the end of each season: objectives met raise the board's trust, missed ones lower it.</p>
+      <div className="pg-row" style={{ flexWrap: 'wrap', gap: 8 }}>
+        {REQUESTS.map((r) => <FD.Button key={r.id} size="sm" variant="secondary" disabled={asked} onClick={() => ask(r.id)} title={r.desc}>{r.label}</FD.Button>)}
+        <span className="hm-note" style={{ margin: 0 }}>{asked ? 'You have been to the board this season.' : 'One request a season; the board weighs its trust in you and the finances.'}</span>
+      </div>
+      {note ? <p className="fd-warn" role="status" style={{ marginBottom: 0 }}>{note}</p> : null}
     </section>
   );
 }

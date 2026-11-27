@@ -336,3 +336,8 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .st-result { text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 6px 10px; color: var(--ink); font: inherit; cursor: pointer; }
 .st-result:hover, .st-result:focus-visible { background: var(--surface-sunken); }
 .st-compare td:nth-child(2), .st-compare td:nth-child(3) { font-variant-numeric: tabular-nums; }
+.vis-chip { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; border: 1px solid var(--line); white-space: nowrap; }
+.vis-chip--met { border-color: var(--teal); color: var(--teal); }
+.vis-chip--on-track { border-color: var(--gold); }
+.vis-chip--behind { border-color: var(--warn, #e0a030); }
+.vis-chip--failed { border-color: var(--card-red); color: var(--card-red); }

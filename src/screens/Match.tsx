@@ -1,3 +1,5 @@
+import InstructionsPanel from './InstructionsPanel';
+import { DEFAULT_INSTRUCTIONS } from '../engine/instructions';
 import { useEffect, useMemo, useState } from 'react';
 import { FD } from '../ds';
 import { compInfo } from '../engine/competitions';
@@ -76,6 +78,17 @@ export default function Match({ g, id, live, setLive, go, onFinish }: {
   const side = isLive && lm ? lm[view.key as 'home' | 'away'] : undefined;
   return (
     <>
+      {isLive && lm && side && !lm.done ? (
+        <section className="pg-card instr-bar" aria-label="Instructions during the match">
+          <InstructionsPanel compact value={side.instr} onChange={(c) => setLive((prev) => {
+            if (!prev) return prev;
+            const next = structuredClone(prev.lm);
+            const s = next[view.key as 'home' | 'away'];
+            s.instr = { ...(s.instr ?? DEFAULT_INSTRUCTIONS), ...c };
+            return { ...prev, lm: next };
+          })} />
+        </section>
+      ) : null}
       <FD.MatchDay
         match={view.match} stats={view.stats} ratings={view.ratings}
         speed={speed} onSpeedChange={setSpeed}

@@ -1,3 +1,4 @@
+import { aiInstructions, instructionEffects, type Instructions } from './instructions';
 /* Minute-by-minute match engine. Every match runs through it: the user's match is ticked live
    (so substitutions change the outcome), every other match is ticked straight to full time.
    A LiveMatch is plain data so it can sit in React state and be cloned cheaply. */
@@ -21,7 +22,7 @@ export const snap = (p: Player): Snap => ({
 interface Perf { base: number; goals: number; assists: number; saves: number; card?: 'yellow' | 'red'; onAt: number; offAt?: number; injured?: boolean }
 type SideKey = 'home' | 'away';
 export interface SetPieceTakers { pen?: string; fk?: string; corner?: string }
-export interface LiveSide { formation: Formation; xi: Array<string | null>; bench: string[]; subsUsed: number; boost: number; injury: number; user: boolean; name: string; /** Style tilt: attack and defence multipliers. */ atk?: number; def?: number; /** Team talks count this much more. */ talk?: number; /** The captain (else the best leader on the pitch) and chosen set-piece takers. */ captain?: string; takers?: SetPieceTakers }
+export interface LiveSide { formation: Formation; xi: Array<string | null>; bench: string[]; subsUsed: number; boost: number; injury: number; user: boolean; name: string; /** Style tilt: attack and defence multipliers. */ atk?: number; def?: number; /** Team talks count this much more. */ talk?: number; /** The captain (else the best leader on the pitch) and chosen set-piece takers. */ captain?: string; takers?: SetPieceTakers; /** Team instructions (computer-run sides change theirs with the score). */ instr?: Instructions }
 export interface LiveMatch {
   rng: number; minute: number; done: boolean; neutral: boolean; knockout: boolean; venue: string; derby?: string;
   home: LiveSide; away: LiveSide;
@@ -41,7 +42,7 @@ const surname = (n: string) => { const i = n.indexOf(' '); return i < 0 ? n : n.
 /** Tired players play worse: full strength above 85%, about −10% at 55%. */
 export const conditionFactor = (c: number) => (c >= 85 ? 1 : 0.7 + c * 0.0035);
 
-export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; formation: Formation; name: string; user?: boolean; tilt?: { atk: number; def: number; talk: number }; captain?: string; takers?: SetPieceTakers }, away: typeof home, venue: string, mods: MatchMods = {}): LiveMatch {
+export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; formation: Formation; name: string; user?: boolean; tilt?: { atk: number; def: number; talk: number }; captain?: string; takers?: SetPieceTakers; instr?: Instructions }, away: typeof home, venue: string, mods: MatchMods = {}): LiveMatch {
   const rng = createRng(seed);
   const players: Record<string, Snap> = {}, perf: Record<string, Perf> = {};
   const sideOf: Record<string, SideKey> = {};
@@ -50,7 +51,7 @@ export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; 
   for (const p of [...home.xi, ...home.bench]) { players[p.id] = withForm(p); sideOf[p.id] = 'home'; }
   for (const p of [...away.xi, ...away.bench]) { players[p.id] = withForm(p); sideOf[p.id] = 'away'; }
   for (const p of [...home.xi, ...away.xi]) perf[p.id] = { base: 6.3 + rng.normal(0, 0.3), goals: 0, assists: 0, saves: 0, onAt: 0 };
-  const side = (s: typeof home, boost = 1, injury = 1): LiveSide => ({ formation: s.formation, xi: s.xi.map((p) => p.id), bench: s.bench.map((p) => p.id), subsUsed: 0, boost, injury, user: !!s.user, name: s.name, ...(s.tilt ? { atk: s.tilt.atk, def: s.tilt.def, talk: s.tilt.talk } : {}), ...(s.captain ? { captain: s.captain } : {}), ...(s.takers ? { takers: s.takers } : {}) });
+  const side = (s: typeof home, boost = 1, injury = 1): LiveSide => ({ formation: s.formation, xi: s.xi.map((p) => p.id), bench: s.bench.map((p) => p.id), subsUsed: 0, boost, injury, user: !!s.user, name: s.name, ...(s.tilt ? { atk: s.tilt.atk, def: s.tilt.def, talk: s.tilt.talk } : {}), ...(s.captain ? { captain: s.captain } : {}), ...(s.takers ? { takers: s.takers } : {}), ...(s.instr ? { instr: { ...s.instr } } : {}) });
   return {
     rng: rng.state(), minute: 0, done: false, neutral: !!mods.neutral, knockout: !!mods.knockout, venue, ...(mods.derby ? { derby: mods.derby } : {}),
     home: side(home, mods.homeBoost, mods.homeInjury), away: side(away, mods.awayBoost, mods.awayInjury),
@@ -150,20 +151,37 @@ export function tick(lm: LiveMatch) {
   const rng = createRng(lm.rng);
   const m = ++lm.minute;
   const H = strength(lm, lm.home), A = strength(lm, lm.away);
+  // computer-run sides set up at kick-off and react to the score on the hour and at 75
+  if (m === 1 || m === 60 || m === 75) for (const key of ['home', 'away'] as const) {
+    const s = lm[key];
+    if (s.user) continue;
+    const mine = key === 'home' ? H : A, theirs = key === 'home' ? A : H;
+    const ratio = (mine.attack + mine.mid + mine.defence) / Math.max(1, theirs.attack + theirs.mid + theirs.defence);
+    const diff = key === 'home' ? lm.score[0] - lm.score[1] : lm.score[1] - lm.score[0];
+    const next = aiInstructions(m, diff, ratio);
+    if (m > 1 && s.instr && next.mentality !== s.instr.mentality) {
+      push(lm, { minute: m, type: 'chance', side: key, text: next.mentality === 'attacking' ? `${s.name} throw caution to the wind: more men forward, pressing high.` : next.mentality === 'defensive' ? `${s.name} shut up shop, dropping deep to protect the lead.` : `${s.name} settle into a steadier shape.` });
+    }
+    s.instr = next;
+  }
+  const eH = instructionEffects(lm.home.instr, lm.away.instr), eA = instructionEffects(lm.away.instr, lm.home.instr);
+  const midH = H.mid * eH.mid * eA.oppMid, midA = A.mid * eA.mid * eH.oppMid;
   const reds = (s: LiveSide) => s.xi.filter((x) => !x).length;
   const redH = Math.pow(0.82, reds(lm.home)), redA = Math.pow(0.82, reds(lm.away));
   const tH = lm.home, tA = lm.away;
-  const attH = (((H.attack * 0.6 + H.mid * 0.4) * (tH.atk ?? 1)) / ((A.defence * 0.7 + A.gk * 0.3) * (tA.def ?? 1) || 1)) * redH / redA;
-  const attA = (((A.attack * 0.6 + A.mid * 0.4) * (tA.atk ?? 1)) / ((H.defence * 0.7 + H.gk * 0.3) * (tH.def ?? 1) || 1)) * redA / redH;
+  const attH = (((H.attack * 0.6 + midH * 0.4) * (tH.atk ?? 1) * eH.atk) / ((A.defence * 0.7 + A.gk * 0.3) * (tA.def ?? 1) * eA.def || 1)) * redH / redA;
+  const attA = (((A.attack * 0.6 + midA * 0.4) * (tA.atk ?? 1) * eA.atk) / ((H.defence * 0.7 + H.gk * 0.3) * (tH.def ?? 1) * eH.def || 1)) * redA / redH;
+  const chaos = eH.chaos * eA.chaos;
   // open play (set pieces are added separately below)
-  const xg90 = [clamp(1.06 * Math.pow(attH, 2.6) * (lm.neutral ? 1 : 1.12), 0.12, 4), clamp(1.06 * Math.pow(attA, 2.6), 0.12, 4)] as const;
+  const xg90 = [clamp(1.085 * Math.pow(attH, 2.6) * (lm.neutral ? 1 : 1.12) * chaos, 0.12, 4), clamp(1.085 * Math.pow(attA, 2.6) * chaos, 0.12, 4)] as const;
   const press = [clamp(attH, 0.6, 1.6), clamp(attA, 0.6, 1.6)] as const;
-  lm.stats.possession += clamp(50 + (H.mid - A.mid) * 0.45 + rng.normal(2, 6), 25, 75);
+  lm.stats.possession += clamp(50 + (midH - midA) * 0.45 + rng.normal(2, 6), 25, 75);
   lm.stats.passAcc[0] += clamp(72 + (H.mid - 100) * 0.25 + rng.normal(0, 3), 55, 95);
   lm.stats.passAcc[1] += clamp(72 + (A.mid - 100) * 0.25 + rng.normal(0, 3), 55, 95);
 
   (['home', 'away'] as const).forEach((key, si) => {
     const s = lm[key], other = lm[key === 'home' ? 'away' : 'home'];
+    const ef = si === 0 ? eH : eA;
     const ids = onPitch(s);
     if (!ids.length) return;
     const xg = xg90[si] / 90;
@@ -218,7 +236,7 @@ export function tick(lm: LiveMatch) {
         else if (rng.chance(0.25)) { lm.stats.shots[si]++; push(lm, { minute: m, type: 'chance', side: key, text: `${tk.name}'s free kick clips the top of the wall.` }); }
       }
     }
-    if (rng.chance((5 * press[si]) / 90)) {
+    if (rng.chance((5 * press[si] * ef.corners) / 90)) {
       lm.stats.corners[si]++;
       const tk = setPieceTaker(lm, s, 'corner');
       if (tk) {
@@ -230,9 +248,9 @@ export function tick(lm: LiveMatch) {
         }
       }
     }
-    if (rng.chance((lm.derby ? 15 : 11) / 90)) lm.stats.fouls[si]++;
+    if (rng.chance(((lm.derby ? 15 : 11) * ef.fouls) / 90)) lm.stats.fouls[si]++;
     // cards (derbies are hotter)
-    if (rng.chance((lm.derby ? 2.4 : 1.7) / 90)) {
+    if (rng.chance(((lm.derby ? 2.4 : 1.7) * ef.fouls) / 90)) {
       const p = rng.weighted(pl, (x) => (x.attrs.Aggression + (POS_GROUP[x.pos] === 'GK' ? -15 : 0)) * (x.hothead ? 1.8 : 1));
       const perf = lm.perf[p.id];
       const victim = onPitch(other)[0] ? lm.players[rng.pick(onPitch(other))] : undefined;
@@ -258,7 +276,7 @@ export function tick(lm: LiveMatch) {
     // fatigue
     for (const id of onPitch(s)) {
       const p = lm.players[id];
-      p.condition = Math.max(20, p.condition - (0.26 + (20 - p.attrs.Stamina) * 0.012));
+      p.condition = Math.max(20, p.condition - (0.26 + (20 - p.attrs.Stamina) * 0.012) * ef.fatigue);
     }
     // computer-run sides make changes on the hour, at 70 and 80
     if (!s.user && (m === 60 || m === 70 || m === 80) && s.subsUsed < 3) {

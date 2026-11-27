@@ -1,6 +1,7 @@
 import { makeRumours, runMarket } from './market';
 import { planBoost } from './opposition';
 import { captainOf, takersOf } from './leadership';
+import { DEFAULT_INSTRUCTIONS, type Instructions } from './instructions';
 import { makePredictions, predictedPos, previewMessage } from './preview';
 import { managerBoost, managerOf, managers, managersAfterSeason, midSeasonSackings, weeklyAppointments } from './managers';
 import { awardPremium, awardsMessage, seasonAwards } from './awards';
@@ -237,8 +238,8 @@ function setupFor(state: GameState, f: Fixture) {
   const plan = (uh || ua) && f.comp !== 'friendly' ? planBoost(state, f) : 1;
   const mods: MatchMods = { derby, homeBoost: uh ? te.matchBoost * sharp * plan : managerBoost(state, f.homeId), awayBoost: ua ? te.matchBoost * sharp * plan : managerBoost(state, f.awayId), homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1, neutral: f.neutral, knockout: f.ko };
   return {
-    home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: (uh ? state.formation : '4-3-3') as Formation, name: H.name, user: uh, captain: captainOf(state, f.homeId)?.id, ...(uh ? { tilt, takers: takersOf(state) } : {}) },
-    away: { xi: ax, bench: benchFor(state, f.awayId, ax), formation: (ua ? state.formation : '4-3-3') as Formation, name: A.name, user: ua, captain: captainOf(state, f.awayId)?.id, ...(ua ? { tilt, takers: takersOf(state) } : {}) },
+    home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: (uh ? state.formation : '4-3-3') as Formation, name: H.name, user: uh, captain: captainOf(state, f.homeId)?.id, ...(uh ? { tilt, takers: takersOf(state), instr: state.instructions ?? DEFAULT_INSTRUCTIONS } : {}) },
+    away: { xi: ax, bench: benchFor(state, f.awayId, ax), formation: (ua ? state.formation : '4-3-3') as Formation, name: A.name, user: ua, captain: captainOf(state, f.awayId)?.id, ...(ua ? { tilt, takers: takersOf(state), instr: state.instructions ?? DEFAULT_INSTRUCTIONS } : {}) },
     venue: H.stadium, mods,
   };
 }
@@ -799,6 +800,7 @@ export function leagueScale(state: GameState) {
 export function youthScale() { return { low: 35, high: 140 }; }
 
 export function setAutoRotate(state: GameState, on: boolean) { state.autoRotate = on; }
+export function setInstructions(state: GameState, change: Partial<Instructions>) { state.instructions = { ...(state.instructions ?? DEFAULT_INSTRUCTIONS), ...change }; }
 
 export function setTactics(state: GameState, formation: Formation, lineup: string[]) {
   state.formation = formation;

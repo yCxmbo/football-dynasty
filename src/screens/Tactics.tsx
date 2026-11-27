@@ -1,7 +1,8 @@
 import SetPieces from './SetPieces';
 import OppReport from './OppReport';
 import type { Screen } from './shared';
-import { nextUserFixture } from '../engine/game';
+import { nextUserFixture, setInstructions } from '../engine/game';
+import InstructionsPanel from './InstructionsPanel';
 import { FD } from '../ds';
 import { available, slotsOf, type Formation } from '../engine/match';
 import { bestLineup, recoveryPerDay, squadOf, userLineup } from '../engine/game';
@@ -55,6 +56,11 @@ export default function Tactics({ g, go, update, onChange, onAutoRotate, liveNot
         bench={bench.map((p) => ({ ...lite(p), name: !available(p) ? `${p.name} (${p.injuredFor ? 'injured' : 'suspended'})` : `${p.name} · ${cond(p)}%` }))}
         onChange={(l: Array<{ id: string }>) => onChange(g.formation, l.slice(0, slots.length).map((x) => x.id))}
       />
+      <section className="pg-card">
+        <h2 className="pg-h">Team instructions</h2>
+        <p className="hm-note" style={{ marginTop: 0 }}>How the team plays from kick-off. Every choice trades something: hover an option for what it does. You can change them during a match too.</p>
+        <InstructionsPanel value={g.instructions} onChange={(c) => update((d) => setInstructions(d, c))} />
+      </section>
       <SetPieces g={g} update={update} />
       <section className="pg-card">
         <div className="pg-row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>

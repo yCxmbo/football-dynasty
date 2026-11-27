@@ -23,7 +23,7 @@ export const TIPS: Record<string, { title: string; text: string }> = {
   staff: { title: 'Staff', text: 'Six roles rated 1–20 (10 is average). Better staff speed up development, recovery and scouting and shorten injuries. New candidates every summer.' },
   facilities: { title: 'Stadium and facilities', text: 'Expand the ground when demand is higher than capacity, and upgrade the training ground and academy. Work is paid from the balance and the transfer budget.' },
   youth: { title: 'Academy', text: 'Silver stars mark youth players. Promote the best to the first team (they get a professional contract), or loan them out to play. A new intake arrives each summer.' },
-  match: { title: 'Match day', text: 'Choose a team talk before kickoff and at half-time. Change speed, make up to five substitutions (the match pauses), or sim to the end. Nothing is saved until full time.' },
+  match: { title: 'Match day', text: 'Choose a team talk before kickoff and at half-time, and change your instructions (mentality, pressing, tempo, width, line) at any time. Change speed, make up to five substitutions (the match pauses), or sim to the end. Nothing is saved until full time.' },
 };
 
 export default function Tip({ id }: { id: keyof typeof TIPS | string }) {

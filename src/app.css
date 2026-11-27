@@ -253,3 +253,11 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .sp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3, 12px); }
 .sp-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .sp-field select { width: 100%; max-width: 100%; }
+.instr { display: flex; flex-direction: column; gap: 8px; }
+.instr__row { display: grid; grid-template-columns: 130px auto 1fr; gap: 10px; align-items: center; }
+.instr__label { margin: 0; }
+.instr__desc { margin: 0; font-size: 13px; }
+.instr--compact { flex-direction: row; flex-wrap: wrap; gap: 8px 16px; }
+.instr--compact .instr__row { display: flex; gap: 6px; }
+.instr-bar { margin-bottom: 12px; }
+@media (max-width: 760px) { .instr__row { grid-template-columns: 1fr; gap: 4px; } .instr .fd-seg { flex-wrap: wrap; } }

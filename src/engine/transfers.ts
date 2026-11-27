@@ -3,6 +3,7 @@ import { marketFee } from './market';
 import { scoutPerMatchday } from './staff';
 import { afterTransfer } from './achievements';
 import { fansOnTransfer } from './fans';
+import { feederPrice } from './affiliates';
 import { dealExperience, priceFactor, wageFactor } from './manager';
 import { addClause, agentDemand, bidTerms, buyBackFor, settleSale } from './deals';
 import { recordTransfer } from './records';
@@ -85,7 +86,7 @@ export function askingPrice(s: GameState, p: Player) {
   if (p.squad !== 'First team') m = 1.2;
   if (p.contractEnd <= s.year) m *= 0.6; // contract ends this summer
   if (s.transferListedAI?.includes(p.id)) m *= 0.8;
-  return Math.max(100000, Math.round((p.value * m * priceFactor(s)) / 100000) * 100000);
+  return Math.max(100000, Math.round((p.value * m * priceFactor(s) * feederPrice(s, p)) / 100000) * 100000);
 }
 
 /* ---------- scouting ---------- */

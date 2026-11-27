@@ -69,6 +69,14 @@ The sidebar is grouped into sections: Team (squad, tactics, training, academy, s
 - **Transfer deals:** the terms of an offer count after the deal. Fees can be paid in instalments, in both directions. Add-ons are lump sums paid to the selling club once the player reaches 25 games or 15 goals for you. A sell-on clause pays its holder a share of the player's next sale, between any clubs; you get an inbox message when one pays you. Computer clubs' bids for your players sometimes pay part now and the rest over a year, include a sell-on share for you, or (for players aged 22 or under) a buy-back clause: re-sign him for a set fee within two seasons, from his profile. Every agent asks a fee (some are hard bargainers); paying it gets the player to accept up to 10% less in wages. You can include one of your players in an offer as part of the fee (a swap), valued by how well he'd fit the other club. Finances lists what you still owe, what's still to come in, and the clauses running.
 - **Medical centre** (Team section): who is injured, with what (from a knock to a torn knee ligament, by how long he's out) and when he should be back; **rush back** halves the lay-off once, but he has about a one-in-five chance in each of his first two games back of breaking down again, for longer. Every first-teamer has an injury risk (how injury-prone he is, tiredness, age, natural fitness, your fitness coach and training facilities) with the physio's advice, and the season's injuries are logged.
 - **Supporters** (Finances screen, and a tile on Home): their mood (0–100) moves after every competitive match with the result against the pundits' expectations (derbies count double, thrashings either way count extra), when you sign or sell one of your best five players, and with ticket prices (cheap: fuller ground, happier fans, less per ticket; expensive: the reverse). Moods drift back towards normal and reset halfway each summer. Happy fans (75+) fill more seats and give a small lift at home; the board's trust drifts with the stands. Below 30 the supporters' trust writes to the club; below 15 they protest and the board's confidence drops.
+- **Affiliate clubs** (Club section):
+  - **Feeder clubs**, up to two:
+    - smaller clubs, at home or abroad, offered as a spread of sizes;
+    - they always take your players on loan, and players there develop 25% faster;
+    - you get first call on their young players: 20% off the asking price;
+    - you pay a yearly fee (about 0.2–0.5M);
+    - each one abroad adds a little to your club's reputation.
+  - **A parent club**, one at most: a bigger club that lends you its prospects (23 and under) and pays you a yearly fee.
 - **Contract talks** with your players:
   - **Terms beyond wage and length:**
     - the squad role you promise, from star player to fringe player;

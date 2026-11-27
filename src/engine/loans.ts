@@ -1,3 +1,4 @@
+import { isParent } from './affiliates';
 /* Loans: send young or fringe players out to play (the borrowing club pays the wages), or borrow other
    clubs' fringe players. Loans run to the end of the season; a window must be open to start or recall one. */
 import { leagueDef } from './competitions';
@@ -29,15 +30,19 @@ function message(s: GameState, m: Pick<InboxMessage, 'subject' | 'body'> & { pla
 /** Clubs that would take one of your players on loan and play him, best first (league level, then playing time). */
 export function loanDestinations(s: GameState, p: Player) {
   const home = s.clubs[s.userClubId];
+  // your feeder clubs always take him, to develop
+  const feeders = (s.affiliates ?? []).filter((a) => a.kind === 'feeder' && s.clubs[a.clubId]).map((a) => ({ clubId: a.clubId, role: 'Development loan (feeder club)', country: s.clubs[a.clubId].country }));
   const tierOf = (id: string) => leagueDef(s, s.clubs[id].league)?.tier ?? 9;
-  return Object.values(s.clubs)
+  const others = Object.values(s.clubs)
     .filter((c) => c.league && c.id !== home.id && c.reputation <= home.reputation)
     .map((c) => ({ clubId: c.id, ...roleRank(s, p, c.id), tier: tierOf(c.id), rep: c.reputation }))
     // only clubs where he'd start in his position, the strongest first
     .filter((o) => o.rank <= o.starters)
     .sort((a, b) => b.rep - a.rep || a.rank - b.rank)
+    .filter((o) => !feeders.some((f) => f.clubId === o.clubId))
     .slice(0, 6)
     .map((o) => ({ clubId: o.clubId, role: o.rank === 1 ? 'Key player' : 'Regular starter', country: s.clubs[o.clubId].country }));
+  return [...feeders, ...others];
 }
 
 export function canLoanOut(s: GameState, p: Player): string | null {
@@ -77,6 +82,7 @@ export function loanInVerdict(s: GameState, p: Player): { ok: boolean; reason: s
   if (p.loan) return { ok: false, reason: `He is already on loan at ${s.clubs[p.clubId]?.name}.` };
   if (!s.clubs[p.clubId]?.league) return { ok: false, reason: 'Free agents sign contracts, not loans.' };
   if (!windowOpen(s)) return { ok: false, reason: 'Loans can only be agreed while a transfer window is open.' };
+  if (isParent(s, p.clubId) && p.age <= 23) return { ok: true, reason: `${s.clubs[p.clubId].name}, your parent club, are happy for their prospect to play with you.` };
   const there = rankAt(s, p, p.clubId), here = rankAt(s, p, s.userClubId);
   if (there <= 11 && !(p.age <= 21 && there > 6)) return { ok: false, reason: `${s.clubs[p.clubId].name} need him in their team.` };
   if (here > 14) return { ok: false, reason: `He wouldn't get games at ${s.clubs[s.userClubId].name}, so his club says no.` };

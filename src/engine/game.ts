@@ -4,6 +4,7 @@ import { prepFor } from './opposition';
 import { fansAfterMatch, fansNewSeason, homeLift } from './fans';
 import { recordInjury, relapses } from './medical';
 import { payAddOns } from './deals';
+import { affiliateSummer, feederDevelopment } from './affiliates';
 import { checkContractPromises, summerWages } from './negotiation';
 import { scoutingNetworkDay } from './network';
 import { matchOdds } from './preview';
@@ -391,7 +392,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
       for (const p of Object.values(state.players)) {
         if (p.clubId === FREE_AGENT) continue;
         const mine = p.clubId === state.userClubId;
-        developStep(rng, p, 0.6 / Math.floor(state.leagueWeeks / every), mine ? te.development * developmentBoost(state) * trainingFacilityBoost(state) * youthDevelopmentBoost(state, p.age) * youthCoaching(state, p.age) : 1, mine ? state.training.focus[p.id] : undefined);
+        developStep(rng, p, 0.6 / Math.floor(state.leagueWeeks / every), mine ? te.development * developmentBoost(state) * trainingFacilityBoost(state) * youthDevelopmentBoost(state, p.age) * youthCoaching(state, p.age) : feederDevelopment(state, p), mine ? state.training.focus[p.id] : undefined);
       }
     }
     if (slot.week === state.leagueWeeks) setupPlayoffs(state);
@@ -764,6 +765,7 @@ function rollover(state: GameState) {
   resetLeagueCache(state);
   const userMove = moves[state.userClubId]?.dir;
   summerWages(state, userMove);
+  { const lines = affiliateSummer(state); if (lines.length) addMessage(state, { category: 'finance', from: 'Director of football', subject: 'Affiliate clubs: this season\'s fees', body: lines, link: { screen: 'affiliates', label: 'Affiliate clubs' } }); }
 
   state.year++;
   const summerDeals = runMarket(state, rng, 'Summer', seasonLabel(state.year));

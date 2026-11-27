@@ -5,7 +5,7 @@ import { FREE_AGENT, type Currency, type GameState, type Player } from '../engin
 import { seasonLabel } from '../engine/types';
 import { toCur } from '../store';
 
-export type Screen = 'home' | 'inbox' | 'squad' | 'player' | 'tactics' | 'fixtures' | 'table' | 'match' | 'youth' | 'history' | 'settings' | 'transfers' | 'training' | 'scouting' | 'finances' | 'offer' | 'contract' | 'international' | 'career' | 'staff' | 'facilities' | 'nationalMatch' | 'records' | 'club' | 'stats' | 'calendar' | 'medical' | 'review' | 'press';
+export type Screen = 'home' | 'inbox' | 'squad' | 'player' | 'tactics' | 'fixtures' | 'table' | 'match' | 'youth' | 'history' | 'settings' | 'transfers' | 'training' | 'scouting' | 'finances' | 'offer' | 'contract' | 'international' | 'career' | 'staff' | 'facilities' | 'nationalMatch' | 'records' | 'club' | 'stats' | 'calendar' | 'medical' | 'review' | 'press' | 'affiliates';
 
 export const NAV = (unread: number) => [
   { id: 'home', label: 'Home', icon: 'home' }, { id: 'inbox', label: 'Inbox', icon: 'inbox', badge: unread || undefined },
@@ -13,7 +13,7 @@ export const NAV = (unread: number) => [
   { id: 'training', label: 'Training', icon: 'training', group: 'Team' }, { id: 'medical', label: 'Medical', icon: 'injury', group: 'Team' }, { id: 'youth', label: 'Academy', icon: 'youth', group: 'Team' }, { id: 'staff', label: 'Staff', icon: 'captain', group: 'Team' },
   { id: 'fixtures', label: 'Fixtures', icon: 'fixtures', group: 'Matches' }, { id: 'calendar', label: 'Calendar', icon: 'fixtures', group: 'Matches' },
   { id: 'table', label: 'Competitions', icon: 'league-table', group: 'Matches' }, { id: 'international', label: 'International', icon: 'crown', group: 'Matches' }, { id: 'stats', label: 'Stats', icon: 'trend-up', group: 'Matches' }, { id: 'review', label: 'Season review', icon: 'pitch', group: 'Matches' },
-  { id: 'transfers', label: 'Transfers', icon: 'transfers', group: 'Club' }, { id: 'scouting', label: 'Scouting', icon: 'scouting', group: 'Club' },
+  { id: 'transfers', label: 'Transfers', icon: 'transfers', group: 'Club' }, { id: 'scouting', label: 'Scouting', icon: 'scouting', group: 'Club' }, { id: 'affiliates', label: 'Affiliates', icon: 'home', group: 'Club' },
   { id: 'finances', label: 'Finances', icon: 'finances', group: 'Club' }, { id: 'facilities', label: 'Facilities', icon: 'stadium', group: 'Club' },
   { id: 'history', label: 'Club history', icon: 'trophy', group: 'Club' }, { id: 'records', label: 'Records', icon: 'star', group: 'Club' },
   { id: 'career', label: 'Career', icon: 'contract', group: 'You' }, { id: 'settings', label: 'Settings', icon: 'settings', group: 'You' },
@@ -74,5 +74,5 @@ export const NAV_LABEL: Partial<Record<Screen, string>> = {
   home: 'Home', inbox: 'Inbox', squad: 'Squad', player: 'player', tactics: 'Tactics', fixtures: 'Fixtures', table: 'Competitions', match: 'match',
   youth: 'Academy', history: 'Club history', settings: 'Settings', transfers: 'Transfers', training: 'Training', scouting: 'Scouting', finances: 'Finances',
   offer: 'offer', contract: 'contract', international: 'International', career: 'Career', staff: 'Staff', facilities: 'Facilities', nationalMatch: 'match',
-  records: 'Records', club: 'club', stats: 'Stats', calendar: 'Calendar', medical: 'Medical', review: 'Season review', press: 'Press room',
+  records: 'Records', club: 'club', stats: 'Stats', calendar: 'Calendar', medical: 'Medical', review: 'Season review', press: 'Press room', affiliates: 'Affiliates',
 };

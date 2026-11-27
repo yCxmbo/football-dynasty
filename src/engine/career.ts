@@ -218,7 +218,7 @@ export function moveTo(s: GameState, rng: Rng, clubId: string, left: ClubSpell['
   s.userClubId = clubId;
   s.world.userCountry = club.country;
   // things that belonged to the old job
-  s.transferListed = []; s.negotiations = {}; s.installments = []; s.training.focus = {};
+  s.transferListed = []; s.negotiations = {}; s.installments = []; s.affiliates = []; s.training.focus = {};
   for (const b of s.bids) if (b.status === 'open') b.status = 'expired';
   ensureYouth(s, rng, clubId);
   initStaff(s, rng); // staff belong to the club: you inherit theirs

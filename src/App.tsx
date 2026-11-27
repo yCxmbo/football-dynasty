@@ -27,6 +27,7 @@ import Staff from './screens/Staff';
 import Medical from './screens/Medical';
 import SeasonReview from './screens/SeasonReview';
 import PressRoom from './screens/PressRoom';
+import Affiliates from './screens/Affiliates';
 import ClubScreen from './screens/ClubScreen';
 import StatsHub from './screens/StatsHub';
 import Calendar from './screens/Calendar';
@@ -210,6 +211,7 @@ export default function App() {
     case 'medical': body = <Medical g={g} go={go} update={update} />; break;
     case 'review': body = <SeasonReview g={g} go={go} />; break;
     case 'press': body = <PressRoom g={g} go={go} update={update} />; break;
+    case 'affiliates': body = <Affiliates g={g} go={go} update={update} />; break;
     case 'career': body = <Career g={g} go={go} update={update} />; break;
     case 'international': body = <International g={g} go={go} update={update} />; break;
     case 'match': body = <Match key={live?.fixtureId ?? param} g={g} id={live?.fixtureId ?? param} live={live} setLive={setLive} go={go} onFinish={finishLive} />; break;

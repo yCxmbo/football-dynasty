@@ -1,3 +1,4 @@
+import { buyBackFor, clauseLines } from '../engine/deals';
 import { PlayerTalk } from './Talks';
 import DevelopmentChart from './DevelopmentChart';
 import { useState } from 'react';
@@ -8,7 +9,7 @@ import { toCur } from '../store';
 import { canLoanOut, loanDestinations, loanIn, loanInVerdict, loanOut, recall } from '../engine/loans';
 import { badgeUrl } from './badge';
 import { leagueScale, youthScale } from '../engine/game';
-import { MAX_SCOUTING, knowledgeOf, windowOpen } from '../engine/transfers';
+import { MAX_SCOUTING, activateBuyBack, knowledgeOf, windowOpen } from '../engine/transfers';
 import type { GameState } from '../engine/types';
 import { profileData, type Screen } from './shared';
 import { nationName } from '../engine/nations';
@@ -40,6 +41,12 @@ export default function PlayerScreen({ g, id, go, act, update }: { g: GameState;
     if (k < 100) actions.push(<FD.Button key="s" size="sm" variant="secondary" icon="scouting" disabled={scouting || g.scouting.length >= MAX_SCOUTING} onClick={() => act.scout(p.id)}>{scouting ? 'Being scouted' : 'Scout'}</FD.Button>);
     actions.push(<FD.Button key="l" size="sm" variant="secondary" icon="star" onClick={() => act.shortlist(p.id)}>{g.shortlist.includes(p.id) ? 'Shortlisted' : 'Shortlist'}</FD.Button>);
     if (g.clubs[p.clubId]) actions.push(<FD.Button key="vc" size="sm" variant="secondary" icon="home" onClick={() => go('club', p.clubId)}>View {g.clubs[p.clubId].short}</FD.Button>);
+    const bb = buyBackFor(g, p.id);
+    if (bb) actions.push(<FD.Button key="bb" size="sm" icon="transfers" disabled={!windowOpen(g)} onClick={() => {
+      if (!window.confirm(`Use the buy-back clause and re-sign ${p.name} for ${FD.formatMoney(toCur(bb.fee, g.currency), g.currency)}? His club can't refuse.`)) return;
+      const err = activateBuyBack(structuredClone(g), p.id);
+      if (err) setNote(err); else update((d) => { activateBuyBack(d, p.id); });
+    }}>Buy back ({FD.formatMoney(toCur(bb.fee, g.currency), g.currency)})</FD.Button>);
     actions.push(<FD.Button key="o" size="sm" icon="transfers" disabled={!windowOpen(g)} onClick={() => go('offer', p.id)}>Make offer</FD.Button>);
     actions.push(<FD.Button key="li" size="sm" variant="secondary" icon="transfers" onClick={() => {
       const v = loanInVerdict(g, p);
@@ -62,6 +69,7 @@ export default function PlayerScreen({ g, id, go, act, update }: { g: GameState;
         </p>
       )}
       {note && <p className="fd-warn" role="status">{note}</p>}
+      {clauseLines(g, p.id).length ? <p className="pg-card loan-note">{clauseLines(g, p.id).join(' ')}</p> : null}
       {loanOpen && mine && !borrowed && !canLoanOut(g, p) && (() => {
         const dest = loanDestinations(g, p);
         return (

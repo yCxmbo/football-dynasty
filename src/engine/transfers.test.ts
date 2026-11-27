@@ -100,7 +100,7 @@ describe('selling', () => {
     const balance = s.clubs.ash.balance;
     respondToBid(s, bid.id, true);
     expect(s.players[bid.playerId].clubId).toBe(bid.fromClubId);
-    expect(s.clubs.ash.balance).toBe(balance + bid.fee);
+    expect(s.clubs.ash.balance).toBe(balance + Math.round((bid.fee * (bid.upfront ?? 100)) / 100)); // the rest comes in instalments
   });
 });
 

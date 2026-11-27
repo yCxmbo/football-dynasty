@@ -3,6 +3,7 @@ import { marketFee } from './market';
 import { scoutPerMatchday } from './staff';
 import { afterTransfer } from './achievements';
 import { fansOnTransfer } from './fans';
+import { addClause, agentDemand, bidTerms, buyBackFor, settleSale } from './deals';
 import { recordTransfer } from './records';
 import { honourPreContract, preContracts, triggerClauses, wantsOut } from './contracts';
 /* Transfers, scouting and contracts. Pure functions over GameState (mutating the draft). */
@@ -102,6 +103,8 @@ export function toggleShortlist(s: GameState, playerId: string) {
 export interface OfferTerms {
   fee: number; upfront: number; months: number; appearanceFee: number; goalBonus: number; sellOn: number;
   wage: number; years: number; signingBonus: number; releaseClause: number; agentFee: number; role: SquadRole; contractType: 'full-time' | 'part-time' | 'youth';
+  /** One of your players, going the other way as part of the fee. */
+  swapPlayerId?: string;
 }
 
 /** Club's view of the deal: what the fee is worth to them now. */
@@ -131,7 +134,7 @@ export function makeOffer(s: GameState, playerId: string, o: OfferTerms): OfferO
   if (!isFree(p) && !clauseMet) {
     neg.attempts++;
     const ask = askingPrice(s, p);
-    const eff = effectiveFee(o, p.value);
+    const eff = effectiveFee(o, p.value) + swapValue(s, o.swapPlayerId, p.clubId);
     if (eff < ask * 0.97) {
       if (neg.attempts >= 4) { neg.blockedUntilWindow = true; return save(neg, { status: 'rejected', message: `${clubName(s, p.clubId)} are tired of the low offers and end talks until the next window.` }); }
       if (eff < ask * 0.7) return save(neg, { status: 'rejected', message: `${clubName(s, p.clubId)} say the offer is nowhere near their valuation.` });
@@ -141,7 +144,8 @@ export function makeOffer(s: GameState, playerId: string, o: OfferTerms): OfferO
   }
   // 2. the player
   const want = wageDemand(s, p);
-  const effWage = o.wage + o.signingBonus / (52 * o.years);
+  // an agent paid what he asks talks his client into a little less
+  const effWage = (o.wage + o.signingBonus / (52 * o.years)) * (o.agentFee >= agentDemand(p, o.fee) ? 1.1 : 1);
   const expected = expectedRole(s, p);
   const roleGap = SQUAD_ROLES.indexOf(o.role) - SQUAD_ROLES.indexOf(expected);
   if (o.contractType === 'youth' && p.age > 19) return save(neg, { status: 'rejected', message: `${p.name} is ${p.age}: youth contracts are only for players aged 19 or under.` });
@@ -170,6 +174,7 @@ export function completeTransfer(s: GameState, p: Player, o: OfferTerms) {
   const upfront = Math.round((o.fee * o.upfront) / 100);
   afterTransfer(s, o.fee, false);
   fansOnTransfer(s, p, true);
+  if (from !== FREE_AGENT) settleSale(s, p.id, from, o.fee);
   recordTransfer(s, p.name, s.clubs[p.clubId]?.name ?? 'Free agent', s.clubs[s.userClubId].name, o.fee, seasonLabel(s.year), { playerId: p.id, fromId: p.clubId, toId: s.userClubId });
   club.transferBudget -= upfront + o.signingBonus + o.agentFee;
   club.balance -= upfront + o.signingBonus + o.agentFee;
@@ -177,6 +182,19 @@ export function completeTransfer(s: GameState, p: Player, o: OfferTerms) {
   const rest = o.fee - upfront;
   if (rest > 0) s.installments.push({ clubId: s.userClubId, perMatchday: Math.ceil(rest / Math.max(1, Math.round(o.months * 4.3))), remaining: rest });
   if (from !== FREE_AGENT && s.clubs[from]) { s.clubs[from].balance += o.fee; s.clubs[from].transferBudget += Math.round(o.fee * 0.5); }
+  if (from !== FREE_AGENT && s.clubs[from]) {
+    if (o.sellOn > 0) addClause(s, { kind: 'sellOn', playerId: p.id, holderId: from, pct: o.sellOn });
+    if (o.appearanceFee > 0 || o.goalBonus > 0) addClause(s, { kind: 'addOn', playerId: p.id, payerId: s.userClubId, payeeId: from, appFee: o.appearanceFee, goalBonus: o.goalBonus, until: s.year + 3 });
+    const sw = o.swapPlayerId ? s.players[o.swapPlayerId] : undefined;
+    if (sw && sw.clubId === s.userClubId) {
+      Object.assign(sw, { clubId: from, captain: false, joined: s.year, squad: 'First team', morale: 'ok', number: freeNumber(s, from) });
+      delete sw.injury;
+      noteJoined(s, sw);
+      s.lineup = s.lineup.filter((id) => id !== sw.id);
+      s.transferListed = s.transferListed.filter((id) => id !== sw.id);
+      recordTransfer(s, sw.name, club.name, s.clubs[from].name, 0, seasonLabel(s.year), { playerId: sw.id, fromId: club.id, toId: from });
+    }
+  }
   const youth = o.contractType === 'youth';
   Object.assign(p, {
     clubId: s.userClubId, wage: o.wage, contractEnd: s.year + o.years - (s.matchday > s.calendar.length ? 0 : 1),
@@ -213,10 +231,9 @@ export function aiBids(s: GameState, seed: number) {
     if (!p || !c || p.clubId !== s.userClubId) { s.rumours = s.rumours!.filter((x) => x !== r); continue; }
     if (!rng.chance(0.3 + r.heat * 0.15) || s.bids.some((b) => b.playerId === p.id && b.status === 'open')) continue;
     const fee = Math.round((marketFee(s, p) * (0.95 + rng.next() * 0.3)) / 100000) * 100000;
-    const bid: Bid = { id: `b${s.nextId++}`, playerId: p.id, fromClubId: c.id, fee, status: 'open' };
-    s.bids.push(bid);
+    const bid = newBid(s, p, c.id, fee);
     s.rumours = s.rumours!.filter((x) => x !== r);
-    inbox(s, { category: 'transfers', from: c.name, role: 'Sporting director', subject: `Bid for ${p.name}: ${Math.round(fee / 1e5) / 10}M`, body: [`The rumours were true: ${c.name} offer ${Math.round(fee / 1e5) / 10}M for ${p.name}. His value is about ${Math.round(p.value / 1e5) / 10}M.`, 'The offer stands until the transfer window closes.'], bidId: bid.id, playerId: p.id });
+    inbox(s, { category: 'transfers', from: c.name, role: 'Sporting director', subject: `Bid for ${p.name}: ${Math.round(fee / 1e5) / 10}M`, body: [`The rumours were true: ${c.name} offer ${Math.round(fee / 1e5) / 10}M for ${p.name}. His value is about ${Math.round(p.value / 1e5) / 10}M.`, ...bidLines(bid), 'The offer stands until the transfer window closes.'], bidId: bid.id, playerId: p.id });
   }
   triggerClauses(s, rng);
   if (openWindow(s, s.clubs[s.userClubId]?.country)?.name === 'Winter') preContracts(s, rng);
@@ -228,10 +245,48 @@ export function aiBids(s: GameState, seed: number) {
     if (!buyers.length) continue;
     const c = rng.pick(buyers);
     const fee = Math.round((p.value * (listed ? rng.next() * 0.3 + 0.75 : rng.next() * 0.35 + 1.0)) / 100000) * 100000;
-    const bid: Bid = { id: `b${s.nextId++}`, playerId: p.id, fromClubId: c.id, fee, status: 'open' };
-    s.bids.push(bid);
-    inbox(s, { category: 'transfers', from: c.name, role: 'Sporting director', subject: `Bid for ${p.name}: ${Math.round(fee / 1e5) / 10}M`, body: [`${c.name} offer ${Math.round(fee / 1e5) / 10}M for ${p.name}. His value is about ${Math.round(p.value / 1e5) / 10}M.`, 'The offer stands until the transfer window closes.'], bidId: bid.id, playerId: p.id });
+    const bid = newBid(s, p, c.id, fee);
+    inbox(s, { category: 'transfers', from: c.name, role: 'Sporting director', subject: `Bid for ${p.name}: ${Math.round(fee / 1e5) / 10}M`, body: [`${c.name} offer ${Math.round(fee / 1e5) / 10}M for ${p.name}. His value is about ${Math.round(p.value / 1e5) / 10}M.`, ...bidLines(bid), 'The offer stands until the transfer window closes.'], bidId: bid.id, playerId: p.id });
   }
+}
+
+function newBid(s: GameState, p: Player, clubId: string, fee: number): Bid {
+  const id = `b${s.nextId++}`;
+  const terms = bidTerms(s, id, p, fee);
+  const bid: Bid = { id, playerId: p.id, fromClubId: clubId, fee, status: 'open', ...(terms.upfront < 100 ? { upfront: terms.upfront } : {}), ...(terms.sellOn ? { sellOn: terms.sellOn } : {}), ...(terms.buyBack ? { buyBack: terms.buyBack } : {}) };
+  s.bids.push(bid);
+  return bid;
+}
+const m1 = (v: number) => `${Math.round(v / 1e5) / 10}M`;
+/** The terms of a bid in words (empty when it's all cash now with no clauses). */
+export function bidLines(b: Bid): string[] {
+  const out: string[] = [];
+  if (b.upfront && b.upfront < 100) out.push(`Paid ${b.upfront}% now (${m1((b.fee * b.upfront) / 100)}), the rest over the next year.`);
+  if (b.sellOn) out.push(`Includes a ${b.sellOn}% sell-on clause for us: we get ${b.sellOn}% of any future sale.`);
+  if (b.buyBack) out.push(`Includes a buy-back clause: we can re-sign him for ${m1(b.buyBack)} during the next two seasons.`);
+  return out;
+}
+
+/** What one of your players is worth to a selling club as part of a swap (0 if he can't go). */
+export function swapValue(s: GameState, playerId: string | undefined, toClubId: string) {
+  const sp = playerId ? s.players[playerId] : undefined;
+  if (!sp || sp.clubId !== s.userClubId || sp.loan || sp.injuredFor > 0) return 0;
+  const them = s.clubs[toClubId];
+  // a player well below their level is worth little to them
+  const fits = them ? Math.min(1, Math.max(0.3, 1 - (them.reputation * 1.6 - sp.ability) / 60)) : 1;
+  return Math.round(sp.value * 0.8 * fits);
+}
+
+/** Use a buy-back clause: he returns at the agreed fee (paid now), on his current wage plus 10%. */
+export function activateBuyBack(s: GameState, playerId: string): string | null {
+  const c = buyBackFor(s, playerId);
+  const p = s.players[playerId];
+  if (!c || !p) return 'There is no buy-back clause you can use for him.';
+  if (!windowOpen(s)) return windowLabel(s);
+  const club = s.clubs[s.userClubId];
+  if (c.fee > club.transferBudget) return 'The buy-back fee is more than your transfer budget.';
+  completeTransfer(s, p, { fee: c.fee, upfront: 100, months: 0, appearanceFee: 0, goalBonus: 0, sellOn: 0, wage: Math.round(p.wage * 1.1), years: 3, signingBonus: 0, releaseClause: 0, agentFee: 0, role: expectedRole(s, p), contractType: 'full-time' });
+  return null;
 }
 
 export function respondToBid(s: GameState, bidId: string, accept: boolean) {
@@ -244,9 +299,14 @@ export function respondToBid(s: GameState, bidId: string, accept: boolean) {
   fansOnTransfer(s, p, false);
   afterTransfer(s, b.fee, true);
   recordTransfer(s, p.name, club.name, buyer.name, b.fee, seasonLabel(s.year), { playerId: p.id, fromId: club.id, toId: buyer.id });
-  buyer.transferBudget -= b.fee; buyer.balance -= b.fee;
-  club.balance += b.fee; club.transferBudget += Math.round(b.fee * 0.6);
-  if (s.ledger) s.ledger.income.sales += b.fee;
+  settleSale(s, p.id, club.id, b.fee);
+  const now = Math.round((b.fee * (b.upfront ?? 100)) / 100), later = b.fee - now;
+  buyer.transferBudget -= b.fee; buyer.balance -= now;
+  club.balance += now; club.transferBudget += Math.round(now * 0.6);
+  if (s.ledger) s.ledger.income.sales += now;
+  if (later > 0) s.installments.push({ clubId: buyer.id, toClubId: club.id, perMatchday: Math.ceil(later / 52), remaining: later });
+  if (b.sellOn) addClause(s, { kind: 'sellOn', playerId: p.id, holderId: club.id, pct: b.sellOn });
+  if (b.buyBack) addClause(s, { kind: 'buyBack', playerId: p.id, holderId: club.id, fee: b.buyBack, until: s.year + 2 });
   p.clubId = buyer.id; noteJoined(s, p); p.number = freeNumber(s, buyer.id); p.captain = false; p.joined = s.year;
   s.lineup = s.lineup.filter((id) => id !== p.id);
   s.transferListed = s.transferListed.filter((id) => id !== p.id);
@@ -305,6 +365,7 @@ export function payInstallments(s: GameState) {
     i.remaining -= pay;
     if (s.clubs[i.clubId]) s.clubs[i.clubId].balance -= pay;
     if (i.clubId === s.userClubId && s.ledger) s.ledger.expenses.transfers += pay;
+    if (i.toClubId && s.clubs[i.toClubId]) { s.clubs[i.toClubId].balance += pay; if (i.toClubId === s.userClubId && s.ledger) s.ledger.income.sales += pay; }
   }
   s.installments = s.installments.filter((i) => i.remaining > 0);
 }

@@ -3,6 +3,7 @@
    rumour about one of your players brings a bid when the window opens. */
 import { noteJoined, squadOf } from './index';
 import { recordTransfer } from './records';
+import { settleSale } from './deals';
 import type { Rng } from './rng';
 import { FREE_AGENT, type GameState, type Player } from './types';
 import { wageFor } from './world';
@@ -61,6 +62,7 @@ export function completeDeal(s: GameState, p: Player, buyerId: string, fee: numb
   seller.balance += fee; seller.transferBudget += Math.round(fee * 0.5);
   buyer.balance -= fee; buyer.transferBudget = Math.max(0, buyer.transferBudget - fee);
   recordTransfer(s, p.name, seller.name, buyer.name, fee, season, { playerId: p.id, fromId: seller.id, toId: buyer.id, rumoured });
+  settleSale(s, p.id, seller.id, fee);
   Object.assign(p, { clubId: buyerId, number: freeNumber(s, buyerId), captain: false, joined: s.year, morale: 'high', contractEnd: Math.max(p.contractEnd, s.year + 4),
     wage: Math.max(p.wage, wageFor(p.ability, buyer.reputation)) });
   delete p.releaseClause;

@@ -5,6 +5,7 @@ import type { GameState, Ledger } from '../engine/types';
 import { seasonLabel } from '../engine/types';
 import { toCur } from '../store';
 import Supporters from './Supporters';
+import { clauseLines } from '../engine/deals';
 
 const INCOME: Array<[keyof Ledger['income'], string]> = [['gate', 'Gate receipts'], ['tv', 'TV money'], ['sponsorship', 'Sponsorship'], ['merchandise', 'Merchandise'], ['prize', 'Prize money'], ['sales', 'Player sales']];
 const EXPENSES: Array<[keyof Ledger['expenses'], string]> = [['wages', 'Player wages'], ['staff', 'Staff and upkeep'], ['facilities', 'Building work'], ['transfers', 'Transfer fees']];
@@ -48,6 +49,7 @@ export default function Finances({ g, update }: { g: GameState; update: (fn: (d:
           <span className="fd-meter fd-meter--wide"><span className={`fd-meter__bar fd-meter__bar--${usage > 100 ? 'high' : usage > 92 ? 'medium' : 'low'}`} style={{ width: Math.min(100, usage) + '%' }} /></span><span className="hm-note">{usage}% used</span></div>
       </div>
       <Supporters g={g} update={update} />
+      <Deals g={g} />
       <div className="fn-grid">
         <Breakdown title="Income" rows={INCOME.map(([k, l]) => [l, L.income[k]])} cur={cur} />
         <Breakdown title="Expenses" rows={EXPENSES.map(([k, l]) => [l, L.expenses[k] ?? 0])} cur={cur} />
@@ -63,5 +65,25 @@ export default function Finances({ g, update }: { g: GameState; update: (fn: (d:
         </section>
       )}
     </div>
+  );
+}
+
+/** Money still to pay or come in from transfers, and the clauses running on players. */
+function Deals({ g }: { g: GameState }) {
+  const cur = g.currency, us = g.userClubId;
+  const owe = g.installments.filter((i) => i.clubId === us).reduce((a, i) => a + i.remaining, 0);
+  const owed = g.installments.filter((i) => i.toClubId === us).reduce((a, i) => a + i.remaining, 0);
+  const ids = [...new Set((g.clauses ?? []).map((c) => c.playerId))];
+  const lines = ids.flatMap((id) => clauseLines(g, id).map((t) => ({ id, name: g.players[id]?.name ?? 'Former player', t })));
+  if (!owe && !owed && !lines.length) return null;
+  return (
+    <section className="pg-card">
+      <h2 className="pg-h">Transfer deals</h2>
+      <div className="hm-fin" style={{ maxWidth: 420 }}>
+        <div><span className="pg-h">Still to pay (instalments)</span><strong><FD.Money amount={toCur(owe, cur)} currency={cur} /></strong></div>
+        <div><span className="pg-h">Still to come in</span><strong><FD.Money amount={toCur(owed, cur)} currency={cur} /></strong></div>
+      </div>
+      {lines.length ? <ul className="med-log" style={{ marginTop: 10 }}>{lines.map((l, i) => <li key={i}><strong>{l.name}:</strong> {l.t}</li>)}</ul> : null}
+    </section>
   );
 }

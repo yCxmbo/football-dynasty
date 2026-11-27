@@ -143,8 +143,8 @@ export interface MatchResult { score: [number, number]; pens?: [number, number];
 export interface InboxMessage { id: string; category: 'board' | 'transfers' | 'scouting' | 'medical' | 'media' | 'training' | 'youth' | 'match' | 'finance'; from: string; role?: string; date: string; subject: string; body: string[]; unread: boolean; bidId?: string; playerId?: string; /** A question to answer (press conference, player request). */ choice?: import('./media').Choice }
 
 /** An AI club's bid for one of the user's players. */
-export interface Bid { id: string; playerId: string; fromClubId: string; fee: number; status: 'open' | 'accepted' | 'rejected' | 'expired' }
-export interface Installment { clubId: string; perMatchday: number; remaining: number }
+export interface Bid { id: string; playerId: string; fromClubId: string; fee: number; status: 'open' | 'accepted' | 'rejected' | 'expired'; /** % paid now (the rest over a year). */ upfront?: number; /** % of his next sale, for you. */ sellOn?: number; /** Fee to buy him back within two seasons. */ buyBack?: number }
+export interface Installment { clubId: string; perMatchday: number; remaining: number; /** Who receives it (your club, when a buyer pays you in instalments). */ toClubId?: string }
 export interface Negotiation { attempts: number; lastResponse?: OfferResponse; blockedUntilWindow?: boolean }
 export interface OfferResponse { status: 'accepted' | 'rejected' | 'counter'; message: string; counter?: number }
 
@@ -215,6 +215,8 @@ export interface GameState {
   matchPrep?: { fixtureId: string; focus?: import('./opposition').Focus; mark?: string };
   /** Your supporters' mood and ticket prices. */
   fans?: import('./fans').Fans;
+  /** Sell-on, buy-back and add-on clauses still running. */
+  clauses?: import('./deals').Clause[];
   /** Your club's injuries this season, newest first. */
   injuryLog?: import('./medical').InjuryLogLine[];
   meeting?: { date: string; topic: import('./talks').MeetingTopic; reaction: import('./talks').Reaction };

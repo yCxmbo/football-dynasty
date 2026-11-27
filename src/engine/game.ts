@@ -3,6 +3,7 @@ import { windowsFor } from './windows';
 import { prepFor } from './opposition';
 import { fansAfterMatch, fansNewSeason, homeLift } from './fans';
 import { recordInjury, relapses } from './medical';
+import { payAddOns } from './deals';
 import { captainOf, takersOf } from './leadership';
 import { withDefaults, type Instructions } from './instructions';
 import { makePredictions, predictedPos, previewMessage } from './preview';
@@ -348,6 +349,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     for (const [id, c] of Object.entries(conditions)) if (state.players[id]) state.players[id].condition = c;
     applyResult(state, f, rng);
     if (f.comp !== 'friendly') afterDerby(state, f);
+    if ((uh || ua) && f.comp !== 'friendly' && state.clauses?.length) payAddOns(state, uh ? result.ratings.home : result.ratings.away);
     if (uh || ua) for (const p of relapses(state, (uh ? result.ratings.home : result.ratings.away).filter((x) => x.minutes > 0).map((x) => x.playerId)))
       addMessage(state, { category: 'medical', from: 'Medical team', role: 'Head physio', playerId: p.id, subject: `${p.name} has broken down again`, body: [`${p.name} came back early and the injury has flared up: ${p.injury?.type.toLowerCase()}. He's out for ${p.injuredFor} matches, longer than the first time.`] });
     if ((uh || ua) && f.comp !== 'friendly') for (const m of fansAfterMatch(state, f, derbyName(state, f.homeId, f.awayId))) addMessage(state, { category: 'media', from: 'Supporters', ...m });

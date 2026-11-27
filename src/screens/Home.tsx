@@ -10,6 +10,11 @@ import { boardConfidence, confidenceWord } from '../engine/career';
 import { MAX_FRIENDLIES, arrangeFriendly, canArrange, friendliesArranged } from '../engine/friendlies';
 import type { Screen } from './shared';
 import { bidsFor } from './shared-transfers';
+import { atmosphere, atmosphereWord } from '../engine/dynamics';
+import { windowsFor } from '../engine/windows';
+import { today } from '../engine/game';
+import { badgeUrl } from './badge';
+import type { Fixture } from '../engine/types';
 
 /** Date of your first competitive game (friendlies come before it). */
 function seasonStart(g: GameState) {
@@ -48,9 +53,30 @@ export default function Home({ g, go, onPlay, onSimNext, update }: { g: GameStat
     : over ? `You finished ${ordinal(pos)}. Read the board's review, then start the new season.`
     : `${ordinal(pos)} after ${played} ${played === 1 ? 'match' : 'matches'}, ${pos === 1 ? `${table[0].pts - table[1].pts} ${table[0].pts - table[1].pts === 1 ? 'point' : 'points'} clear` : `${table[0].pts - table[pos - 1].pts} points off the top`}.`;
 
+  const us = g.userClubId;
+  const now = today(g);
+  const mineFx = g.fixtures.filter((f) => f.homeId === us || f.awayId === us);
+  const resultOf = (f: Fixture): 'W' | 'D' | 'L' => {
+    const [h, a] = f.result!.score, home = f.homeId === us, gf = home ? h : a, ga = home ? a : h;
+    if (f.result!.winnerId) return f.result!.winnerId === us ? 'W' : 'L';
+    return gf > ga ? 'W' : gf < ga ? 'L' : 'D';
+  };
+  const form = mineFx.filter((f) => f.result && f.comp !== 'friendly').sort((a, b) => a.matchday - b.matchday).slice(-5).map(resultOf);
+  const decisions = g.inbox.filter((m) => (m.bidId && g.bids.find((b) => b.id === m.bidId)?.status === 'open') || (m.choice && m.choice.answered === undefined && m.choice.options.length)).length;
+  const atm = atmosphere(g);
+  const coming = mineFx.filter((f) => !f.result).sort((a, b) => a.matchday - b.matchday).slice(next ? 1 : 0, next ? 5 : 4);
+  const dates = windowsFor(club.country, g.year).flatMap((w) => [{ d: w.from, t: `The ${w.label} opens` }, { d: w.to, t: `Deadline day: the ${w.label} closes` }]).filter((x) => x.d >= now).sort((a, b) => a.d.localeCompare(b.d)).slice(0, 2);
+  const inDays = (d: string) => Math.round((Date.parse(d) - Date.parse(now)) / 86_400_000);
+
   return (
     <div>
       <div className="pg-head"><div><h1 className="pg-title">{greeting}</h1><p className="pg-sub">{lead}</p></div></div>
+      <div className="hm-strip">
+        <div className="hm-stat"><span className="fd-label">Form</span><span className="hm-form">{form.length ? form.map((f, i) => <span key={i} className={`fd-form fd-form--${f}`}>{f}</span>) : <span className="fd-muted">No games yet</span>}</span></div>
+        <div className="hm-stat"><span className="fd-label">League</span><strong>{played ? ordinal(pos) : '—'}</strong><span className="fd-muted">target {target.text}</span></div>
+        <button type="button" className="hm-stat hm-stat--btn" onClick={() => go('squad')}><span className="fd-label">Dressing room</span><strong>{atmosphereWord(atm)}</strong><span className="fd-muted">{mine.filter((p) => p.morale === 'low' && p.squad === 'First team').length} unhappy</span></button>
+        <button type="button" className={'hm-stat hm-stat--btn' + (decisions ? ' is-alert' : '')} onClick={() => go('inbox')}><span className="fd-label">Decisions waiting</span><strong>{decisions}</strong><span className="fd-muted">{decisions ? 'Bids and questions in your inbox' : 'Nothing needs you'}</span></button>
+      </div>
       <div className="hm-grid">
         <div className="hm-col">
           <h2 className="pg-h">Next match</h2>
@@ -71,6 +97,26 @@ export default function Home({ g, go, onPlay, onSimNext, update }: { g: GameStat
                 </div>
               ))}
             </div>
+          </>}
+          {(coming.length > 0 || dates.length > 0) && <>
+            <h2 className="pg-h">Coming up</h2>
+            <ul className="pg-card hm-list hm-coming">
+              {coming.map((f) => {
+                const home = f.homeId === us, opp = g.clubs[home ? f.awayId : f.homeId], d = g.calendar[f.matchday - 1]?.date ?? f.date;
+                return (
+                  <li key={f.id} className="hm-item"><button onClick={() => go('club', opp.id)}>
+                    <span className="hm-item__icon"><img className="club-badge" src={badgeUrl(opp)} alt="" /></span>
+                    <span className="hm-item__text"><strong>{opp.name} ({home ? 'H' : 'A'})</strong><span className="fd-muted">{f.comp === 'friendly' ? 'Friendly' : compInfo(g, f.comp).name} · {formatDate(d)}{d ? ` · in ${inDays(d)} days` : ''}</span></span>
+                  </button></li>
+                );
+              })}
+              {dates.map((x) => (
+                <li key={x.d + x.t} className="hm-item"><button onClick={() => go('transfers')}>
+                  <span className="hm-item__icon fd-warn"><FD.Icon name="transfers" size={18} /></span>
+                  <span className="hm-item__text"><strong>{x.t}</strong><span className="fd-muted">{formatDate(x.d)} · in {inDays(x.d)} days</span></span>
+                </button></li>
+              ))}
+            </ul>
           </>}
           {last && <>
             <h2 className="pg-h">Last result</h2>

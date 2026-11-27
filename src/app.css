@@ -442,3 +442,18 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .nav-group span { font: 600 10px/14px var(--font-sans); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
 @media (max-width: 720px) { .nav-group { margin: 6px 4px 2px; padding: 0; } .nav-group span { display: none; } }
 .cal__fx:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+
+/* Home: key facts */
+.hm-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: var(--space-6); }
+@media (max-width: 900px) { .hm-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.hm-stat { display: grid; gap: 4px; align-content: start; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-raised); color: var(--ink); text-align: left; font: inherit; min-width: 0; }
+.hm-stat strong { font: 700 20px/24px var(--font-display); }
+.hm-stat .fd-muted { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hm-stat--btn { cursor: pointer; }
+.hm-stat--btn:hover { border-color: var(--teal); }
+.hm-stat--btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+.hm-stat.is-alert { border-color: var(--gold); }
+.hm-stat.is-alert strong { color: var(--gold-ink); }
+.hm-form { display: flex; gap: 3px; min-height: 24px; align-items: center; }
+.hm-form .fd-form { width: 20px; height: 20px; font-size: 11px; }
+.hm-coming .club-badge { width: 18px; height: 18px; }

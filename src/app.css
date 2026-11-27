@@ -435,3 +435,10 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .talk__reply { margin: 12px 0 0; padding: 10px 12px; border-radius: var(--radius-md); border-left: 3px solid var(--line-strong); background: var(--surface-sunken); font-size: 14px; }
 .talk__reply--good { border-left-color: var(--form-win); }
 .talk__reply--bad { border-left-color: var(--loss); }
+
+/* Sidebar sections */
+.fd-sidebar { overflow-y: auto; }
+.nav-group { margin: 10px 0 2px; padding: 8px 10px 0; border-top: 1px solid var(--line); }
+.nav-group span { font: 600 10px/14px var(--font-sans); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+@media (max-width: 720px) { .nav-group { margin: 6px 4px 2px; padding: 0; } .nav-group span { display: none; } }
+.cal__fx:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }

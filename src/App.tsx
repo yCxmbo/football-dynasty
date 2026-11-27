@@ -43,6 +43,7 @@ import Squad from './screens/Squad';
 import Table from './screens/Table';
 import Tactics from './screens/Tactics';
 import Youth from './screens/Youth';
+import Frame from './screens/Frame';
 import { NAV, type Screen, NAV_LABEL } from './screens/shared';
 
 function liveFx0(g: NonNullable<ReturnType<typeof useGame>['game']>, live: LiveState | null) {
@@ -216,12 +217,12 @@ export default function App() {
   if (outOfWork && !live) body = <Career g={g} go={go} update={update} />;
 
   return (
-    <FD.AppFrame
+    <Frame
       crestSrc={`${import.meta.env.BASE_URL}crest-128.png`} club={club.name}
       season={`Season ${g.year - g.manager.since + 1} · ${slotLabel} · ${liveFx ? formatDate(liveFx.date) : currentDate(g)}`}
       budget={toCur(club.transferBudget, g.currency)} currency={g.currency}
       onCurrencyChange={(c: 'EUR' | 'USD' | 'GBP') => update((d) => { d.currency = c; })}
-      active={navActive} nav={NAV(unread)} onNavigate={(id: Screen) => go(id)} primaryAction={primary}
+      active={navActive} nav={NAV(unread)} onNavigate={(id) => go(id as Screen)} primaryAction={primary}
     >
       {hist.length && !(outOfWork && !live) ? (
         <button type="button" className="nav-back" onClick={() => { try { window.history.back(); } catch { back(); } }} aria-label={`Back to ${NAV_LABEL[hist[hist.length - 1].s] ?? 'previous screen'}`}>
@@ -238,6 +239,6 @@ export default function App() {
           </div>
         </div>
       )}
-    </FD.AppFrame>
+    </Frame>
   );
 }

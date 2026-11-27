@@ -9,12 +9,14 @@ export type Screen = 'home' | 'inbox' | 'squad' | 'player' | 'tactics' | 'fixtur
 
 export const NAV = (unread: number) => [
   { id: 'home', label: 'Home', icon: 'home' }, { id: 'inbox', label: 'Inbox', icon: 'inbox', badge: unread || undefined },
-  { id: 'squad', label: 'Squad', icon: 'squad' }, { id: 'tactics', label: 'Tactics', icon: 'tactics' },
-  { id: 'fixtures', label: 'Fixtures', icon: 'fixtures' }, { id: 'calendar', label: 'Calendar', icon: 'fixtures' }, { id: 'table', label: 'Competitions', icon: 'league-table' },
-  { id: 'international', label: 'International', icon: 'crown' },
-  { id: 'youth', label: 'Academy', icon: 'youth' }, { id: 'history', label: 'Club history', icon: 'trophy' }, { id: 'career', label: 'Career', icon: 'contract' }, { id: 'stats', label: 'Stats', icon: 'trend-up' }, { id: 'records', label: 'Records', icon: 'star' },
-  { id: 'transfers', label: 'Transfers', icon: 'transfers' }, { id: 'scouting', label: 'Scouting', icon: 'scouting' }, { id: 'training', label: 'Training', icon: 'training' }, { id: 'staff', label: 'Staff', icon: 'captain' }, { id: 'facilities', label: 'Facilities', icon: 'stadium' },
-  { id: 'finances', label: 'Finances', icon: 'finances' }, { id: 'settings', label: 'Settings', icon: 'settings' },
+  { id: 'squad', label: 'Squad', icon: 'squad', group: 'Team' }, { id: 'tactics', label: 'Tactics', icon: 'tactics', group: 'Team' },
+  { id: 'training', label: 'Training', icon: 'training', group: 'Team' }, { id: 'youth', label: 'Academy', icon: 'youth', group: 'Team' }, { id: 'staff', label: 'Staff', icon: 'captain', group: 'Team' },
+  { id: 'fixtures', label: 'Fixtures', icon: 'fixtures', group: 'Matches' }, { id: 'calendar', label: 'Calendar', icon: 'fixtures', group: 'Matches' },
+  { id: 'table', label: 'Competitions', icon: 'league-table', group: 'Matches' }, { id: 'international', label: 'International', icon: 'crown', group: 'Matches' }, { id: 'stats', label: 'Stats', icon: 'trend-up', group: 'Matches' },
+  { id: 'transfers', label: 'Transfers', icon: 'transfers', group: 'Club' }, { id: 'scouting', label: 'Scouting', icon: 'scouting', group: 'Club' },
+  { id: 'finances', label: 'Finances', icon: 'finances', group: 'Club' }, { id: 'facilities', label: 'Facilities', icon: 'stadium', group: 'Club' },
+  { id: 'history', label: 'Club history', icon: 'trophy', group: 'Club' }, { id: 'records', label: 'Records', icon: 'star', group: 'Club' },
+  { id: 'career', label: 'Career', icon: 'contract', group: 'You' }, { id: 'settings', label: 'Settings', icon: 'settings', group: 'You' },
 ];
 
 export function moraleOf(p: Player) { return p.morale; }

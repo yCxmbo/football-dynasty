@@ -480,3 +480,6 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .fans__line { fill: none; stroke: var(--teal); stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
 .fans__mid { stroke: var(--line-strong); stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
 .fans__notes { margin: 4px 0 12px; padding-left: 18px; font-size: 13px; }
+
+/* Medical */
+.med-log { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; }

@@ -1,4 +1,5 @@
 /* Training: the user's weekly plan changes development speed, injury risk, morale and match sharpness. */
+import { recordInjury } from './medical';
 import { ROLE_BY_ID } from './roles';
 import { ATTRIBUTE_GROUPS, POS_GROUP, POSITION_WEIGHTS, abilityFromAttributes, clamp } from './ratings';
 import type { Rng } from './rng';
@@ -89,6 +90,7 @@ export function trainingWeek(rng: Rng, s: GameState, squad: Player[]): string[] 
   if (fit.length && rng.chance(e.trainingInjury * trainingInjuryFactor(s))) {
     const p = rng.weighted(fit, (x) => x.hidden.injuryProneness);
     p.injuredFor = rng.int(1, 3);
+    recordInjury(s, p, 'training');
     out.push(`${p.name} picked up a knock in training and will miss ${p.injuredFor} ${p.injuredFor === 1 ? 'match' : 'matches'}.`);
   }
   if (e.restDays === 0 && rng.chance(0.4) && fit.length) {

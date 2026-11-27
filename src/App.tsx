@@ -24,6 +24,7 @@ import NewGame from './screens/NewGame';
 import International from './screens/International';
 import Career from './screens/Career';
 import Staff from './screens/Staff';
+import Medical from './screens/Medical';
 import ClubScreen from './screens/ClubScreen';
 import StatsHub from './screens/StatsHub';
 import Calendar from './screens/Calendar';
@@ -204,6 +205,7 @@ export default function App() {
     case 'club': body = <ClubScreen key={param} g={g} id={param} go={go} />; break;
     case 'facilities': body = <FacilitiesScreen g={g} update={update} />; break;
     case 'staff': body = <Staff g={g} update={update} />; break;
+    case 'medical': body = <Medical g={g} go={go} update={update} />; break;
     case 'career': body = <Career g={g} go={go} update={update} />; break;
     case 'international': body = <International g={g} go={go} update={update} />; break;
     case 'match': body = <Match key={live?.fixtureId ?? param} g={g} id={live?.fixtureId ?? param} live={live} setLive={setLive} go={go} onFinish={finishLive} />; break;

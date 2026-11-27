@@ -2,6 +2,7 @@ import { makeRumours, runMarket } from './market';
 import { windowsFor } from './windows';
 import { prepFor } from './opposition';
 import { fansAfterMatch, fansNewSeason, homeLift } from './fans';
+import { recordInjury, relapses } from './medical';
 import { captainOf, takersOf } from './leadership';
 import { withDefaults, type Instructions } from './instructions';
 import { makePredictions, predictedPos, previewMessage } from './preview';
@@ -347,6 +348,8 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     for (const [id, c] of Object.entries(conditions)) if (state.players[id]) state.players[id].condition = c;
     applyResult(state, f, rng);
     if (f.comp !== 'friendly') afterDerby(state, f);
+    if (uh || ua) for (const p of relapses(state, (uh ? result.ratings.home : result.ratings.away).filter((x) => x.minutes > 0).map((x) => x.playerId)))
+      addMessage(state, { category: 'medical', from: 'Medical team', role: 'Head physio', playerId: p.id, subject: `${p.name} has broken down again`, body: [`${p.name} came back early and the injury has flared up: ${p.injury?.type.toLowerCase()}. He's out for ${p.injuredFor} matches, longer than the first time.`] });
     if ((uh || ua) && f.comp !== 'friendly') for (const m of fansAfterMatch(state, f, derbyName(state, f.homeId, f.awayId))) addMessage(state, { category: 'media', from: 'Supporters', ...m });
     if (derbyName(state, f.homeId, f.awayId)) derbyHomes.add(f.homeId);
     if (compInfo(state, f.comp).kind === 'league') homeIds.add(f.homeId); else if (f.comp !== 'friendly') cupGate(state, f);
@@ -354,7 +357,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
   }
   const days = state.calendar[md] ? Math.round((Date.parse(state.calendar[md].date) - Date.parse(slot.date)) / 86400000) : 30;
   for (const p of Object.values(state.players)) {
-    if (p.injuredFor > 0) p.injuredFor--;
+    if (p.injuredFor > 0) { p.injuredFor--; if (!p.injuredFor && p.injury && !p.injury.rushed) delete p.injury; }
     if (p.suspendedFor > 0) p.suspendedFor--;
     if ((p.condition ?? 100) < 100) p.condition = Math.min(100, Math.round((p.condition ?? 100) + days * recoveryPerDay(state, p)));
   }
@@ -422,11 +425,11 @@ function applyResult(state: GameState, f: Fixture, rng: ReturnType<typeof create
     const p = state.players[pr.playerId];
     if (!p) continue;
     // friendlies don't count: only a knock can carry over
-    if (friendly) { if (pr.injured) p.injuredFor = 1 + rng.int(0, 2); continue; }
+    if (friendly) { if (pr.injured) { p.injuredFor = 1 + rng.int(0, 2); recordInjury(state, p, 'match'); } continue; }
     p.current.apps++; p.current.goals += pr.goals; p.current.assists += pr.assists; p.current.ratingSum += pr.rating;
     if (pr.card === 'yellow') { p.yellowCards++; if (p.yellowCards % 5 === 0) p.suspendedFor = 2; }
     if (pr.card === 'red') p.suspendedFor = 2; // counts down once after this slot → misses 1
-    if (pr.injured) p.injuredFor = Math.max(1, Math.round((1 + rng.int(1, 4) + Math.round(p.hidden.injuryProneness / 8)) * (p.clubId === state.userClubId ? injuryLengthFactor(state) : 1)));
+    if (pr.injured) { p.injuredFor = Math.max(1, Math.round((1 + rng.int(1, 4) + Math.round(p.hidden.injuryProneness / 8)) * (p.clubId === state.userClubId ? injuryLengthFactor(state) : 1))); recordInjury(state, p, 'match'); }
     if (pr.rating >= 7.5) p.morale = 'high'; else if (pr.rating < 6) p.morale = p.morale === 'high' ? 'ok' : 'low';
   }
   if (friendly) return;
@@ -461,7 +464,7 @@ function postMatchMessages(state: GameState, f: Fixture) {
   const mine = userHome ? r.ratings.home : r.ratings.away;
   for (const pr of mine) {
     const p = state.players[pr.playerId];
-    if (pr.injured && p.injuredFor > 0) addMessage(state, { category: 'medical', from: 'Medical team', role: 'Head physio', subject: `${p.name}: injured, out ${p.injuredFor} ${p.injuredFor === 1 ? 'match' : 'matches'}`, body: [`${p.name} was hurt against ${them.name} and should miss about ${p.injuredFor} ${p.injuredFor === 1 ? 'match' : 'matches'}.`] });
+    if (pr.injured && p.injuredFor > 0) addMessage(state, { category: 'medical', from: 'Medical team', role: 'Head physio', playerId: p.id, subject: `${p.name}: ${(p.injury?.type ?? 'injured').toLowerCase()}, out ${p.injuredFor} ${p.injuredFor === 1 ? 'match' : 'matches'}`, body: [`${p.name} was hurt against ${them.name}${p.injury ? ` (${p.injury.type.toLowerCase()})` : ''} and should miss about ${p.injuredFor} ${p.injuredFor === 1 ? 'match' : 'matches'}.`, 'See the Medical screen for when he should be back, and whether to rush him.'] });
     if (p.suspendedFor > 0 && (pr.card === 'red' || p.yellowCards % 5 === 0)) addMessage(state, { category: 'match', from: 'League office', subject: `${p.name} suspended for the next match`, body: [pr.card === 'red' ? `${p.name} was sent off and is banned for one match.` : `${p.name} has reached ${p.yellowCards} yellow cards and is banned for one match.`] });
   }
 }
@@ -548,6 +551,7 @@ export function startNewSeason(state: GameState) {
 function rollover(state: GameState) {
   const rng = createRng(state.rngState ^ 0x9e3779b9);
   if (state.fans) fansNewSeason(state);
+  delete state.injuryLog;
   const label = seasonLabel(state.year);
   const { moves, champions } = promotionsAndRelegations(state);
   const honours: Record<string, string> = {};

@@ -43,7 +43,7 @@ export default function Home({ g, go, onPlay, onSimNext, update }: { g: GameStat
   const alerts = [
     ...bidsFor(g).map(({ b, p }) => ({ icon: 'transfers', tone: 'fd-ok', t: `Bid for ${p.name}`, s: `${g.clubs[b.fromClubId].name} offer ${FD.formatMoney(toCur(b.fee, cur), cur)}`, id: p.id, screen: 'scouting' as Screen })),
     ...g.lineup.map((id) => g.players[id]).filter((p) => p && (p.condition ?? 100) < 70).map((p) => ({ icon: 'training', tone: 'fd-warn', t: `${p.name}: tired (${Math.round(p.condition ?? 100)}%)`, s: g.autoRotate !== false ? 'Will be rested if a fresh player is available' : 'Consider resting this player', id: p.id, screen: 'tactics' as Screen })),
-    ...mine.filter((p) => p.injuredFor > 0).map((p) => ({ icon: 'injury', tone: 'fd-money--neg', t: `${p.name}: injured`, s: `Out ${p.injuredFor} more ${p.injuredFor === 1 ? 'match' : 'matches'}`, id: p.id })),
+    ...mine.filter((p) => p.injuredFor > 0).map((p) => ({ icon: 'injury', tone: 'fd-money--neg', t: `${p.name}: ${p.injury?.type.toLowerCase() ?? 'injured'}`, s: `Out ${p.injuredFor} more ${p.injuredFor === 1 ? 'match' : 'matches'}`, id: p.id, screen: 'medical' as Screen })),
     ...mine.filter((p) => p.suspendedFor > 0).map((p) => ({ icon: 'booking', tone: 'fd-money--neg', t: `${p.name}: suspended`, s: 'Misses the next match', id: p.id })),
     ...mine.filter((p) => p.squad === 'First team' && p.contractEnd <= g.year).map((p) => ({ icon: 'contract', tone: 'fd-warn', t: `${p.name}: contract expiring`, s: 'Ends this summer', id: p.id })),
     ...mine.filter((p) => p.squad === 'First team' && p.morale === 'low').map((p) => ({ icon: 'morale-low', tone: 'fd-warn', t: `${p.name}: unhappy`, s: 'Low morale', id: p.id })),

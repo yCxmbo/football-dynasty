@@ -57,6 +57,8 @@ export interface Player {
   preContract?: string;
   /** On loan: the owning club, the season it ends, and the squad he returns to. */
   loan?: import('./loans').Loan;
+  /** Your players only: what the current injury is, and whether he was rushed back. */
+  injury?: import('./medical').Injury;
   /** International career: caps, goals and tournaments won. */
   intl?: { caps: number; goals: number; titles: string[] };
 }
@@ -213,6 +215,8 @@ export interface GameState {
   matchPrep?: { fixtureId: string; focus?: import('./opposition').Focus; mark?: string };
   /** Your supporters' mood and ticket prices. */
   fans?: import('./fans').Fans;
+  /** Your club's injuries this season, newest first. */
+  injuryLog?: import('./medical').InjuryLogLine[];
   meeting?: { date: string; topic: import('./talks').MeetingTopic; reaction: import('./talks').Reaction };
   /** Your shape without the ball, if different. */
   defFormation?: import('./match').Formation;

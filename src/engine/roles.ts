@@ -66,6 +66,16 @@ export const ROLES: RoleDef[] = [
   { id: 'dlf', name: 'Deep-lying forward', short: 'DLF', slots: ST, duties: ['S', 'A'], keys: ['Passing', 'First Touch', 'Technique', 'Strength', 'Off the Ball'], w: [0, 0.25, 0.75], scorer: 3.4, bonus: { mid: 0.006 }, desc: 'Comes short to link play, then gets into the box.' },
   { id: 'pf', name: 'Pressing forward', short: 'PF', slots: ST, duties: ['D', 'S', 'A'], keys: ['Work Rate', 'Stamina', 'Aggression', 'Acceleration', 'Finishing'], w: [0.05, 0.1, 0.85], scorer: 3.6, special: 'presser', desc: 'Defends from the front, hunting the centre-backs.' },
   { id: 'cf', name: 'Complete forward', short: 'CF', slots: ST, duties: ['S', 'A'], keys: ['Finishing', 'Heading', 'Passing', 'Dribbling', 'Strength', 'First Touch', 'Technique'], w: [0, 0.15, 0.85], scorer: 4, desc: 'Does everything a striker can: scores, creates, holds up.' },
+  { id: 'lib', name: 'Libero', short: 'LIB', slots: CB, duties: ['D', 'S'], keys: ['Passing', 'Vision', 'Composure', 'Dribbling', 'Anticipation', 'Positioning'], w: [0.75, 0.2, 0.05], scorer: 0.6, bonus: { mid: 0.01, def: -0.004 }, desc: 'Sweeps behind the line, then steps into midfield with the ball.' },
+  { id: 'stp', name: 'Stopper', short: 'STP', slots: CB, duties: ['D'], keys: ['Tackling', 'Aggression', 'Bravery', 'Anticipation', 'Strength'], w: [1, 0, 0], scorer: 0.5, bonus: { def: 0.005 }, desc: 'Steps out to meet the striker before he can turn. Strong in a pair with a cover defender.' },
+  { id: 'cov', name: 'Cover defender', short: 'COV', slots: CB, duties: ['D'], keys: ['Positioning', 'Anticipation', 'Pace', 'Concentration', 'Marking'], w: [1, 0, 0], scorer: 0.4, bonus: { def: 0.005 }, desc: 'Drops off to cover space behind his partner and the full-backs.' },
+  { id: 'nnfb', name: 'No-nonsense full-back', short: 'NFB', slots: FB, duties: ['D'], keys: ['Tackling', 'Marking', 'Positioning', 'Strength', 'Bravery'], w: [1, 0, 0], scorer: 0.3, bonus: { def: 0.006, att: -0.004 }, desc: 'Stays at home and defends; rarely crosses the halfway line.' },
+  { id: 'sv', name: 'Segundo volante', short: 'SV', slots: DM, duties: ['S', 'A'], keys: ['Off the Ball', 'Stamina', 'Work Rate', 'Long Shots', 'Finishing', 'Tackling'], w: [0.2, 0.55, 0.25], scorer: 1.8, desc: 'Starts in front of the defence and bursts forward to arrive in the box.' },
+  { id: 'rpm', name: 'Roaming playmaker', short: 'RPM', slots: [...DM, ...CM], duties: ['S'], keys: ['Passing', 'Vision', 'Stamina', 'Work Rate', 'Off the Ball', 'Dribbling'], w: [0.1, 0.75, 0.15], scorer: 1.2, bonus: { mid: 0.012, def: -0.003 }, desc: 'Roams all over the pitch to find the ball and play the pass.' },
+  { id: 'eng', name: 'Enganche', short: 'ENG', slots: AM, duties: ['S'], keys: ['Vision', 'Passing', 'Technique', 'First Touch', 'Composure', 'Decisions'], w: [0, 0.8, 0.2], scorer: 1.4, bonus: { mid: 0.016, def: -0.004 }, desc: 'The classic ten: stands still, gets the ball, and plays everyone in. Does not press.' },
+  { id: 'treq', name: 'Trequartista', short: 'TRQ', slots: [...AM, ...ST], duties: ['A'], keys: ['Flair', 'Vision', 'Technique', 'Dribbling', 'Passing', 'Finishing'], w: [0, 0.4, 0.6], scorer: 2.8, bonus: { mid: 0.008, att: 0.006, def: -0.006 }, desc: 'A free role between the lines: brilliant with the ball, no defending at all.' },
+  { id: 'wtf', name: 'Wide target forward', short: 'WTF', slots: [...WM, ...WF], duties: ['S', 'A'], keys: ['Heading', 'Strength', 'Jumping Reach', 'Bravery', 'Finishing'], w: [0.05, 0.15, 0.8], scorer: 2.6, special: 'target', desc: 'A big man on the flank: wins the long ball against a smaller full-back.' },
+  { id: 'chf', name: 'Channel forward', short: 'CHF', slots: ST, duties: ['S', 'A'], keys: ['Pace', 'Off the Ball', 'Work Rate', 'Dribbling', 'Crossing', 'Finishing'], w: [0, 0.15, 0.85], scorer: 3.2, desc: 'Runs into the channels between full-back and centre-back to stretch the line.' },
 ];
 export const ROLE_BY_ID: Record<string, RoleDef> = Object.fromEntries(ROLES.map((r) => [r.id, r]));
 
@@ -157,6 +167,21 @@ export function bestRoles(f: Formation, xi: Array<Pick<Player, 'attributes'> | u
     let best = opts[0], bs = -1;
     for (const o of opts) { const st = roleStars(p, o[0]); if (st > bs + 0.25) { best = o; bs = st; } }
     return { role: best[0], duty: best[1] };
+  });
+}
+
+/** For each slot, the best-suited role from every role that can be played there, with a sensible duty: the
+    "pick best roles" button. Ties go to the more common role (earlier in the list). */
+export function bestRolesAll(f: Formation, xi: Array<Pick<Player, 'attributes'> | undefined>, current?: SlotRole[]): SlotRole[] {
+  return slotsOf(f).map((slot, i) => {
+    const p = xi[i];
+    const cur = current?.[i];
+    if (!p) return cur ?? { ...DEFAULT_ROLE[slot] };
+    let best = ROLE_BY_ID[DEFAULT_ROLE[slot].role], bs = -1;
+    for (const r of rolesFor(slot)) { const st = roleStars(p, r.id); if (st > bs + 0.25) { best = r; bs = st; } }
+    const keep = cur && cur.role === best.id && best.duties.includes(cur.duty);
+    const duty = keep ? cur!.duty : best.duties.includes(DEFAULT_ROLE[slot].duty) ? DEFAULT_ROLE[slot].duty : best.duties.includes('S') ? 'S' : best.duties[0];
+    return { role: best.id, duty, ...(cur?.pi ? { pi: cur.pi } : {}) };
   });
 }
 

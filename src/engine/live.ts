@@ -286,7 +286,7 @@ export function tick(lm: LiveMatch) {
     const diff = key === 'home' ? lm.score[0] - lm.score[1] : lm.score[1] - lm.score[0];
     const next = aiInstructions(m, diff, ratio);
     if (m > 1 && s.instr && next.mentality !== s.instr.mentality) {
-      push(lm, { minute: m, type: 'chance', side: key, text: next.mentality === 'attacking' ? `${s.name} throw caution to the wind: more men forward, pressing high.` : next.mentality === 'defensive' ? `${s.name} shut up shop, dropping deep to protect the lead.` : `${s.name} settle into a steadier shape.` });
+      push(lm, { minute: m, type: 'chance', side: key, text: next.mentality === 'attacking' || next.mentality === 'very attacking' ? `${s.name} throw caution to the wind: more men forward, pressing high.` : next.mentality === 'defensive' || next.mentality === 'very defensive' ? `${s.name} shut up shop, dropping deep to protect the lead.` : `${s.name} settle into a steadier shape.` });
     }
     s.instr = next;
   }

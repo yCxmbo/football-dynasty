@@ -367,3 +367,20 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .cal-month { min-width: 130px; text-align: center; }
 @media (max-width: 760px) { .cal__cell { min-height: 64px; padding: 3px; } .cal__comp, .cal__fx .club-badge, .cal__note { display: none; } .cal__fx { grid-template-columns: minmax(0, 1fr); padding: 2px 3px; } .cal__dow { padding: 2px; font-size: 10px; } }
 @media (max-width: 760px) { .cal__today, .cal__opp .fd-muted { display: none; } .cal__fx { font-size: 10px; padding: 1px 2px; } .cal__opp { text-overflow: clip; } .cal__fx .fd-form { display: none; } .cal__day { font-size: 11px; } }
+
+/* Tactic overview */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.tac-review__grid { display: grid; grid-template-columns: minmax(220px, 1fr) 1.4fr; gap: 20px; align-items: start; }
+@media (max-width: 720px) { .tac-review__grid { grid-template-columns: 1fr; } }
+.tac-balance { display: flex; gap: 2px; height: 12px; margin: 8px 0 6px; }
+.tac-balance__seg { border-radius: 4px; min-width: 4px; }
+.tac-balance__seg--defence { background: var(--ink-muted); }
+.tac-balance__seg--midfield { background: var(--teal); }
+.tac-balance__seg--attack { background: var(--gold); }
+.tac-balance__legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--ink); }
+.tac-balance__key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.tac-notes { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
+.tac-notes li { display: flex; gap: 8px; align-items: baseline; }
+.tac-notes__mark { flex: none; width: 18px; height: 18px; border-radius: 50%; display: inline-grid; place-items: center; font-weight: 700; font-size: 12px; }
+.tac-notes__good .tac-notes__mark { background: color-mix(in srgb, var(--form-win) 18%, transparent); color: var(--form-win); }
+.tac-notes__warn .tac-notes__mark { background: color-mix(in srgb, var(--warn) 22%, transparent); color: var(--warn); }

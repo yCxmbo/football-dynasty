@@ -4,7 +4,7 @@
    the score. */
 
 export interface Instructions {
-  mentality: 'defensive' | 'cautious' | 'balanced' | 'positive' | 'attacking';
+  mentality: 'very defensive' | 'defensive' | 'cautious' | 'balanced' | 'positive' | 'attacking' | 'very attacking';
   // in possession
   passing: 'short' | 'mixed' | 'direct';
   tempo: 'slow' | 'normal' | 'fast';
@@ -33,11 +33,13 @@ type Key = keyof Instructions;
 export interface InstructionOption { key: Key; label: string; phase: Phase; options: Array<{ value: string; label: string; desc: string }> }
 export const INSTRUCTION_OPTIONS: InstructionOption[] = [
   { key: 'mentality', phase: 'Mentality', label: 'Mentality', options: [
+    { value: 'very defensive', label: 'Very defensive', desc: 'Everyone behind the ball: very hard to break down, almost no threat. For seeing out a result.' },
     { value: 'defensive', label: 'Defensive', desc: 'Safety first: hard to break down, few chances made.' },
     { value: 'cautious', label: 'Cautious', desc: 'A little more careful than usual.' },
     { value: 'balanced', label: 'Balanced', desc: 'No particular bias.' },
     { value: 'positive', label: 'Positive', desc: 'Front foot: a few more men forward.' },
-    { value: 'attacking', label: 'Attacking', desc: 'Throw men forward: more chances, more exposed.' } ] },
+    { value: 'attacking', label: 'Attacking', desc: 'Throw men forward: more chances, more exposed.' },
+    { value: 'very attacking', label: 'Very attacking', desc: 'All-out attack: the most chances, wide open at the back. For chasing a game.' } ] },
   { key: 'passing', phase: 'In possession', label: 'Passing', options: [
     { value: 'short', label: 'Short', desc: 'Keep the ball: stronger in midfield, fewer chances; risky against a high press.' },
     { value: 'mixed', label: 'Mixed', desc: 'Short or long as the moment needs.' },
@@ -94,7 +96,7 @@ export interface InstructionEffects { atk: number; def: number; mid: number; opp
 export function instructionEffects(mine?: Partial<Instructions>, theirs?: Partial<Instructions>): InstructionEffects {
   const i = withDefaults(mine), o = withDefaults(theirs);
   const e: InstructionEffects = { atk: 1, def: 1, mid: 1, oppMid: 1, fatigue: 1, corners: 1, fouls: 1, chaos: 1 };
-  const MENT: Record<Instructions['mentality'], [number, number]> = { defensive: [0.93, 1.06], cautious: [0.965, 1.03], balanced: [1, 1], positive: [1.03, 0.975], attacking: [1.06, 0.95] };
+  const MENT: Record<Instructions['mentality'], [number, number]> = { 'very defensive': [0.88, 1.09], defensive: [0.93, 1.06], cautious: [0.965, 1.03], balanced: [1, 1], positive: [1.03, 0.975], attacking: [1.06, 0.95], 'very attacking': [1.1, 0.9] };
   e.atk *= MENT[i.mentality][0]; e.def *= MENT[i.mentality][1];
   // in possession
   if (i.passing === 'short') { e.mid *= 1.03; e.chaos *= 0.96; if (o.press === 'high' || o.block === 'high') e.mid *= 0.975; }
@@ -108,7 +110,7 @@ export function instructionEffects(mine?: Partial<Instructions>, theirs?: Partia
   if (i.onWin === 'counter') {
     let c = 1.01;
     if (o.line === 'high') c *= 1.03;
-    if (o.mentality === 'attacking' || o.mentality === 'positive') c *= 1.02;
+    if (o.mentality === 'attacking' || o.mentality === 'positive' || o.mentality === 'very attacking') c *= 1.02;
     if (o.onLoss === 'counterpress') c *= 0.98;
     e.atk *= c; e.chaos *= 1.02;
   } else if (i.onWin === 'hold') { e.mid *= 1.02; e.atk *= 0.985; e.chaos *= 0.97; }
@@ -123,6 +125,8 @@ export function instructionEffects(mine?: Partial<Instructions>, theirs?: Partia
 
 /** How a computer-run side sets up: by the score late on, otherwise by how it compares. */
 export function aiInstructions(minute: number, goalDiff: number, strengthRatio: number): Instructions {
+  if (minute >= 80 && goalDiff < 0) return { ...DEFAULT_INSTRUCTIONS, mentality: 'very attacking', press: 'high', tempo: 'fast', width: 'wide', line: 'high', passing: 'direct', block: 'high' };
+  if (minute >= 85 && goalDiff > 0) return { ...DEFAULT_INSTRUCTIONS, mentality: 'very defensive', press: 'low', tempo: 'slow', width: 'narrow', line: 'deep', block: 'low', onWin: 'hold' };
   if (minute >= 60 && goalDiff < 0) return { ...DEFAULT_INSTRUCTIONS, mentality: 'attacking', press: 'high', tempo: 'fast', width: 'wide', line: 'high', passing: 'direct', block: 'high' };
   if (minute >= 75 && goalDiff > 0) return { ...DEFAULT_INSTRUCTIONS, mentality: 'defensive', press: 'low', tempo: 'slow', width: 'narrow', line: 'deep', block: 'low', onWin: 'hold' };
   if (strengthRatio < 0.9) return { ...DEFAULT_INSTRUCTIONS, mentality: 'cautious', line: 'deep', block: 'low', onWin: 'counter' };

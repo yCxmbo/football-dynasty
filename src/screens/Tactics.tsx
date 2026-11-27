@@ -4,7 +4,9 @@ import type { Screen } from './shared';
 import { applyPreset, nextUserFixture, setDefFormation, setInstructions, setRole, useTactic } from '../engine/game';
 import InstructionsPanel from './InstructionsPanel';
 import TacticsBoard, { FORMATION_LIST } from './TacticsBoard';
-import { familiarity, formationFamiliarity, renameTactic, STYLE_PRESETS, tacticsOf } from '../engine/tactics';
+import { reviewTactic } from '../engine/review';
+import { bestRolesAll, fixRoles } from '../engine/roles';
+import { familiarity, formationFamiliarity, renameTactic, saveActive, STYLE_PRESETS, tacticsOf } from '../engine/tactics';
 import { useState } from 'react';
 import { FD } from '../ds';
 import { available, slotsOf, type Formation } from '../engine/match';
@@ -52,7 +54,10 @@ export default function Tactics({ g, go, update, onChange, onAutoRotate, liveNot
     <div className="pg-stack">
       <div className="pg-head" style={{ marginBottom: 0 }}>
         <div><h1 className="pg-title">Tactics</h1><p className="pg-sub">Three saved tactics, each with a formation, a role and duty for every player, and instructions for every phase of play. Pick a player on the pitch to set his role or swap him.</p></div>
-        <FD.Button variant="secondary" icon="sim" onClick={() => onChange(g.formation, bestLineup(g))}>Pick best XI</FD.Button>
+        <div className="pg-row" style={{ gap: 8 }}>
+          <FD.Button variant="secondary" icon="sim" onClick={() => onChange(g.formation, bestLineup(g))}>Pick best XI</FD.Button>
+          <FD.Button variant="secondary" icon="tactics" onClick={() => update((d) => saveActive(d, { roles: bestRolesAll(d.formation, d.lineup.map((id) => d.players[id]), fixRoles(d.formation, d.roles)) }))}>Pick best roles</FD.Button>
+        </div>
       </div>
       {liveNote && <p className="tr-window" role="status">A match is in progress. Changes here apply from the next match; make substitutions from the match screen.</p>}
       {unavailable.length > 0 && <p className="fd-money--neg" role="alert">{unavailable.map((p) => p.name).join(', ')} {unavailable.length === 1 ? 'is' : 'are'} unavailable and will be replaced automatically. Pick a replacement or use Pick best XI.</p>}
@@ -95,6 +100,7 @@ export default function Tactics({ g, go, update, onChange, onAutoRotate, liveNot
       </section>
       <TacticsBoard formation={g.formation} defFormation={g.defFormation} roles={g.roles} xi={xi.map(withEquivalents)} bench={bench.map(withEquivalents)}
         onSwap={(l) => onChange(g.formation, l.slice(0, slots.length))} onRole={(i, r) => update((d) => setRole(d, i, r))} />
+      <TacticOverview g={g} xi={xi} />
       <section className="pg-card">
         <h2 className="pg-h">Team instructions · {ts.slots[ts.active].name}</h2>
         <p className="hm-note" style={{ marginTop: 0 }}>How the team plays in each phase. Every choice trades something, and many depend on the opponent: hover an option for what it does. Changing several at once costs familiarity until the squad has played them; you can also change them during a match.</p>
@@ -119,5 +125,31 @@ export default function Tactics({ g, go, update, onChange, onAutoRotate, liveNot
         </table>
       </section>
     </div>
+  );
+}
+
+/** The assistant's read of the tactic: balance between the units, role fit, and what stands out. */
+function TacticOverview({ g, xi }: { g: GameState; xi: Player[] }) {
+  const r = reviewTactic(g.formation, g.roles, xi, g.instructions);
+  const units: Array<[string, number]> = [['Defence', r.balance.def], ['Midfield', r.balance.mid], ['Attack', r.balance.att]];
+  return (
+    <section className="pg-card tac-review" aria-labelledby="tac-review-h">
+      <h2 className="pg-h" id="tac-review-h">Tactic overview</h2>
+      <div className="tac-review__grid">
+        <div>
+          <span className="fd-label">Where the work goes</span>
+          <div className="tac-balance" role="img" aria-label={units.map(([k, v]) => `${k} ${v}%`).join(', ')}>
+            {units.map(([k, v]) => <span key={k} className={`tac-balance__seg tac-balance__seg--${k.toLowerCase()}`} style={{ flexGrow: v }} title={`${k} ${v}%`} />)}
+          </div>
+          <div className="tac-balance__legend">{units.map(([k, v]) => <span key={k}><i className={`tac-balance__key tac-balance__seg--${k.toLowerCase()}`} />{k} <strong>{v}%</strong></span>)}</div>
+          <p className="hm-note">Role fit: <strong>{r.fit.toFixed(1)}</strong> of 5 stars on average. Mentality: <strong>{(g.instructions?.mentality ?? 'balanced').replace(/^./, (c) => c.toUpperCase())}</strong>.</p>
+        </div>
+        <ul className="tac-notes">
+          {r.good.map((t) => <li key={t} className="tac-notes__good"><span className="tac-notes__mark" aria-hidden>+</span><span className="sr-only">Strength: </span>{t}</li>)}
+          {r.warn.map((t) => <li key={t} className="tac-notes__warn"><span className="tac-notes__mark" aria-hidden>!</span><span className="sr-only">Watch out: </span>{t}</li>)}
+        </ul>
+      </div>
+      {r.misfits.length ? <p className="hm-note" style={{ marginBottom: 0 }}>Poor fits: {r.misfits.map((m) => `${m.name} as ${m.role} (${m.slot}, ${m.stars}★)`).join(' · ')}</p> : null}
+    </section>
   );
 }

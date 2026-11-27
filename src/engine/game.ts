@@ -4,6 +4,7 @@ import { prepFor } from './opposition';
 import { fansAfterMatch, fansNewSeason, homeLift } from './fans';
 import { recordInjury, relapses } from './medical';
 import { payAddOns } from './deals';
+import { scoutingNetworkDay } from './network';
 import { matchOdds } from './preview';
 import { postMatchConference, preMatchConference } from './press';
 import { archiveReview, noteCourse } from './seasonreview';
@@ -503,6 +504,7 @@ function standingOf(state: GameState) {
 
 function newDay(state: GameState) {
   if (seasonOver(state)) return;
+  { const found = scoutingNetworkDay(state); if (found.length) addMessage(state, { category: 'scouting', from: 'Chief scout', subject: `Scouting reports: ${found.length === 1 ? 'new recommendations' : `${found.length} assignments report`}`, body: [...found, 'They are on the Scouting screen, graded against our squad.'], link: { screen: 'scouting', label: 'See recommendations' } }); }
   { // the day before your match (or on the day): the pre-match press conference
     const nf = nextUserFixture(state);
     const nd = nf ? state.calendar[nf.matchday - 1]?.date : undefined;

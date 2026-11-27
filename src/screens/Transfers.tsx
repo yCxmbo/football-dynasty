@@ -124,7 +124,7 @@ export default function Transfers({ g, go, update }: { g: GameState; go: (s: Scr
         <FD.Field label="League">
           <select className="fd-input" value={f.league} aria-label="League" onChange={(e) => set({ league: e.target.value })}>
             <option value="all">Any league</option>
-            {leagues.map((l) => <option key={l.id} value={l.id}>{l.name} ({nationName(l.country)})</option>)}
+            {leagues.map((l) => <option key={l.id} value={l.id}>{l.name} ({g.world.countries.find((x) => x.id === l.country)?.name ?? nationName(l.country)})</option>)}
           </select>
         </FD.Field>
         <FD.Field label="Nationality">

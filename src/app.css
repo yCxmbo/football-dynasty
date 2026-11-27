@@ -579,3 +579,13 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .press-q__text { margin: 0; font: 600 18px/26px var(--font-sans); color: var(--ink); }
 .press-q__opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
 .talk__opt.is-chosen { border-color: var(--gold); opacity: 1; }
+
+/* Scouting network */
+.net-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
+.net-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 8px 10px; border-radius: var(--radius-md); background: var(--surface-sunken); font-size: 13px; }
+.net-list li .fd-btn { margin-left: auto; }
+.net-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; align-items: end; }
+.net-grade { display: inline-block; padding: 0 6px; border-radius: var(--radius-sm); font: 700 11px/18px var(--font-sans); border: 1px solid currentColor; white-space: nowrap; }
+.net-grade--A { color: var(--form-win); }
+.net-grade--B { color: var(--teal); }
+.net-grade--C { color: var(--ink-muted); }

@@ -215,6 +215,8 @@ export interface GameState {
   matchPrep?: { fixtureId: string; focus?: import('./opposition').Focus; mark?: string };
   /** Your supporters' mood and ticket prices. */
   fans?: import('./fans').Fans;
+  /** Scouting assignments and the players they recommended. */
+  network?: { assignments: import('./network').Assignment[]; recs: import('./network').Recommendation[]; seq: number };
   /** The press conference waiting for you (before or after your match), if any. */
   press?: import('./press').PressConference;
   /** Your league position after each league week this season, and past seasons' reviews (newest first). */

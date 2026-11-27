@@ -51,6 +51,11 @@ The sidebar is grouped into sections: Team (squad, tactics, training, academy, s
   - The **International** screen has the world ranking, your internationals, every tournament's groups and knockout rounds, and a roll of honour.
   - **National team job:** manage a nation alongside your club. Federations hire on your reputation (club reputation plus trophies): the top five nations want 88, the top twelve 78, the top 25 66. Pick your 26 and a formation on International → National team; the tournament uses them. Your record, results and trophies count toward your career, and a top-16 nation that fails to qualify or goes out in the group stage dismisses you. Each new season your inbox lists the nations that would appoint you.
   - **Live tournaments:** when the season ends and your nation has a tournament, *Go to the World Cup* (or Euro, Copa América…) opens it. Your matches are played live with team talks and substitutions (*Play match*), or *Sim my matches*; every other game is simulated around them. Your results are saved as you go, so a reload carries on where you left off. Start the new season once your nation is out or the final is played.
+- **Pitch view** for live matches: a top-down pitch above the commentary.
+  - Both teams' shapes come from their formations (and their shape without the ball), and slide up and down with possession; the ball moves between players.
+  - Goals, chances, saves, cards, substitutions and injuries get a short moment of their own, and a ticker shows the latest event.
+  - It follows the match speed and pauses with it, keeps still if your system asks for reduced motion, and can be hidden (the choice is remembered).
+  - It is a picture of the match the engine plays minute by minute, so it never changes the result.
 - **Home dashboard:** your form, league position against the target, the dressing-room mood and how many decisions are waiting, then the next match with the opposition report, what's coming up (your next fixtures and the transfer-window dates), the last result, the table, cups, the board, unread mail, squad alerts and finances.
 - **You as a manager** (Career screen): six attributes from 1 to 20, which start from your coaching style and grow with experience:
   - Tactical knowledge: the squad learns your shapes faster.

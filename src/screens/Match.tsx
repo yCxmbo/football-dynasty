@@ -1,4 +1,5 @@
 import MatchAnalysis from './MatchAnalysis';
+import MatchPitch from './MatchPitch';
 import InstructionsPanel from './InstructionsPanel';
 import { DEFAULT_INSTRUCTIONS } from '../engine/instructions';
 import { useEffect, useMemo, useState } from 'react';
@@ -21,6 +22,8 @@ export default function Match({ g, id, live, setLive, go, onFinish }: {
   const f = g.fixtures.find((x) => x.id === (live?.fixtureId ?? id));
   const isLive = !!live && !!f && live.fixtureId === f.id;
   const [speed, setSpeed] = useState<string>('2');
+  const [pitch, setPitchState] = useState(() => { try { return localStorage.getItem('fd-pitch') !== 'off'; } catch { return true; } });
+  const setPitch = (v: boolean) => { setPitchState(v); try { localStorage.setItem('fd-pitch', v ? 'on' : 'off'); } catch { /* private mode */ } };
   const [subOpen, setSubOpen] = useState(false);
   const [allInstr, setAllInstr] = useState(false);
   const lm = live?.lm;
@@ -107,6 +110,12 @@ export default function Match({ g, id, live, setLive, go, onFinish }: {
             return { ...prev, lm: next };
           })} />
         </section>
+      ) : null}
+      {isLive && lm ? (
+        <div className="mp-wrap">
+          <button type="button" className="pg-link mp-toggle" aria-pressed={pitch} onClick={() => setPitch(!pitch)}>{pitch ? 'Hide pitch view' : 'Show pitch view'}</button>
+          {pitch ? <MatchPitch lm={lm} userSide={view.key as 'home' | 'away'} speed={subOpen || talk ? 'pause' : speed} names={[g.clubs[f.homeId].short, g.clubs[f.awayId].short]} /> : null}
+        </div>
       ) : null}
       <FD.MatchDay
         match={view.match} stats={view.stats} ratings={view.ratings}

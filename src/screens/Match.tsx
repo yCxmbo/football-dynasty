@@ -91,12 +91,12 @@ export default function Match({ g, id, live, setLive, go, onFinish }: {
                   title={`${tc.name}: ${tc.formation}`} onClick={() => setLive((prev) => {
                     if (!prev) return prev;
                     const next = structuredClone(prev.lm);
-                    changeTactic(next, view.key as 'home' | 'away', { formation: tc.formation, roles: tc.roles, instr: tc.instr, name: tc.name });
+                    changeTactic(next, view.key as 'home' | 'away', { formation: tc.formation, defFormation: tc.defFormation, roles: tc.roles, instr: tc.instr, name: tc.name });
                     return { ...prev, lm: next };
                   })}>{tc.name} · {tc.formation}</button>
               ))}
             </div>
-            <span className="hm-note" style={{ margin: 0 }}>Now: {side.formation}</span>
+            <span className="hm-note" style={{ margin: 0 }}>Now: {side.formation}{side.defFormation ? ` (${side.defFormation} without the ball)` : ''}</span>
             <button type="button" className="pg-link" onClick={() => setAllInstr((v) => !v)}>{allInstr ? 'Fewer instructions' : 'More instructions'}</button>
           </div>
           <InstructionsPanel compact keys={allInstr ? undefined : ['mentality', 'passing', 'tempo', 'press', 'line']} value={side.instr} onChange={(c) => setLive((prev) => {

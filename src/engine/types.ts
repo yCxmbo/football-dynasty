@@ -197,6 +197,8 @@ export interface GameState {
   tactics?: import('./tactics').TacticsState;
   /** How well your squad knows each formation, 0–100. */
   familiarity?: Record<string, number>;
+  /** Your shape without the ball, if different. */
+  defFormation?: import('./match').Formation;
   /** Your roles and duties, one per slot of your formation. */
   roles?: import('./roles').SlotRole[];
   /** Your team instructions. */

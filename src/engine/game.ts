@@ -251,8 +251,8 @@ function setupFor(state: GameState, f: Fixture) {
   const fam = uh || ua ? familiarityFactor(familiarity(state)) : 1, aiFam = familiarityFactor(90);
   const mods: MatchMods = { derby, homeBoost: uh ? te.matchBoost * sharp * plan * fam : managerBoost(state, f.homeId) * aiFam, awayBoost: ua ? te.matchBoost * sharp * plan * fam : managerBoost(state, f.awayId) * aiFam, homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1, neutral: f.neutral, knockout: f.ko };
   return {
-    home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: hs.formation, roles: hr, name: H.name, user: uh, captain: captainOf(state, f.homeId)?.id, ...(uh ? { tilt, takers: takersOf(state), instr: withDefaults(state.instructions) } : {}) },
-    away: { xi: ax, bench: benchFor(state, f.awayId, ax), formation: aw.formation, roles: ar, name: A.name, user: ua, captain: captainOf(state, f.awayId)?.id, ...(ua ? { tilt, takers: takersOf(state), instr: withDefaults(state.instructions) } : {}) },
+    home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: hs.formation, roles: hr, name: H.name, user: uh, captain: captainOf(state, f.homeId)?.id, ...(uh ? { tilt, takers: takersOf(state), instr: withDefaults(state.instructions), defFormation: state.defFormation } : {}) },
+    away: { xi: ax, bench: benchFor(state, f.awayId, ax), formation: aw.formation, roles: ar, name: A.name, user: ua, captain: captainOf(state, f.awayId)?.id, ...(ua ? { tilt, takers: takersOf(state), instr: withDefaults(state.instructions), defFormation: state.defFormation } : {}) },
     venue: H.stadium, mods,
   };
 }
@@ -822,6 +822,9 @@ export function setTactics(state: GameState, formation: Formation, lineup: strin
   state.formation = formation;
   state.lineup = lineup;
 }
+/** Sets (or, with none, clears) a separate shape without the ball for the active tactic. */
+export function setDefFormation(state: GameState, f: Formation | null) { saveActive(state, { defFormation: f }); }
+
 /** Changes the role and duty in one slot of the active tactic. */
 export function setRole(state: GameState, index: number, role: SlotRole) {
   const roles = fixRoles(state.formation, state.roles);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { applyPreset, bestLineup, newGame, playMatchday, setInstructions, setRole, setTactics, squadOf, startUserMatch, useTactic } from './game';
-import { FORMATIONS, slotsOf, type Formation } from './match';
+import { applyPreset, bestLineup, newGame, playMatchday, setDefFormation, setInstructions, setRole, setTactics, squadOf, startUserMatch, useTactic } from './game';
+import { FORMATIONS, pickLineup, shapeMap, slotsOf, type Formation } from './match';
 import { bestRoles, fixRoles, instrEffect, ROLES, roleStars, slotShape } from './roles';
 import { familiarity, formationFamiliarity, STYLE_PRESETS, presetTactic, tacticsOf } from './tactics';
 import { instructionEffects, DEFAULT_INSTRUCTIONS } from './instructions';
@@ -130,5 +130,53 @@ describe('player instructions', () => {
     expect(mine.roles![9].pi).toEqual({ shoot: 'more', press: 'more' });
     runToEnd(lm);
     expect(lm.done).toBe(true);
+  });
+});
+
+describe('shape out of possession', () => {
+  it('maps each player to the nearest slot of the defensive shape', () => {
+    const m = shapeMap('4-2-3-1', '4-4-1-1');
+    const from = slotsOf('4-2-3-1'), to = slotsOf('4-4-1-1');
+    expect(m[0]).toBe(0);
+    expect(new Set(m).size).toBe(11);
+    const where = (slot: string) => to[m[from.indexOf(slot)]];
+    expect(where('LW')).toBe('LM'); expect(where('RW')).toBe('RM'); expect(where('AM')).toBe('AM'); expect(where('ST')).toBe('ST');
+  });
+  it('a deeper shape without the ball (3-4-3 dropping into 5-4-1) concedes less and scores less', () => {
+    const s = game();
+    const ft = squadOf(s, 'ash').filter((p) => p.squad === 'First team');
+    const xi = pickLineup(ft, '3-4-3').map((id) => s.players[id]);
+    const opp = Object.keys(s.clubs).find((id) => id !== 'ash')!;
+    const oxi = pickLineup(squadOf(s, opp), '4-3-3').map((id) => s.players[id]);
+    const run = (def?: Formation) => {
+      let gf = 0, ga = 0;
+      for (let i = 0; i < 150; i++) {
+        const lm = createLive(500 + i, { xi, bench: [], formation: '3-4-3', name: 'A', user: true, ...(def ? { defFormation: def } : {}) }, { xi: oxi, bench: [], formation: '4-3-3', name: 'B', user: true }, 'Ground');
+        runToEnd(lm); gf += lm.score[0]; ga += lm.score[1];
+      }
+      return { gf, ga };
+    };
+    const same = run(), deep = run('5-4-1');
+    expect(deep.ga).toBeLessThan(same.ga);
+    expect(deep.gf).toBeLessThanOrEqual(same.gf);
+    // and the mapping is the natural one: wing-backs drop, wingers become wide midfielders
+    const m = shapeMap('3-4-3', '5-4-1'), from = slotsOf('3-4-3'), to = slotsOf('5-4-1');
+    expect(to[m[from.indexOf('LW')]]).toBe('LM');
+    expect(to[m[from.indexOf('LWB')]]).toBe('LWB');
+  });
+  it('is saved with the tactic, costs familiarity at first, and switches mid-match', () => {
+    const s = game();
+    const before = familiarity(s);
+    setDefFormation(s, '4-1-4-1');
+    expect(s.defFormation).toBe('4-1-4-1');
+    expect(tacticsOf(s).slots[tacticsOf(s).active].defFormation).toBe('4-1-4-1');
+    expect(familiarity(s)).toBeLessThan(before);
+    const lm = startUserMatch(s)!;
+    const mine = lm.home.user ? lm.home : lm.away;
+    expect(mine.defFormation).toBe('4-1-4-1');
+    changeTactic(lm, lm.home.user ? 'home' : 'away', { formation: '4-3-3' });
+    expect((lm.home.user ? lm.home : lm.away).defFormation).toBeUndefined();
+    setDefFormation(s, null);
+    expect(s.defFormation).toBeUndefined();
   });
 });

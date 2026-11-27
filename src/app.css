@@ -319,3 +319,7 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .ma-sub { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 6px; color: var(--ink-muted, #8aa); }
 .ma-table { margin-top: 10px; }
 .ma-table summary { cursor: pointer; }
+.tb__pitchcol { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.tb__view { flex-wrap: wrap; align-self: flex-start; }
+.tb__slot { transition: left .25s ease, top .25s ease; }
+@media (prefers-reduced-motion: reduce) { .tb__slot { transition: none; } }

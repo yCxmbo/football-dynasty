@@ -1,7 +1,7 @@
 import SetPieces from './SetPieces';
 import OppReport from './OppReport';
 import type { Screen } from './shared';
-import { applyPreset, nextUserFixture, setInstructions, setRole, useTactic } from '../engine/game';
+import { applyPreset, nextUserFixture, setDefFormation, setInstructions, setRole, useTactic } from '../engine/game';
 import InstructionsPanel from './InstructionsPanel';
 import TacticsBoard, { FORMATION_LIST } from './TacticsBoard';
 import { familiarity, formationFamiliarity, renameTactic, STYLE_PRESETS, tacticsOf } from '../engine/tactics';
@@ -60,7 +60,7 @@ export default function Tactics({ g, go, update, onChange, onAutoRotate, liveNot
       <section className="pg-card tac-bar">
         <div className="fd-seg" role="tablist" aria-label="Saved tactics">
           {ts.slots.map((t, i) => (
-            <button key={i} type="button" role="tab" aria-selected={ts.active === i} className={'fd-seg__opt' + (ts.active === i ? ' is-on' : '')} onClick={() => update((d) => useTactic(d, i))}>{t.name} · {t.formation}</button>
+            <button key={i} type="button" role="tab" aria-selected={ts.active === i} className={'fd-seg__opt' + (ts.active === i ? ' is-on' : '')} onClick={() => update((d) => useTactic(d, i))}>{t.name} · {t.formation}{t.defFormation ? `/${t.defFormation}` : ''}</button>
           ))}
         </div>
         {renaming ? (
@@ -71,6 +71,12 @@ export default function Tactics({ g, go, update, onChange, onAutoRotate, liveNot
         <label className="tac-field"><span className="fd-label">Formation</span>
           <select className="fd-input" value={g.formation} aria-label="Formation" onChange={(e) => { const f = e.target.value as Formation; onChange(f, bestLineup(g, f)); }}>
             {FORMATION_LIST.map((f) => <option key={f} value={f}>{f} · {famWord(formationFamiliarity(g, f))}</option>)}
+          </select>
+        </label>
+        <label className="tac-field"><span className="fd-label">Without the ball</span>
+          <select className="fd-input" value={g.defFormation ?? ''} aria-label="Shape without the ball" onChange={(e) => { const f = e.target.value as Formation | ''; update((d) => setDefFormation(d, f || null)); }}>
+            <option value="">Same shape</option>
+            {FORMATION_LIST.filter((f) => f !== g.formation).map((f) => <option key={f} value={f}>{f} · {famWord(formationFamiliarity(g, f))}</option>)}
           </select>
         </label>
         <label className="tac-field"><span className="fd-label">Start from a style</span>
@@ -87,7 +93,7 @@ export default function Tactics({ g, go, update, onChange, onAutoRotate, liveNot
           <span className="fd-meter fd-meter--wide"><span className={`fd-meter__bar fd-meter__bar--${fam >= 70 ? 'low' : fam >= 50 ? 'medium' : 'high'}`} style={{ width: fam + '%' }} /></span>
         </div>
       </section>
-      <TacticsBoard formation={g.formation} roles={g.roles} xi={xi.map(withEquivalents)} bench={bench.map(withEquivalents)}
+      <TacticsBoard formation={g.formation} defFormation={g.defFormation} roles={g.roles} xi={xi.map(withEquivalents)} bench={bench.map(withEquivalents)}
         onSwap={(l) => onChange(g.formation, l.slice(0, slots.length))} onRole={(i, r) => update((d) => setRole(d, i, r))} />
       <section className="pg-card">
         <h2 className="pg-h">Team instructions · {ts.slots[ts.active].name}</h2>

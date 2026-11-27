@@ -20,6 +20,51 @@ export type Formation = keyof typeof FORMATIONS;
 export const ROLE: Record<string, 'gk' | 'def' | 'mid' | 'att'> = { GK: 'gk', CB: 'def', LB: 'def', RB: 'def', LWB: 'def', RWB: 'def', DM: 'mid', CM: 'mid', AM: 'mid', LM: 'att', RM: 'att', LW: 'att', RW: 'att', ST: 'att' };
 export const slotsOf = (f: Formation) => FORMATIONS[f] as readonly string[];
 
+/** Where each slot sits on the pitch (x, y in %), in slot order. */
+export const FORMATION_LAYOUT: Record<Formation, Array<[number, number]>> = {
+  '4-3-3': [[50, 90], [14, 70], [37, 75], [63, 75], [86, 70], [25, 50], [50, 55], [75, 50], [17, 24], [50, 14], [83, 24]],
+  '4-4-2': [[50, 90], [14, 70], [37, 75], [63, 75], [86, 70], [14, 45], [38, 50], [62, 50], [86, 45], [38, 16], [62, 16]],
+  '4-2-3-1': [[50, 90], [14, 70], [37, 75], [63, 75], [86, 70], [37, 57], [63, 57], [17, 35], [50, 37], [83, 35], [50, 14]],
+  '3-5-2': [[50, 90], [25, 74], [50, 77], [75, 74], [10, 50], [32, 46], [50, 60], [68, 46], [90, 50], [38, 16], [62, 16]],
+  '4-3-3 DM': [[50, 90], [14, 70], [37, 75], [63, 75], [86, 70], [50, 61], [32, 46], [68, 46], [17, 24], [50, 14], [83, 24]],
+  '4-1-4-1': [[50, 90], [14, 70], [37, 75], [63, 75], [86, 70], [50, 61], [14, 40], [37, 44], [63, 44], [86, 40], [50, 15]],
+  '4-4-1-1': [[50, 90], [14, 70], [37, 75], [63, 75], [86, 70], [14, 46], [38, 52], [62, 52], [86, 46], [50, 32], [50, 14]],
+  '4-4-2 diamond': [[50, 90], [14, 68], [37, 75], [63, 75], [86, 68], [50, 62], [30, 48], [70, 48], [50, 34], [38, 16], [62, 16]],
+  '3-4-3': [[50, 90], [25, 74], [50, 77], [75, 74], [10, 48], [37, 52], [63, 52], [90, 48], [18, 24], [50, 15], [82, 24]],
+  '3-4-2-1': [[50, 90], [25, 74], [50, 77], [75, 74], [10, 50], [37, 56], [63, 56], [90, 50], [35, 32], [65, 32], [50, 14]],
+  '5-3-2': [[50, 90], [8, 62], [28, 75], [50, 78], [72, 75], [92, 62], [30, 46], [50, 56], [70, 46], [38, 17], [62, 17]],
+  '5-4-1': [[50, 90], [8, 64], [28, 76], [50, 78], [72, 76], [92, 64], [14, 42], [38, 48], [62, 48], [86, 42], [50, 16]],
+};
+
+const mapMemo = new Map<string, number[]>();
+/** Where each player of one shape goes in another (by slot index): the nearest free slot on the pitch, goalkeeper
+    to goalkeeper. Used for a separate out-of-possession shape: wingers drop to wide midfield, a 10 alongside the 9. */
+export function shapeMap(from: Formation, to: Formation): number[] {
+  const key = from + '>' + to;
+  let v = mapMemo.get(key);
+  if (v) return v;
+  const A = FORMATION_LAYOUT[from], B = FORMATION_LAYOUT[to];
+  const pairs: Array<[number, number, number]> = [];
+  for (let i = 1; i < A.length; i++) for (let j = 1; j < B.length; j++) pairs.push([Math.hypot(A[i][0] - B[j][0], (A[i][1] - B[j][1]) * 1.2), i, j]);
+  pairs.sort((a, b) => a[0] - b[0]);
+  v = new Array(A.length).fill(-1); v[0] = 0;
+  const used = new Set<number>([0]);
+  for (const [, i, j] of pairs) if (v[i] < 0 && !used.has(j)) { v[i] = j; used.add(j); }
+  // nearest-first can leave someone a long way out (a winger dropping to wing-back because the wing-back took the
+  // wide-midfield slot): swap pairs while the total distance falls
+  const d = (i: number, j: number) => Math.hypot(A[i][0] - B[j][0], (A[i][1] - B[j][1]) * 1.2);
+  for (let pass = 0; pass < 8; pass++) {
+    let better = false;
+    for (let i = 1; i < v.length; i++) for (let k = i + 1; k < v.length; k++) {
+      if (d(i, v[k]) + d(k, v[i]) < d(i, v[i]) + d(k, v[k]) - 0.01) { const x = v[i]; v[i] = v[k]; v[k] = x; better = true; }
+    }
+    if (!better) break;
+  }
+  mapMemo.set(key, v);
+  return v;
+}
+
+
 const FIT_PENALTY: Record<string, number> = { natural: 1, accomplished: 0.96, competent: 0.9, unconvincing: 0.8, awkward: 0.65 };
 
 export function fitFor(p: Player, slot: string) {

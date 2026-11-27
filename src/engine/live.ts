@@ -3,7 +3,7 @@ import { aiInstructions, instructionEffects, type Instructions } from './instruc
 /* Minute-by-minute match engine. Every match runs through it: the user's match is ticked live
    (so substitutions change the outcome), every other match is ticked straight to full time.
    A LiveMatch is plain data so it can sit in React state and be cloned cheaply. */
-import { fitFor, improveLineup, ROLE, slotsOf, type Formation, type MatchMods } from './match';
+import { fitFor, FORMATION_LAYOUT, improveLineup, ROLE, shapeMap, slotsOf, type Formation, type MatchMods } from './match';
 import { POS_GROUP, clamp } from './ratings';
 import { createRng, type Rng } from './rng';
 import type { ChanceSource, MatchAnalysis, MatchEvent, MatchResult, Player, PlayerRating } from './types';
@@ -34,7 +34,7 @@ export function starsFor(p: Snap, role: string) {
 interface Perf { base: number; goals: number; assists: number; saves: number; card?: 'yellow' | 'red'; onAt: number; offAt?: number; injured?: boolean }
 type SideKey = 'home' | 'away';
 export interface SetPieceTakers { pen?: string; fk?: string; corner?: string }
-export interface LiveSide { formation: Formation; xi: Array<string | null>; bench: string[]; subsUsed: number; boost: number; injury: number; user: boolean; name: string; /** Style tilt: attack and defence multipliers. */ atk?: number; def?: number; /** Team talks count this much more. */ talk?: number; /** The captain (else the best leader on the pitch) and chosen set-piece takers. */ captain?: string; takers?: SetPieceTakers; /** Team instructions (computer-run sides change theirs with the score). */ instr?: Instructions; /** Role and duty per slot. */ roles?: SlotRole[] }
+export interface LiveSide { formation: Formation; xi: Array<string | null>; bench: string[]; subsUsed: number; boost: number; injury: number; user: boolean; name: string; /** Style tilt: attack and defence multipliers. */ atk?: number; def?: number; /** Team talks count this much more. */ talk?: number; /** The captain (else the best leader on the pitch) and chosen set-piece takers. */ captain?: string; takers?: SetPieceTakers; /** Team instructions (computer-run sides change theirs with the score). */ instr?: Instructions; /** Role and duty per slot. */ roles?: SlotRole[]; /** Shape without the ball, if different. */ defFormation?: Formation }
 export interface LiveMatch {
   rng: number; minute: number; done: boolean; neutral: boolean; knockout: boolean; venue: string; derby?: string;
   home: LiveSide; away: LiveSide;
@@ -56,7 +56,7 @@ const surname = (n: string) => { const i = n.indexOf(' '); return i < 0 ? n : n.
 /** Tired players play worse: full strength above 85%, about −10% at 55%. */
 export const conditionFactor = (c: number) => (c >= 85 ? 1 : 0.7 + c * 0.0035);
 
-export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; formation: Formation; name: string; user?: boolean; tilt?: { atk: number; def: number; talk: number }; captain?: string; takers?: SetPieceTakers; instr?: Instructions; roles?: SlotRole[] }, away: typeof home, venue: string, mods: MatchMods = {}): LiveMatch {
+export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; formation: Formation; name: string; user?: boolean; tilt?: { atk: number; def: number; talk: number }; captain?: string; takers?: SetPieceTakers; instr?: Instructions; roles?: SlotRole[]; defFormation?: Formation }, away: typeof home, venue: string, mods: MatchMods = {}): LiveMatch {
   const rng = createRng(seed);
   const players: Record<string, Snap> = {}, perf: Record<string, Perf> = {};
   const sideOf: Record<string, SideKey> = {};
@@ -65,7 +65,7 @@ export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; 
   for (const p of [...home.xi, ...home.bench]) { players[p.id] = withForm(p); sideOf[p.id] = 'home'; }
   for (const p of [...away.xi, ...away.bench]) { players[p.id] = withForm(p); sideOf[p.id] = 'away'; }
   for (const p of [...home.xi, ...away.xi]) perf[p.id] = { base: 6.3 + rng.normal(0, 0.3), goals: 0, assists: 0, saves: 0, onAt: 0 };
-  const side = (s: typeof home, boost = 1, injury = 1): LiveSide => ({ formation: s.formation, xi: s.xi.map((p) => p.id), bench: s.bench.map((p) => p.id), subsUsed: 0, boost, injury, user: !!s.user, name: s.name, ...(s.tilt ? { atk: s.tilt.atk, def: s.tilt.def, talk: s.tilt.talk } : {}), ...(s.captain ? { captain: s.captain } : {}), ...(s.takers ? { takers: s.takers } : {}), ...(s.instr ? { instr: { ...s.instr } } : {}), roles: fixRoles(s.formation, s.roles) });
+  const side = (s: typeof home, boost = 1, injury = 1): LiveSide => ({ formation: s.formation, xi: s.xi.map((p) => p.id), bench: s.bench.map((p) => p.id), subsUsed: 0, boost, injury, user: !!s.user, name: s.name, ...(s.tilt ? { atk: s.tilt.atk, def: s.tilt.def, talk: s.tilt.talk } : {}), ...(s.captain ? { captain: s.captain } : {}), ...(s.takers ? { takers: s.takers } : {}), ...(s.instr ? { instr: { ...s.instr } } : {}), roles: fixRoles(s.formation, s.roles), ...(s.defFormation && s.defFormation !== s.formation ? { defFormation: s.defFormation } : {}) });
   return {
     rng: rng.state(), minute: 0, done: false, neutral: !!mods.neutral, knockout: !!mods.knockout, venue, ...(mods.derby ? { derby: mods.derby } : {}),
     home: side(home, mods.homeBoost, mods.homeInjury), away: side(away, mods.awayBoost, mods.awayInjury),
@@ -98,11 +98,11 @@ function strength(lm: LiveMatch, s: LiveSide) {
 
 /** The parts of a side's strength that only change with its eleven, roles or formation: each slot's value before
     fatigue, its share of each unit, role bonuses, specials and the captain. */
-interface StaticStrength { base: number[]; cw: [number[], number[], number[]]; wsum: [number, number, number]; bonus: [number, number, number]; gkBase: number; leaderOn: boolean; L: number; defIdx: number[]; sp: ReturnType<typeof roleSpecials> }
-const staticCache = new WeakMap<LiveSide, { xi: Array<string | null>; roles?: SlotRole[]; formation: Formation; val: StaticStrength }>();
+interface StaticStrength { out?: { ratio: number[]; depth: number }; base: number[]; cw: [number[], number[], number[]]; wsum: [number, number, number]; bonus: [number, number, number]; gkBase: number; leaderOn: boolean; L: number; defIdx: number[]; sp: ReturnType<typeof roleSpecials> }
+const staticCache = new WeakMap<LiveSide, { xi: Array<string | null>; roles?: SlotRole[]; formation: Formation; def?: Formation; val: StaticStrength }>();
 function staticStrength(lm: LiveMatch, s: LiveSide): StaticStrength {
   const c = staticCache.get(s);
-  if (c && c.roles === s.roles && c.formation === s.formation && sameXi(c.xi, s.xi)) return c.val;
+  if (c && c.roles === s.roles && c.formation === s.formation && c.def === s.defFormation && sameXi(c.xi, s.xi)) return c.val;
   const slots = slotsOf(s.formation);
   const pre = (id: string | null, i: number) => {
     if (!id) return 0;
@@ -126,13 +126,28 @@ function staticStrength(lm: LiveMatch, s: LiveSide): StaticStrength {
     if (b && id) { const q = Math.min(1, stars / 3.5); bonus[0] *= 1 + (b.def ?? 0) * q; bonus[1] *= 1 + (b.mid ?? 0) * q; bonus[2] *= 1 + (b.att ?? 0) * q; }
   }
   const gkStars = s.xi[0] ? starsFor(lm.players[s.xi[0]], roles[0].role) : 2.5;
+  // without the ball: where each player goes in the defensive shape, how well he fits there, and how deep it sits
+  let out: StaticStrength['out'];
+  if (s.defFormation && s.defFormation !== s.formation) {
+    const map = shapeMap(s.formation, s.defFormation), outSlots = slotsOf(s.defFormation);
+    // how much better or worse each player fits his position without the ball than with it
+    const ratio: number[] = new Array(slots.length).fill(1);
+    for (let i = 1; i < slots.length; i++) {
+      const id = s.xi[i], j = map[i];
+      if (!id || j < 0) continue;
+      const p = lm.players[id] as unknown as Player;
+      ratio[i] = fitFor(p, outSlots[j]) / Math.max(0.3, fitFor(p, slots[i]));
+    }
+    const depth = (f: Formation) => FORMATION_LAYOUT[f].slice(1).reduce((a, q) => a + q[1], 0) / 10;
+    out = { ratio, depth: depth(s.defFormation) - depth(s.formation) };
+  }
   const cap = captainOnPitch(lm, s);
   const val: StaticStrength = {
-    base, cw, wsum, bonus, gkBase: pre(s.xi[0], 0) * roleFactor(gkStars),
+    out, base, cw, wsum, bonus, gkBase: pre(s.xi[0], 0) * roleFactor(gkStars),
     leaderOn: s.xi.some((id) => id && lm.players[id].leader), L: cap ? cap.attrs.Leadership : 10,
     defIdx: [0, ...roleIdx(s.formation, 'def')], sp: roleSpecials(s),
   };
-  staticCache.set(s, { xi: [...s.xi], roles: s.roles, formation: s.formation, val });
+  staticCache.set(s, { xi: [...s.xi], roles: s.roles, formation: s.formation, def: s.defFormation, val });
   return val;
 }
 
@@ -152,7 +167,19 @@ function computeStrength(lm: LiveMatch, s: LiveSide) {
   const behind = lm.minute >= 45 && lm.score[si] < lm.score[1 - si];
   const L = st.L;
   const k = s.boost * (st.leaderOn ? 1.015 : 1) * (1 + (L - 10) * 0.0015) * (behind ? 1 + (L - 10) * 0.002 : 1);
-  return { gk: st.gkBase * cond[0] * k, defence: unit(0) * k, mid: unit(1) * k, attack: unit(2) * k, defIdx: st.defIdx, sp: st.sp };
+  let defence = unit(0), mid = unit(1), attack = unit(2);
+  if (st.out) {
+    // a separate shape without the ball: blend in how well the players suit their defensive slots; a deeper
+    // shape is more solid but threatens less on the break
+    const o = st.out;
+    // each player's fit change, weighted by what he gives the unit
+    const fitChange = (u: 0 | 1) => { let w = 0, r = 0; for (let i = 1; i < o.ratio.length; i++) { const c = st.cw[u][i]; if (c && s.xi[i]) { w += c; r += c * o.ratio[i]; } } return w ? r / w : 1; };
+    defence *= 0.6 + 0.4 * fitChange(0);
+    mid *= 0.8 + 0.2 * fitChange(1);
+    defence *= 1 + o.depth * 0.004;
+    attack *= 1 - Math.max(0, o.depth) * 0.002;
+  }
+  return { gk: st.gkBase * cond[0] * k, defence: defence * k, mid: mid * k, attack: attack * k, defIdx: st.defIdx, sp: st.sp };
 }
 
 const onPitch = (s: LiveSide) => s.xi.filter((x): x is string => !!x);
@@ -446,7 +473,7 @@ export function runToEnd(lm: LiveMatch) { while (!lm.done) tick(lm); }
 
 /** Switches a side to another tactic mid-match: the players on the pitch move into the new shape (best fit
     first; a side down to ten leaves an attacking slot empty), with its roles and instructions. */
-export function changeTactic(lm: LiveMatch, key: SideKey, tc: { formation: Formation; roles?: SlotRole[]; instr?: Instructions; name?: string }) {
+export function changeTactic(lm: LiveMatch, key: SideKey, tc: { formation: Formation; defFormation?: Formation; roles?: SlotRole[]; instr?: Instructions; name?: string }) {
   const s = lm[key];
   const onField = onPitch(s);
   const slots = slotsOf(tc.formation);
@@ -465,6 +492,7 @@ export function changeTactic(lm: LiveMatch, key: SideKey, tc: { formation: Forma
   s.xi = improved.map((x) => x || null);
   s.roles = fixRoles(tc.formation, tc.roles);
   if (tc.instr) s.instr = { ...tc.instr };
+  s.defFormation = tc.defFormation && tc.defFormation !== tc.formation ? tc.defFormation : undefined;
   push(lm, { minute: lm.minute, type: 'chance', side: key, text: `${s.name} change it up${tc.name ? ` (${tc.name})` : ''}: now ${tc.formation}.` });
 }
 

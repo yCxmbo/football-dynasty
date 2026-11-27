@@ -6,20 +6,20 @@ import { slotsOf, type Formation } from './match';
 import { fixRoles, type Duty, type SlotRole } from './roles';
 import type { GameState } from './types';
 
-export interface Tactic { name: string; formation: Formation; roles: SlotRole[]; instr: Instructions; /** How well the squad knows these instructions, 0–100. */ fam: number }
+export interface Tactic { name: string; formation: Formation; /** A different shape without the ball (none: the same). */ defFormation?: Formation; roles: SlotRole[]; instr: Instructions; /** How well the squad knows these instructions, 0–100. */ fam: number }
 export interface TacticsState { slots: Tactic[]; active: number }
 
-export interface StylePreset { id: string; name: string; desc: string; formation: Formation; roles: Partial<Record<string, Array<[string, Duty]>>>; instr: Partial<Instructions> }
+export interface StylePreset { id: string; name: string; desc: string; formation: Formation; defFormation?: Formation; roles: Partial<Record<string, Array<[string, Duty]>>>; instr: Partial<Instructions> }
 
 /** Starting points. Roles are given per slot position, in slot order. */
 export const STYLE_PRESETS: StylePreset[] = [
   { id: 'press', name: 'High press', desc: 'Win the ball high and fast; counter-press the moment it is lost. Demanding on fitness.', formation: '4-3-3',
     roles: { GK: [['sk', 'S']], LB: [['wb', 'S']], RB: [['wb', 'S']], CB: [['bpd', 'D'], ['cd', 'D']], CM: [['b2b', 'S'], ['dm', 'D'], ['mez', 'A']], LW: [['if', 'A']], RW: [['if', 'A']], ST: [['pf', 'A']] },
     instr: { mentality: 'positive', passing: 'mixed', tempo: 'fast', onLoss: 'counterpress', onWin: 'counter', block: 'high', line: 'high', press: 'high', tackling: 'hard' } },
-  { id: 'possession', name: 'Possession', desc: 'Keep the ball, move it patiently and work the opening; win it back quickly.', formation: '4-3-3 DM',
+  { id: 'possession', name: 'Possession', desc: 'Keep the ball, move it patiently and work the opening; win it back quickly. Defends in a 4-1-4-1.', formation: '4-3-3 DM', defFormation: '4-1-4-1',
     roles: { GK: [['sk', 'S']], LB: [['ifb', 'D']], RB: [['wb', 'S']], CB: [['bpd', 'D'], ['bpd', 'D']], DM: [['dlp', 'D']], CM: [['ap', 'S'], ['mez', 'S']], LW: [['iw', 'S']], RW: [['w', 'A']], ST: [['f9', 'S']] },
     instr: { mentality: 'positive', passing: 'short', tempo: 'slow', width: 'normal', approach: 'middle', finalThird: 'patient', onLoss: 'counterpress', onWin: 'hold', block: 'mid', line: 'high', press: 'medium' } },
-  { id: 'counter', name: 'Counter-attack', desc: 'Sit compact, invite them on and break at speed into the space they leave.', formation: '4-2-3-1',
+  { id: 'counter', name: 'Counter-attack', desc: 'Sit compact, invite them on and break at speed into the space they leave. Defends in a 4-4-1-1.', formation: '4-2-3-1', defFormation: '4-4-1-1',
     roles: { LB: [['fb', 'D']], RB: [['fb', 'D']], DM: [['dm', 'D'], ['dlp', 'S']], LW: [['if', 'A']], RW: [['w', 'S']], AM: [['ss', 'A']], ST: [['af', 'A']] },
     instr: { mentality: 'cautious', passing: 'direct', tempo: 'fast', onLoss: 'regroup', onWin: 'counter', block: 'low', line: 'deep', press: 'low' } },
   { id: 'wings', name: 'Wing play', desc: 'Get the ball wide, beat the full-back and cross for a big target in the box.', formation: '4-4-2',
@@ -46,7 +46,7 @@ export function presetTactic(p: StylePreset, name = p.name): Tactic {
     const pick = list?.[Math.min(n, list.length - 1)];
     return pick ? { role: pick[0], duty: pick[1] } : base[i];
   });
-  return { name, formation: p.formation, roles: fixRoles(p.formation, roles), instr: withDefaults(p.instr), fam: 30 };
+  return { name, formation: p.formation, ...(p.defFormation ? { defFormation: p.defFormation } : {}), roles: fixRoles(p.formation, roles), instr: withDefaults(p.instr), fam: 30 };
 }
 
 const PRESET = (id: string) => STYLE_PRESETS.find((p) => p.id === id)!;
@@ -67,15 +67,17 @@ export function tacticsOf(s: GameState): TacticsState {
 function applyActive(s: GameState) {
   const t = tacticsOf(s).slots[tacticsOf(s).active];
   s.formation = t.formation;
+  s.defFormation = t.defFormation && t.defFormation !== t.formation ? t.defFormation : undefined;
   s.roles = fixRoles(t.formation, t.roles);
   s.instructions = { ...t.instr };
 }
 
 /** Saves edits to the active tactic: changed instructions cost familiarity (6 a setting). */
-export function saveActive(s: GameState, change: { formation?: Formation; roles?: SlotRole[]; instr?: Partial<Instructions> }) {
+export function saveActive(s: GameState, change: { formation?: Formation; defFormation?: Formation | null; roles?: SlotRole[]; instr?: Partial<Instructions> }) {
   ensureFamiliarity(s);
   const ts = tacticsOf(s), t = ts.slots[ts.active];
   if (change.formation && change.formation !== t.formation) { t.formation = change.formation; t.roles = fixRoles(change.formation, t.roles); }
+  if (change.defFormation !== undefined) { if (change.defFormation && change.defFormation !== t.formation) t.defFormation = change.defFormation; else delete t.defFormation; }
   if (change.roles) t.roles = fixRoles(t.formation, change.roles);
   if (change.instr) {
     const next = { ...t.instr, ...change.instr };
@@ -118,7 +120,9 @@ export const formationFamiliarity = (s: GameState, f: Formation) => s.familiarit
 /** Familiarity with the tactic you play now, 0–100: mostly the shape, partly the instructions. */
 export function familiarity(s: GameState) {
   const ts = tacticsOf(s);
-  return Math.round(formationFamiliarity(s, s.formation) * 0.7 + ts.slots[ts.active].fam * 0.3);
+  // with a separate shape out of possession, the squad has to know both
+  const shape = s.defFormation ? (formationFamiliarity(s, s.formation) + formationFamiliarity(s, s.defFormation)) / 2 : formationFamiliarity(s, s.formation);
+  return Math.round(shape * 0.7 + ts.slots[ts.active].fam * 0.3);
 }
 /** On the pitch: about −2.5% with a brand-new tactic, nothing once it is fully learned. */
 export const familiarityFactor = (fam: number) => 0.975 + 0.025 * Math.min(100, fam) / 100;
@@ -127,6 +131,7 @@ export const familiarityFactor = (fam: number) => 0.975 + 0.025 * Math.min(100, 
 export function learnFromMatch(s: GameState) {
   const fam = ensureFamiliarity(s);
   fam[s.formation] = Math.min(100, (fam[s.formation] ?? FLOOR) + 6);
+  if (s.defFormation) fam[s.defFormation] = Math.min(100, (fam[s.defFormation] ?? FLOOR) + 6);
   const ts = tacticsOf(s);
   ts.slots[ts.active].fam = Math.min(100, ts.slots[ts.active].fam + 8);
 }
@@ -134,7 +139,7 @@ export function learnFromMatch(s: GameState) {
 /** Each league week: shapes you aren't using fade slowly. */
 export function weeklyFamiliarity(s: GameState) {
   if (!s.familiarity) return;
-  for (const [f, v] of Object.entries(s.familiarity)) if (f !== s.formation && v > FLOOR) s.familiarity[f] = Math.max(FLOOR, v - 1);
+  for (const [f, v] of Object.entries(s.familiarity)) if (f !== s.formation && f !== s.defFormation && v > FLOOR) s.familiarity[f] = Math.max(FLOOR, v - 1);
 }
 
 /** A new club: the squad doesn't know your ideas yet. */

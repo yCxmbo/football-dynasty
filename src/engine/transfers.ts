@@ -2,6 +2,7 @@ import { noteJoined, squadOf } from './index';
 import { marketFee } from './market';
 import { scoutPerMatchday } from './staff';
 import { afterTransfer } from './achievements';
+import { fansOnTransfer } from './fans';
 import { recordTransfer } from './records';
 import { honourPreContract, preContracts, triggerClauses, wantsOut } from './contracts';
 /* Transfers, scouting and contracts. Pure functions over GameState (mutating the draft). */
@@ -168,6 +169,7 @@ export function completeTransfer(s: GameState, p: Player, o: OfferTerms) {
   const from = p.clubId;
   const upfront = Math.round((o.fee * o.upfront) / 100);
   afterTransfer(s, o.fee, false);
+  fansOnTransfer(s, p, true);
   recordTransfer(s, p.name, s.clubs[p.clubId]?.name ?? 'Free agent', s.clubs[s.userClubId].name, o.fee, seasonLabel(s.year), { playerId: p.id, fromId: p.clubId, toId: s.userClubId });
   club.transferBudget -= upfront + o.signingBonus + o.agentFee;
   club.balance -= upfront + o.signingBonus + o.agentFee;
@@ -239,6 +241,7 @@ export function respondToBid(s: GameState, bidId: string, accept: boolean) {
   if (!accept || !p || p.clubId !== s.userClubId) { b.status = 'rejected'; return; }
   const buyer = s.clubs[b.fromClubId], club = s.clubs[s.userClubId];
   b.status = 'accepted';
+  fansOnTransfer(s, p, false);
   afterTransfer(s, b.fee, true);
   recordTransfer(s, p.name, club.name, buyer.name, b.fee, seasonLabel(s.year), { playerId: p.id, fromId: club.id, toId: buyer.id });
   buyer.transferBudget -= b.fee; buyer.balance -= b.fee;

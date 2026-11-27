@@ -4,6 +4,7 @@ import { prizeMoney, wageBillOf } from '../engine/finance';
 import type { GameState, Ledger } from '../engine/types';
 import { seasonLabel } from '../engine/types';
 import { toCur } from '../store';
+import Supporters from './Supporters';
 
 const INCOME: Array<[keyof Ledger['income'], string]> = [['gate', 'Gate receipts'], ['tv', 'TV money'], ['sponsorship', 'Sponsorship'], ['merchandise', 'Merchandise'], ['prize', 'Prize money'], ['sales', 'Player sales']];
 const EXPENSES: Array<[keyof Ledger['expenses'], string]> = [['wages', 'Player wages'], ['staff', 'Staff and upkeep'], ['facilities', 'Building work'], ['transfers', 'Transfer fees']];
@@ -25,7 +26,7 @@ function Breakdown({ title, rows, cur }: { title: string; rows: Array<[string, n
   );
 }
 
-export default function Finances({ g }: { g: GameState }) {
+export default function Finances({ g, update }: { g: GameState; update: (fn: (d: GameState) => void) => void }) {
   const cur = g.currency;
   const club = g.clubs[g.userClubId];
   const L = g.ledger;
@@ -46,6 +47,7 @@ export default function Finances({ g }: { g: GameState }) {
         <div className="pg-card"><span className="pg-h">Wage budget</span><strong><FD.Money amount={toCur(bill, cur)} currency={cur} perWeek /> of <FD.Money amount={toCur(club.wageBudget, cur)} currency={cur} perWeek /></strong>
           <span className="fd-meter fd-meter--wide"><span className={`fd-meter__bar fd-meter__bar--${usage > 100 ? 'high' : usage > 92 ? 'medium' : 'low'}`} style={{ width: Math.min(100, usage) + '%' }} /></span><span className="hm-note">{usage}% used</span></div>
       </div>
+      <Supporters g={g} update={update} />
       <div className="fn-grid">
         <Breakdown title="Income" rows={INCOME.map(([k, l]) => [l, L.income[k]])} cur={cur} />
         <Breakdown title="Expenses" rows={EXPENSES.map(([k, l]) => [l, L.expenses[k] ?? 0])} cur={cur} />

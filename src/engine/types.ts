@@ -211,6 +211,8 @@ export interface GameState {
   talks?: Record<string, import('./talks').TalkRecord>;
   /** Preparation for your next match: a focus and a player to man-mark. */
   matchPrep?: { fixtureId: string; focus?: import('./opposition').Focus; mark?: string };
+  /** Your supporters' mood and ticket prices. */
+  fans?: import('./fans').Fans;
   meeting?: { date: string; topic: import('./talks').MeetingTopic; reaction: import('./talks').Reaction };
   /** Your shape without the ball, if different. */
   defFormation?: import('./match').Formation;

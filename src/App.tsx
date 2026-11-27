@@ -192,7 +192,7 @@ export default function App() {
     case 'scouting': body = <Scouting g={g} go={go} update={update} />; break;
     case 'offer': body = <Offer g={g} id={param} go={go} submit={(id: string, o: OfferTerms) => update((d) => { makeOffer(d, id, o); })} />; break;
     case 'training': body = <Training g={g} update={update} />; break;
-    case 'finances': body = <Finances g={g} />; break;
+    case 'finances': body = <Finances g={g} update={update} />; break;
     case 'contract': body = <Contract key={param} g={g} id={param} go={go} update={update} />; break;
     case 'tactics': body = <Tactics g={g} go={go} update={update} liveNote={!!live} onAutoRotate={(on) => update((d) => setAutoRotate(d, on))} onChange={(f: Formation, l: string[]) => update((d) => setTactics(d, f, l))} />; break;
     case 'fixtures': body = <Fixtures g={g} go={go} />; break;

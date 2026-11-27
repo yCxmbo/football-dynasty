@@ -12,6 +12,7 @@ import type { Screen } from './shared';
 import { bidsFor } from './shared-transfers';
 import { atmosphere, atmosphereWord } from '../engine/dynamics';
 import { windowsFor } from '../engine/windows';
+import { fanWord } from '../engine/fans';
 import { today } from '../engine/game';
 import { badgeUrl } from './badge';
 import type { Fixture } from '../engine/types';
@@ -75,6 +76,7 @@ export default function Home({ g, go, onPlay, onSimNext, update }: { g: GameStat
         <div className="hm-stat"><span className="fd-label">Form</span><span className="hm-form">{form.length ? form.map((f, i) => <span key={i} className={`fd-form fd-form--${f}`}>{f}</span>) : <span className="fd-muted">No games yet</span>}</span></div>
         <div className="hm-stat"><span className="fd-label">League</span><strong>{played ? ordinal(pos) : '—'}</strong><span className="fd-muted">target {target.text}</span></div>
         <button type="button" className="hm-stat hm-stat--btn" onClick={() => go('squad')}><span className="fd-label">Dressing room</span><strong>{atmosphereWord(atm)}</strong><span className="fd-muted">{mine.filter((p) => p.morale === 'low' && p.squad === 'First team').length} unhappy</span></button>
+        <button type="button" className="hm-stat hm-stat--btn" onClick={() => go('finances')}><span className="fd-label">Supporters</span><strong>{fanWord(g.fans?.mood ?? 60)}</strong><span className="fd-muted">{g.fans?.notes[0] ?? 'Ticket prices on Finances'}</span></button>
         <button type="button" className={'hm-stat hm-stat--btn' + (decisions ? ' is-alert' : '')} onClick={() => go('inbox')}><span className="fd-label">Decisions waiting</span><strong>{decisions}</strong><span className="fd-muted">{decisions ? 'Bids and questions in your inbox' : 'Nothing needs you'}</span></button>
       </div>
       <div className="hm-grid">

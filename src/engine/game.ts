@@ -1,6 +1,7 @@
 import { makeRumours, runMarket } from './market';
 import { windowsFor } from './windows';
 import { prepFor } from './opposition';
+import { fansAfterMatch, fansNewSeason, homeLift } from './fans';
 import { captainOf, takersOf } from './leadership';
 import { withDefaults, type Instructions } from './instructions';
 import { makePredictions, predictedPos, previewMessage } from './preview';
@@ -273,7 +274,7 @@ function setupFor(state: GameState, f: Fixture) {
   const derby = derbyName(state, f.homeId, f.awayId);
   // following the assistant's suggested formation gives a small edge
   const prep = (uh || ua) && f.comp !== 'friendly' ? prepFor(state, f) : { boost: 1, marked: undefined };
-  const plan = prep.boost;
+  const plan = prep.boost * (uh ? homeLift(state) : 1);
   // how well the squad knows the tactic (computer-run sides play theirs every week)
   const fam = uh || ua ? familiarityFactor(familiarity(state)) * atmosphereFactor(atmosphere(state)) : 1, aiFam = familiarityFactor(90);
   const mods: MatchMods = { derby, homeBoost: uh ? te.matchBoost * sharp * plan * fam : managerBoost(state, f.homeId) * aiFam, awayBoost: ua ? te.matchBoost * sharp * plan * fam : managerBoost(state, f.awayId) * aiFam, homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1, neutral: f.neutral, knockout: f.ko };
@@ -346,6 +347,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     for (const [id, c] of Object.entries(conditions)) if (state.players[id]) state.players[id].condition = c;
     applyResult(state, f, rng);
     if (f.comp !== 'friendly') afterDerby(state, f);
+    if ((uh || ua) && f.comp !== 'friendly') for (const m of fansAfterMatch(state, f, derbyName(state, f.homeId, f.awayId))) addMessage(state, { category: 'media', from: 'Supporters', ...m });
     if (derbyName(state, f.homeId, f.awayId)) derbyHomes.add(f.homeId);
     if (compInfo(state, f.comp).kind === 'league') homeIds.add(f.homeId); else if (f.comp !== 'friendly') cupGate(state, f);
     if (!uh && !ua) slim(f);
@@ -545,6 +547,7 @@ export function startNewSeason(state: GameState) {
 
 function rollover(state: GameState) {
   const rng = createRng(state.rngState ^ 0x9e3779b9);
+  if (state.fans) fansNewSeason(state);
   const label = seasonLabel(state.year);
   const { moves, champions } = promotionsAndRelegations(state);
   const honours: Record<string, string> = {};

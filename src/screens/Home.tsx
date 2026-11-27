@@ -1,7 +1,7 @@
 import { FD } from '../ds';
 import { formatDate } from '../engine/fixtures';
 import OppReport from './OppReport';
-import { boardTarget, currentDate, leagueTable, nextUserFixture, ordinal, seasonOver } from '../engine/game';
+import { boardTarget, currentDate, daysToNextMatch, leagueTable, nextUserFixture, ordinal, seasonOver, todaysFixture } from '../engine/game';
 import { compInfo, cupResult, topLeague, withThe } from '../engine/competitions';
 import type { GameState } from '../engine/types';
 import { fixtureCardProps, leagueLabel, zonesFor } from './comp-ui';
@@ -17,7 +17,7 @@ function seasonStart(g: GameState) {
   return f ? formatDate(f.date) : currentDate(g);
 }
 
-export default function Home({ g, go, onPlay, update }: { g: GameState; go: (s: Screen, id?: string) => void; onPlay: () => void; update: (fn: (d: GameState) => void) => void }) {
+export default function Home({ g, go, onPlay, onSimNext, update }: { g: GameState; go: (s: Screen, id?: string) => void; onPlay: () => void; onSimNext: () => void; update: (fn: (d: GameState) => void) => void }) {
   const cur = g.currency;
   const club = g.clubs[g.userClubId];
   const table = leagueTable(g);
@@ -25,7 +25,8 @@ export default function Home({ g, go, onPlay, update }: { g: GameState; go: (s: 
   const played = table[pos - 1].p;
   const target = boardTarget(g, g.userClubId);
   const next = nextUserFixture(g);
-  const isNow = next && next.matchday === g.matchday;
+  const isNow = !!next && todaysFixture(g)?.id === next.id;
+  const daysAway = daysToNextMatch(g);
   const last = g.fixtures.filter((f) => f.result && (f.homeId === g.userClubId || f.awayId === g.userClubId)).sort((a, b) => a.matchday - b.matchday).pop();
   const cups = Object.values(g.comps).filter((c) => c.kind === 'cup' || c.kind === 'continental' || c.kind === 'title').map((c) => ({ c: c.id, r: cupResult(g, c.id, club.id) })).filter((x) => x.r);
   void topLeague;
@@ -53,7 +54,7 @@ export default function Home({ g, go, onPlay, update }: { g: GameState; go: (s: 
       <div className="hm-grid">
         <div className="hm-col">
           <h2 className="pg-h">Next match</h2>
-          {next ? <FD.FixtureCard {...fixtureCardProps(g, next)} action={isNow ? <FD.Button size="sm" icon="play" onClick={onPlay}>Play match</FD.Button> : <FD.Button size="sm" variant="secondary" icon="sim" onClick={onPlay}>Continue to it</FD.Button>} />
+          {next ? <FD.FixtureCard {...fixtureCardProps(g, next)} action={isNow ? <FD.Button size="sm" icon="play" onClick={onPlay}>Play match</FD.Button> : <FD.Button size="sm" variant="secondary" icon="sim" onClick={onSimNext}>{daysAway ? `In ${daysAway} ${daysAway === 1 ? 'day' : 'days'} · go to it` : 'Go to it'}</FD.Button>} />
             : <div className="pg-card hm-note">{over ? 'No more league matches this season.' : 'No match this week.'}</div>}
           {next && next.comp !== 'friendly' ? <OppReport g={g} f={next} go={go} compact /> : null}
           {g.matchday === 1 && ((g.friendlyOffers?.length ?? 0) > 0 || friendliesArranged(g).length > 0) && <>

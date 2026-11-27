@@ -69,6 +69,7 @@ The game saves automatically in the browser (IndexedDB), and you can keep severa
 - **Squad:** first team, U21 and U18 with ability and potential stars, plus full player profiles (attributes, positions, scout report, career).
 - **Tactics:** 4-3-3, 4-4-2, 4-2-3-1 or 3-5-2; click two players to swap; out-of-position players perform worse.
 - **Academy:** youth players have silver stars; promoting one to the first team gives a professional contract and gold stars.
+- **Day by day:** the game moves on a day at a time. Continue advances one day (a day with fixtures plays them; on your match day it's Play match), and the Sim menu goes to your next match day, through a week or four weeks, or to the end of the season. A Calendar screen shows each month with your fixtures and results.
 - **Season end:** player development (young players grow toward potential, veterans decline), retirements, a youth intake, the board's review, and club history (trophy cabinet, season-by-season record, records, hall of fame, your manager career).
 - **Coaching style:** pick one when you start (changeable once a season on the Career screen): *Attacking* (more chances, a little more conceded), *Defensive* (the reverse), *Youth developer* (players 21 and under develop 15% faster, better intakes), *Motivator* (team talks count 50% more, unhappy players recover sooner) or *Balanced*. It applies to your national team too.
 - **Manager career:**

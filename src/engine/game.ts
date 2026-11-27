@@ -129,8 +129,31 @@ function addMessage(state: GameState, m: Omit<InboxMessage, 'id' | 'date' | 'unr
 }
 
 export function currentDate(state: GameState) {
-  const slot = state.calendar[Math.min(state.matchday, state.calendar.length) - 1];
-  return formatDate(slot.date);
+  return formatDate(today(state));
+}
+
+/** An ISO date moved by a number of days. */
+export const addDays = (iso: string, n: number) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+/** Today's date in the game. */
+export function today(state: GameState) {
+  return state.today ?? state.calendar[Math.min(state.matchday, state.calendar.length) - 1]?.date ?? '';
+}
+/** Whether today has fixtures still to play. */
+export const fixturesToday = (state: GameState) => { const slot = state.calendar[state.matchday - 1]; return !!slot && slot.date <= today(state); };
+/** Your fixture today, if you have one. */
+export function todaysFixture(state: GameState) { return fixturesToday(state) ? userFixture(state) : undefined; }
+/** Moves the game on by one day: today's fixtures (yours included, simulated) are played first. */
+export function advanceDay(state: GameState) {
+  if (seasonOver(state) || state.career?.sacked) return;
+  if (fixturesToday(state)) playMatchday(state);
+  else state.today = addDays(today(state), 1);
+}
+/** Days until your next fixture (0 if it's today). */
+export function daysToNextMatch(state: GameState) {
+  const f = nextUserFixture(state);
+  const d = f ? state.calendar[f.matchday - 1]?.date : undefined;
+  if (!d) return undefined;
+  return Math.round((Date.parse(d) - Date.parse(today(state))) / 86_400_000);
 }
 
 export const totalMatchdays = (state: GameState) => state.calendar.length;
@@ -286,7 +309,11 @@ function slim(f: Fixture) {
 /** Plays every fixture in the current calendar slot. Pass the user's live match to use its result (with their substitutions). */
 export function playMatchday(state: GameState, live?: { fixtureId: string; lm: LiveMatch }): Fixture | undefined {
   if (seasonOver(state) || state.career?.sacked) return undefined;
-  return withSquadIndex(state, () => playSlot(state, live));
+  const date = state.calendar[state.matchday - 1]?.date;
+  const f = withSquadIndex(state, () => playSlot(state, live));
+  // the day is over: tomorrow is next
+  if (date) state.today = addDays(date, 1);
+  return f;
 }
 
 function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch }): Fixture | undefined {
@@ -485,6 +512,7 @@ const STAGE = ['Winners', 'Final', 'Semi-final', 'Quarter-final', 'Round of 16',
 export function startNewSeason(state: GameState) {
   if (!seasonOver(state)) throw new Error('Season not finished');
   withSquadIndex(state, () => rollover(state));
+  delete state.today; // the new season starts on its first fixture date
 }
 
 function rollover(state: GameState) {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { FD } from './ds';
-import { currentDate, markRead, newGame, playMatchday, promote, seasonOver, setAutoRotate, setTactics, startUserMatch, userFixture } from './engine/game';
+import { currentDate, markRead, newGame, playMatchday, promote, seasonOver, setAutoRotate, setTactics, startUserMatch, advanceDay, todaysFixture, daysToNextMatch } from './engine/game';
 import type { Formation } from './engine/match';
 import { formatDate } from './engine/fixtures';
 import { seasonLabel, type GameState } from './engine/types';
@@ -26,6 +26,7 @@ import Career from './screens/Career';
 import Staff from './screens/Staff';
 import ClubScreen from './screens/ClubScreen';
 import StatsHub from './screens/StatsHub';
+import Calendar from './screens/Calendar';
 import Records from './screens/Records';
 import Tip, { TIPS } from './screens/Tip';
 import { simulate } from './sim/client';
@@ -93,21 +94,20 @@ export default function App() {
   };
   backRef.current = back;
 
-  /** Starts the user's match live (nothing is saved until full time). Otherwise skips ahead to the next match. */
+  /** On your match day: starts your match live (nothing is saved until full time). Otherwise moves on one day. */
   const play = () => {
     if (live) { setScreen('match'); return; }
-    const fx = userFixture(g);
+    const fx = todaysFixture(g);
     if (fx) {
       const lm = startUserMatch(g);
       if (lm) { setLive({ fixtureId: fx.id, lm }); setScreen('match'); setParam(fx.id); }
       return;
     }
-    update((d) => { do { playMatchday(d); } while (!seasonOver(d) && !userFixture(d) && !d.career?.sacked); });
-    go('home');
+    update((d) => advanceDay(d));
   };
 
   /** Simulates ahead without watching: your matches are played with your tactics. Runs in steps so the page stays responsive. */
-  const simAhead = async (kind: 'match' | 'month' | 'season') => {
+  const simAhead = async (kind: 'next' | 'through' | 'week' | 'month' | 'season') => {
     setSimMenu(false);
     if (live) return;
     setSim('Simulating…');
@@ -133,7 +133,8 @@ export default function App() {
 
   const over = seasonOver(g);
   const summerReq = g.summer ? summerStep(g)?.request : undefined;
-  const hasMatch = !!userFixture(g);
+  const hasMatch = !!todaysFixture(g);
+  const toMatch = daysToNextMatch(g);
   /** Full time: store the user's match (with their substitutions) and play the rest of the slot. */
   const finishLive = () => {
     if (!live) return;
@@ -157,18 +158,20 @@ export default function App() {
           <FD.Button variant="secondary" icon="sim" onClick={() => setSimMenu((v) => !v)} aria-expanded={simMenu}><span className="sim-label">Sim</span></FD.Button>
           {simMenu && (
             <div className="sim-menu__list" role="menu">
-              <button role="menuitem" onClick={() => void simAhead('match')}>{hasMatch ? 'Sim this match' : 'Sim to after my next match'}</button>
+              {hasMatch ? <button role="menuitem" onClick={() => void simAhead('through')}>Sim this match</button>
+                : <button role="menuitem" onClick={() => void simAhead('next')}>To my next match{toMatch ? ` (${toMatch} ${toMatch === 1 ? 'day' : 'days'})` : ''}</button>}
+              <button role="menuitem" onClick={() => void simAhead('week')}>Sim a week</button>
               <button role="menuitem" onClick={() => void simAhead('month')}>Sim four weeks</button>
               <button role="menuitem" onClick={() => void simAhead('season')}>Sim to end of season</button>
             </div>
           )}
         </div>
-        <FD.Button icon={hasMatch ? 'play' : 'sim'} onClick={play}>{hasMatch ? 'Play match' : 'Continue'}</FD.Button>
+        <FD.Button icon={hasMatch ? 'play' : 'sim'} onClick={play} title={hasMatch ? undefined : 'Move on one day'}>{hasMatch ? 'Play match' : 'Continue'}</FD.Button>
       </div>
     );
 
   const club = g.clubs[g.userClubId];
-  const shownFx = liveFx0(g, live) ?? userFixture(g);
+  const shownFx = liveFx0(g, live) ?? todaysFixture(g);
   const slotLabel = over ? (g.summer ? `Summer · ${summerLabel(g)}` : 'Season finished') : shownFx ? (shownFx.comp === 'friendly' ? `Pre-season · ${shownFx.round}` : `${compInfo(g, shownFx.comp).name}, ${shownFx.round}`) : currentSlot(g).week === 0 ? 'Pre-season' : `Week ${currentSlot(g).week}`;
   const liveFx = liveFx0(g, live);
   const unread = g.inbox.filter((m) => m.unread).length;
@@ -176,7 +179,7 @@ export default function App() {
 
   let body: JSX.Element;
   switch (screen) {
-    case 'home': body = <Home g={g} go={go} onPlay={play} update={update} />; break;
+    case 'home': body = <Home g={g} go={go} onPlay={play} onSimNext={() => void simAhead('next')} update={update} />; break;
     case 'squad': body = <Squad g={g} go={go} update={update} />; break;
     case 'player': body = <PlayerScreen g={g} id={param} go={go} act={{
       promote: (id) => update((d) => promote(d, id)), scout: (id) => update((d) => { startScouting(d, id); }),
@@ -193,6 +196,7 @@ export default function App() {
     case 'nationalMatch': body = <NationalMatch key={`${g.summer?.results.length}`} g={g} go={go} update={update} />; break;
     case 'records': body = <Records g={g} go={go} />; break;
     case 'stats': body = <StatsHub g={g} go={go} />; break;
+    case 'calendar': body = <Calendar g={g} go={go} />; break;
     case 'club': body = <ClubScreen key={param} g={g} id={param} go={go} />; break;
     case 'facilities': body = <FacilitiesScreen g={g} update={update} />; break;
     case 'staff': body = <Staff g={g} update={update} />; break;

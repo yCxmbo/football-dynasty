@@ -155,6 +155,8 @@ export interface GameState {
   rngState: number;
   year: number; // season starts in this year
   matchday: number; // next matchday to play (1-based)
+  /** The current date (ISO); days pass one at a time, and a day with fixtures plays them. Unset: the next fixture date. */
+  today?: string;
   userClubId: string;
   managerName: string;
   currency: Currency;

@@ -5,12 +5,12 @@ import { FREE_AGENT, type Currency, type GameState, type Player } from '../engin
 import { seasonLabel } from '../engine/types';
 import { toCur } from '../store';
 
-export type Screen = 'home' | 'inbox' | 'squad' | 'player' | 'tactics' | 'fixtures' | 'table' | 'match' | 'youth' | 'history' | 'settings' | 'transfers' | 'training' | 'scouting' | 'finances' | 'offer' | 'contract' | 'international' | 'career' | 'staff' | 'facilities' | 'nationalMatch' | 'records' | 'club' | 'stats';
+export type Screen = 'home' | 'inbox' | 'squad' | 'player' | 'tactics' | 'fixtures' | 'table' | 'match' | 'youth' | 'history' | 'settings' | 'transfers' | 'training' | 'scouting' | 'finances' | 'offer' | 'contract' | 'international' | 'career' | 'staff' | 'facilities' | 'nationalMatch' | 'records' | 'club' | 'stats' | 'calendar';
 
 export const NAV = (unread: number) => [
   { id: 'home', label: 'Home', icon: 'home' }, { id: 'inbox', label: 'Inbox', icon: 'inbox', badge: unread || undefined },
   { id: 'squad', label: 'Squad', icon: 'squad' }, { id: 'tactics', label: 'Tactics', icon: 'tactics' },
-  { id: 'fixtures', label: 'Fixtures', icon: 'fixtures' }, { id: 'table', label: 'Competitions', icon: 'league-table' },
+  { id: 'fixtures', label: 'Fixtures', icon: 'fixtures' }, { id: 'calendar', label: 'Calendar', icon: 'fixtures' }, { id: 'table', label: 'Competitions', icon: 'league-table' },
   { id: 'international', label: 'International', icon: 'crown' },
   { id: 'youth', label: 'Academy', icon: 'youth' }, { id: 'history', label: 'Club history', icon: 'trophy' }, { id: 'career', label: 'Career', icon: 'contract' }, { id: 'stats', label: 'Stats', icon: 'trend-up' }, { id: 'records', label: 'Records', icon: 'star' },
   { id: 'transfers', label: 'Transfers', icon: 'transfers' }, { id: 'scouting', label: 'Scouting', icon: 'scouting' }, { id: 'training', label: 'Training', icon: 'training' }, { id: 'staff', label: 'Staff', icon: 'captain' }, { id: 'facilities', label: 'Facilities', icon: 'stadium' },
@@ -72,5 +72,5 @@ export const NAV_LABEL: Partial<Record<Screen, string>> = {
   home: 'Home', inbox: 'Inbox', squad: 'Squad', player: 'player', tactics: 'Tactics', fixtures: 'Fixtures', table: 'Competitions', match: 'match',
   youth: 'Academy', history: 'Club history', settings: 'Settings', transfers: 'Transfers', training: 'Training', scouting: 'Scouting', finances: 'Finances',
   offer: 'offer', contract: 'contract', international: 'International', career: 'Career', staff: 'Staff', facilities: 'Facilities', nationalMatch: 'match',
-  records: 'Records', club: 'club', stats: 'Stats',
+  records: 'Records', club: 'club', stats: 'Stats', calendar: 'Calendar',
 };

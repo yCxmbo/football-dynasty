@@ -6,6 +6,8 @@ import { askingPrice, clubName, knowledgeOf, seenRange, toggleShortlist, windowL
 import { FREE_AGENT, type GameState, type Player } from '../engine/types';
 import { fromCur, toCur } from '../store';
 import type { Screen } from './shared';
+import { nationName } from '../engine/nations';
+import type { SearchFilters } from '../engine/search';
 
 const POSITIONS = ['All', 'GK', 'CB', 'LB', 'RB', 'DM', 'CM', 'AM', 'LW', 'RW', 'ST'];
 
@@ -45,30 +47,53 @@ export function PlayerTable({ children }: { children: React.ReactNode }) {
   );
 }
 
+const SORTS: Array<[SearchFilters['sort'], string]> = [['value', 'Market value'], ['stars', 'Ability (as known)'], ['price', 'Asking price'], ['age', 'Youngest'], ['contract', 'Contract ending'], ['name', 'Name']];
+const DEFAULTS = (budget: number): SearchFilters => ({ pos: 'All', minAge: 15, maxAge: 40, maxPrice: budget, minStars: 0, league: 'all', nation: 'all', expiring: false, freeOnly: false, scouted: false, name: '', sort: 'value' });
+let kept: SearchFilters | null = null; // the last search, kept while the game is open (Back returns to it)
+
+/** Searches every player in the world. Ability filters and sorting use what your scouts know (the low end of
+    the estimated range), so unscouted players' hidden ability never leaks. */
+export function searchPlayers(g: GameState, f: SearchFilters, limit: number) {
+  const scale = leagueScale(g);
+  const knownStars = (p: Player) => FD.starScore(seenRange(p.ability, knowledgeOf(g, p))[0], scale);
+  const priceCap = f.maxPrice >= 1e12 ? Infinity : fromCur(f.maxPrice, g.currency);
+  const needle = f.name.trim().toLowerCase();
+  return withSquadIndex(g, () => {
+    const list = Object.values(g.players).filter((p) => {
+      if (p.clubId === g.userClubId || p.squad !== 'First team' || p.id.startsWith('nt-')) return false;
+      if (f.pos !== 'All' && p.pos !== f.pos) return false;
+      if (p.age < f.minAge || p.age > f.maxAge) return false;
+      if (f.freeOnly && p.clubId !== FREE_AGENT) return false;
+      if (f.expiring && !(p.contractEnd <= g.year)) return false;
+      if (f.nation !== 'all' && p.nationality !== f.nation) return false;
+      if (f.league !== 'all' && g.clubs[p.clubId]?.league !== f.league) return false;
+      if (f.scouted && knowledgeOf(g, p) < 100) return false;
+      if (needle && !p.name.toLowerCase().includes(needle)) return false;
+      if (f.minStars && knownStars(p) < f.minStars) return false;
+      return askingPrice(g, p) <= priceCap;
+    });
+    const key: Record<SearchFilters['sort'], (p: Player) => number | string> = {
+      value: (p) => -p.value, price: (p) => askingPrice(g, p), age: (p) => p.age, stars: (p) => -knownStars(p), contract: (p) => p.contractEnd, name: (p) => p.name,
+    };
+    const k = key[f.sort];
+    return { total: list.length, rows: list.sort((a, b) => { const x = k(a), y = k(b); return typeof x === 'string' ? x.localeCompare(String(y)) : x - (y as number) || b.value - a.value; }).slice(0, limit) };
+  });
+}
+
 export default function Transfers({ g, go, update }: { g: GameState; go: (s: Screen, id?: string) => void; update: (fn: (d: GameState) => void) => void }) {
-  const [pos, setPos] = useState('All');
-  const [maxAge, setMaxAge] = useState(35);
-  const [maxPrice, setMaxPrice] = useState(() => toCur(g.clubs[g.userClubId].transferBudget, g.currency));
-  const [freeOnly, setFreeOnly] = useState(false);
-  const [name, setName] = useState('');
-  const results = useMemo(() => {
-    const limit = fromCur(maxPrice, g.currency);
-    // asking prices rank each player in his squad: the index keeps that fast across the whole world
-    return withSquadIndex(g, () => Object.values(g.players)
-      .filter((p) => p.clubId !== g.userClubId && p.squad === 'First team')
-      .filter((p) => (pos === 'All' || p.pos === pos) && p.age <= maxAge && (!freeOnly || p.clubId === FREE_AGENT))
-      .filter((p) => !name || p.name.toLowerCase().includes(name.toLowerCase()))
-      .filter((p) => askingPrice(g, p) <= limit)
-      // sort by market value (public), not hidden ability, so unscouted players don't leak
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 40));
-  }, [g, pos, maxAge, maxPrice, freeOnly, name]);
+  const [f, setF] = useState<SearchFilters>(() => kept ?? DEFAULTS(toCur(g.clubs[g.userClubId].transferBudget, g.currency)));
+  const [limit, setLimit] = useState(40);
+  const set = (c: Partial<SearchFilters>) => setF((o) => { const n = { ...o, ...c }; kept = n; setLimit(40); return n; });
+  const results = useMemo(() => searchPlayers(g, f, limit), [g, f, limit]);
+  const [saveName, setSaveName] = useState('');
+  const leagues = g.world.leagues.slice().sort((a, b) => a.country.localeCompare(b.country) || a.tier - b.tier);
+  const nations = useMemo(() => [...new Set(Object.values(g.players).filter((p) => p.squad === 'First team').map((p) => p.nationality))].sort((a, b) => nationName(a).localeCompare(nationName(b))), [g.players]);
   const club = g.clubs[g.userClubId];
   const open = windowOpen(g);
   const [view, setView] = useState<'market' | 'news'>('market');
   const seg = (
     <div className="fd-seg" role="tablist" aria-label="Transfers view">
-      {([['market', 'Market'], ['news', 'Transfer news']] as const).map(([k, l]) => (
+      {([['market', 'Player search'], ['news', 'Transfer news']] as const).map(([k, l]) => (
         <button key={k} type="button" role="tab" aria-selected={view === k} className={'fd-seg__opt' + (view === k ? ' is-on' : '')} onClick={() => setView(k)}>{l}</button>
       ))}
     </div>
@@ -82,20 +107,61 @@ export default function Transfers({ g, go, update }: { g: GameState; go: (s: Scr
   return (
     <div className="pg-stack">
       <div className="pg-head" style={{ marginBottom: 0 }}>
-        <div><h1 className="pg-title">Transfers</h1><p className="pg-sub">Transfer budget <FD.Money amount={toCur(club.transferBudget, g.currency)} currency={g.currency} /> · Sorted by market value. Stars for other clubs' players are estimates until they're scouted.</p></div>
+        <div><h1 className="pg-title">Transfers</h1><p className="pg-sub">Transfer budget <FD.Money amount={toCur(club.transferBudget, g.currency)} currency={g.currency} /> · Search every player in the world. Stars for other clubs' players are estimates until they're scouted.</p></div>
         <span className="pg-row">{seg}<FD.Button variant="secondary" icon="scouting" onClick={() => go('scouting')}>Shortlist and scouting</FD.Button></span>
       </div>
       <WindowBanner g={g} />
-      <div className="tr-filters pg-card">
-        <FD.Field label="Position"><FD.Select value={pos} options={POSITIONS} onChange={setPos} label="Position" /></FD.Field>
-        <FD.Field label="Max age"><FD.NumberInput value={maxAge} min={16} max={40} onChange={setMaxAge} label="Maximum age" /></FD.Field>
-        <FD.Field label="Max asking price"><FD.MoneyInput value={maxPrice} onChange={setMaxPrice} currency={g.currency} label="Maximum asking price" /></FD.Field>
-        <FD.Field label="Name"><div className="fd-input"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Search" aria-label="Player name" /></div></FD.Field>
-        <label className="tr-check"><input type="checkbox" checked={freeOnly} onChange={(e) => setFreeOnly(e.target.checked)} /> Free agents only</label>
-      </div>
-      {results.length ? (
+      <section className="tr-filters pg-card" aria-label="Search filters">
+        <FD.Field label="Position"><FD.Select value={f.pos} options={POSITIONS} onChange={(v: string) => set({ pos: v })} label="Position" /></FD.Field>
+        <FD.Field label="Age from"><FD.NumberInput value={f.minAge} min={15} max={40} onChange={(v: number) => set({ minAge: v })} label="Minimum age" /></FD.Field>
+        <FD.Field label="to"><FD.NumberInput value={f.maxAge} min={15} max={40} onChange={(v: number) => set({ maxAge: v })} label="Maximum age" /></FD.Field>
+        <FD.Field label="Max asking price"><FD.MoneyInput value={f.maxPrice} onChange={(v: number) => set({ maxPrice: v })} currency={g.currency} label="Maximum asking price" /></FD.Field>
+        <FD.Field label="Ability at least">
+          <select className="fd-input" value={f.minStars} aria-label="Minimum ability in stars" onChange={(e) => set({ minStars: Number(e.target.value) })}>
+            {[0, 1, 2, 2.5, 3, 3.5, 4, 4.5].map((v) => <option key={v} value={v}>{v ? `${v} stars` : 'Any'}</option>)}
+          </select>
+        </FD.Field>
+        <FD.Field label="League">
+          <select className="fd-input" value={f.league} aria-label="League" onChange={(e) => set({ league: e.target.value })}>
+            <option value="all">Any league</option>
+            {leagues.map((l) => <option key={l.id} value={l.id}>{l.name} ({nationName(l.country)})</option>)}
+          </select>
+        </FD.Field>
+        <FD.Field label="Nationality">
+          <select className="fd-input" value={f.nation} aria-label="Nationality" onChange={(e) => set({ nation: e.target.value })}>
+            <option value="all">Any</option>
+            {nations.map((n) => <option key={n} value={n}>{nationName(n)}</option>)}
+          </select>
+        </FD.Field>
+        <FD.Field label="Name"><div className="fd-input"><input value={f.name} onChange={(e) => set({ name: e.target.value })} placeholder="Search" aria-label="Player name" /></div></FD.Field>
+        <FD.Field label="Sort by">
+          <select className="fd-input" value={f.sort} aria-label="Sort by" onChange={(e) => set({ sort: e.target.value as SearchFilters['sort'] })}>
+            {SORTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          </select>
+        </FD.Field>
+        <div className="tr-checks">
+          <label className="tr-check"><input type="checkbox" checked={f.expiring} onChange={(e) => set({ expiring: e.target.checked })} /> Contract ends this season</label>
+          <label className="tr-check"><input type="checkbox" checked={f.freeOnly} onChange={(e) => set({ freeOnly: e.target.checked })} /> Free agents only</label>
+          <label className="tr-check"><input type="checkbox" checked={f.scouted} onChange={(e) => set({ scouted: e.target.checked })} /> Fully scouted only</label>
+          <button type="button" className="pg-link" onClick={() => set(DEFAULTS(toCur(g.clubs[g.userClubId].transferBudget, g.currency)))}>Clear filters</button>
+        </div>
+      </section>
+      <section className="tr-saved" aria-label="Saved searches">
+        {(g.savedSearches ?? []).map((s) => (
+          <span key={s.name} className="fd-chip tr-saved__chip">
+            <button type="button" className="pg-link" onClick={() => set(s.filters)}>{s.name}</button>
+            <button type="button" className="tr-saved__x" aria-label={`Delete saved search ${s.name}`} onClick={() => update((d) => { d.savedSearches = (d.savedSearches ?? []).filter((x) => x.name !== s.name); })}>×</button>
+          </span>
+        ))}
+        <form className="tr-saved__form" onSubmit={(e) => { e.preventDefault(); const n = saveName.trim(); if (!n) return; update((d) => { d.savedSearches = [...(d.savedSearches ?? []).filter((x) => x.name !== n), { name: n, filters: f }].slice(-8); }); setSaveName(''); }}>
+          <input className="fd-input" value={saveName} onChange={(e) => setSaveName(e.target.value)} placeholder="Name this search" aria-label="Name this search" maxLength={30} />
+          <FD.Button size="sm" variant="secondary" type="submit" disabled={!saveName.trim()}>Save search</FD.Button>
+        </form>
+      </section>
+      <p className="hm-note" style={{ margin: 0 }}>{results.total} {results.total === 1 ? 'player matches' : 'players match'}{results.total > results.rows.length ? `, showing ${results.rows.length}` : ''}.</p>
+      {results.rows.length ? (
         <PlayerTable>
-          {results.map((p) => (
+          {results.rows.map((p) => (
             <PlayerRow key={p.id} g={g} p={p} go={go}>
               <span className="pg-row" style={{ justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
                 <FD.Button size="sm" variant="ghost" onClick={() => update((d) => toggleShortlist(d, p.id))}>{g.shortlist.includes(p.id) ? 'Unlist' : 'Shortlist'}</FD.Button>
@@ -105,6 +171,7 @@ export default function Transfers({ g, go, update }: { g: GameState; go: (s: Scr
           ))}
         </PlayerTable>
       ) : <div className="pg-card pg-empty">No players match these filters.</div>}
+      {results.total > results.rows.length ? <FD.Button variant="secondary" onClick={() => setLimit((n) => n + 60)}>Show more</FD.Button> : null}
     </div>
   );
 }

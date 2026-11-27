@@ -6,6 +6,7 @@ import type { GameState, Player } from './types';
 let active: { state: GameState; byClub: Map<string, Player[]> } | null = null;
 
 export function withSquadIndex<T>(state: GameState, fn: () => T): T {
+  if (active && active.state === state) return fn(); // already indexed: reuse it
   const byClub = new Map<string, Player[]>();
   for (const p of Object.values(state.players)) {
     const list = byClub.get(p.clubId);

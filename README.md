@@ -66,7 +66,7 @@ The game saves automatically in the browser (IndexedDB), and you can keep severa
   - *Rotate tired players*, on by default, rests starters under 70% condition for that match only, if a fresh player can cover the position. Your chosen XI is kept.
   - Computer-run clubs rotate too.
   - The Tactics screen shows everyone's condition and days until fully fit.
-- **Squad:** first team, U21 and U18 with ability and potential stars, plus full player profiles (attributes, positions, scout report, career).
+- **Squad:** first team, U21 and U18, with depth at every position (how many, how good the best is, a warning where it's thin) and who is unavailable, tired, unhappy or out of contract. The table has four views (overview with stars, fitness, morale, rating and value; the season's numbers; contracts; attribute averages, key attributes and each player's best role), sorts by any column, and filters by position, availability or name. It remembers the view when you come Back from a player. Full player profiles show attributes, positions, scout report and career.
 - **Tactics:** 4-3-3, 4-4-2, 4-2-3-1 or 3-5-2; click two players to swap; out-of-position players perform worse.
 - **Academy:** youth players have silver stars; promoting one to the first team gives a professional contract and gold stars.
 - **Day by day:** the game moves on a day at a time. Continue advances one day (a day with fixtures plays them; on your match day it's Play match), and the Sim menu goes to your next match day, through a week or four weeks, or to the end of the season. A Calendar screen shows each month with your fixtures and results.

@@ -15,7 +15,7 @@ describe('achievements', () => {
 
   it('a season brings the results and trophy achievements that were earned', () => {
     const s = game();
-    while (!seasonOver(s)) playMatchday(s);
+    for (let guard = 0; !seasonOver(s) && !s.career?.sacked && guard < 400; guard++) playMatchday(s);
     const won = s.manager.w;
     startNewSeason(s);
     if (won > 0) expect(s.achievements?.['first-win']).toBeTruthy();

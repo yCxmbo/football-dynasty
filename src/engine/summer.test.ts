@@ -8,7 +8,7 @@ describe('a live summer tournament', () => {
   it('pauses at each of your nation\'s matches, survives a reload, and feeds the season rollover', () => {
     const s = newGame({ seed: 71, userClubId: 'ash', managerName: 'T', currency: 'EUR', year: 2025 });
     takeJob(s, 'ENG');
-    while (!seasonOver(s)) playMatchday(s);
+    for (let guard = 0; !seasonOver(s) && !s.career?.sacked && guard < 400; guard++) playMatchday(s);
     expect(summerTournamentFor(s)).toBe('wc');
     beginSummer(s);
     let step = summerStep(s)!;

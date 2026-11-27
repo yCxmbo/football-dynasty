@@ -4,6 +4,7 @@ import { prepFor } from './opposition';
 import { fansAfterMatch, fansNewSeason, homeLift } from './fans';
 import { recordInjury, relapses } from './medical';
 import { payAddOns } from './deals';
+import { archiveReview, noteCourse } from './seasonreview';
 import { checkBadge, managerExperience, motivationFactor, profileOf, youthCoaching } from './manager';
 import { captainOf, takersOf } from './leadership';
 import { withDefaults, type Instructions } from './instructions';
@@ -359,7 +360,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
       const won = result.winnerId ? result.winnerId === state.userClubId : uh ? result.score[0] > result.score[1] : result.score[1] > result.score[0];
       managerExperience(state, won, mine.filter((x) => x.minutes > 0 && (state.players[x.playerId]?.age ?? 99) <= 21).length, mine.filter((x) => x.card).length);
     }
-    if ((uh || ua) && f.comp !== 'friendly') for (const m of fansAfterMatch(state, f, derbyName(state, f.homeId, f.awayId))) addMessage(state, { category: 'media', from: 'Supporters', ...m });
+    if ((uh || ua) && f.comp !== 'friendly') for (const m of fansAfterMatch(state, f, derbyName(state, f.homeId, f.awayId), standingOf(state))) addMessage(state, { category: 'media', from: 'Supporters', ...m });
     if (derbyName(state, f.homeId, f.awayId)) derbyHomes.add(f.homeId);
     if (compInfo(state, f.comp).kind === 'league') homeIds.add(f.homeId); else if (f.comp !== 'friendly') cupGate(state, f);
     if (!uh && !ua) slim(f);
@@ -374,6 +375,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
   for (const e of slot.entries) if (isLeague(state, e.comp)) setupSplit(state, e.comp, Number(e.round.replace('Matchday ', '')));
   if (leagueWeek) {
     financeWeek(state, leagueIds, homeIds, positions, derbyHomes);
+    if (leagueIds.has(state.clubs[state.userClubId]?.league ?? '')) noteCourse(state);
     for (const p of squadOf(state, state.userClubId)) if (p.morale === 'low' && rng.chance(moraleRecoveryChance(state) + moraleBonus(state))) p.morale = 'ok';
     weeklyMood(state, rng, slot.week);
     { const news = weeklyDynamics(state, slot.week); if (news.length) addMessage(state, { category: 'media', from: 'Assistant manager', role: 'Dressing room', subject: news.length > 1 ? 'Dressing-room news' : news[0].split(':')[0].slice(0, 60), body: [...news, 'See the Dynamics tab on the Squad screen.'] }); }
@@ -481,6 +483,14 @@ function postMatchMessages(state: GameState, f: Fixture) {
 /** Each new day: transfer windows open and close on their real dates. Every country's clubs do their winter
     business when their own window closes; your window brings news on opening, deadline day and closing; rumours
     start three weeks before your winter window. Logged so each happens once, even when days are skipped. */
+/** Your league position and the board's target position, for the supporters. */
+function standingOf(state: GameState) {
+  const l = state.clubs[state.userClubId]?.league;
+  if (!l || (state.course?.length ?? 0) < 5) return undefined; // early tables mean little
+  const pos = leagueTableOf(state, l).findIndex((r) => r.clubId === state.userClubId) + 1;
+  return pos ? { pos, target: boardTarget(state, state.userClubId).pos } : undefined;
+}
+
 function newDay(state: GameState) {
   if (seasonOver(state)) return;
   { const b = checkBadge(state); if (b) addMessage(state, { category: 'board', from: 'Coaching association', subject: `You have passed the ${b.name}`, body: [`Congratulations: you now hold the ${b.name}. Your coaching attributes have improved.`, 'Bigger clubs look for higher licences when they appoint a manager. See the Career screen.'] }); }
@@ -560,6 +570,8 @@ export function startNewSeason(state: GameState) {
 
 function rollover(state: GameState) {
   const rng = createRng(state.rngState ^ 0x9e3779b9);
+  const fansAtEnd = state.fans?.mood;
+  const targetAtEnd = state.clubs[state.userClubId]?.league ? boardTarget(state, state.userClubId).text : undefined;
   if (state.fans) fansNewSeason(state);
   delete state.injuryLog;
   const label = seasonLabel(state.year);
@@ -692,6 +704,7 @@ function rollover(state: GameState) {
   recordSeason(state, label);
   {
     const a = seasonAwards(state, label);
+    archiveReview(state, targetAtEnd, fansAtEnd);
     addMessage(state, { category: 'media', from: 'Football awards', subject: a.ball[0] ? `${a.ball[0].name} wins the Golden Ball` : `${label} awards`, body: awardsMessage(state, a) });
   }
   for (const p of Object.values(state.players)) {

@@ -11,7 +11,8 @@ describe('derbies', () => {
     const s = newGame({ seed: 121, userClubId: 'eng-arsenal', managerName: 'T', currency: 'EUR', world: w, source: 'real' });
     expect(derbyName(s, 'eng-tottenham', 'eng-arsenal')).toBe('North London derby');
     expect(derbyName(s, 'eng-arsenal', 'eng-chelsea')).toBeUndefined();
-    while (!seasonOver(s)) playMatchday(s);
+    s.career!.trust = 100; // keep the job for the whole season
+    for (let guard = 0; !seasonOver(s) && !s.career?.sacked && guard < 200; guard++) playMatchday(s);
     const nld = s.derbies!['North London derby'];
     expect(nld.aWins + nld.bWins + nld.draws).toBeGreaterThanOrEqual(2);
     expect(s.derbies!['El Clásico']).toBeTruthy();

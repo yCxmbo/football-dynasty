@@ -37,7 +37,7 @@ describe('stadium and facilities', () => {
     expect(expandStadium(s, 5000)).toBeNull();
     expect(expandStadium(s, 2500)).toMatch(/under way/);
     expect(c.capacity).toBe(cap);
-    while (!seasonOver(s)) playMatchday(s);
+    for (let guard = 0; !seasonOver(s) && !s.career?.sacked && guard < 400; guard++) playMatchday(s);
     startNewSeason(s);
     expect(s.clubs.ash.capacity).toBe(cap + 5000);
     expect(s.inbox.some((m) => m.subject === 'The new stands are open')).toBe(true);

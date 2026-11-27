@@ -71,7 +71,7 @@ export default function Home({ g, go, onPlay, onSimNext, update }: { g: GameStat
 
   return (
     <div>
-      <div className="pg-head"><div><h1 className="pg-title">{greeting}</h1><p className="pg-sub">{lead}</p></div></div>
+      <div className="pg-head"><div><h1 className="pg-title">{greeting}</h1><p className="pg-sub">{lead}</p></div>{over ? <FD.Button icon="trophy" variant="secondary" onClick={() => go('review')}>Season review</FD.Button> : null}</div>
       <div className="hm-strip">
         <div className="hm-stat"><span className="fd-label">Form</span><span className="hm-form">{form.length ? form.map((f, i) => <span key={i} className={`fd-form fd-form--${f}`}>{f}</span>) : <span className="fd-muted">No games yet</span>}</span></div>
         <div className="hm-stat"><span className="fd-label">League</span><strong>{played ? ordinal(pos) : '—'}</strong><span className="fd-muted">target {target.text}</span></div>

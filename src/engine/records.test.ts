@@ -5,7 +5,7 @@ import { recordTransfer, titleCounts } from './records';
 describe('world records', () => {
   it('a season fills the season, points and title records; transfers keep the top fees', () => {
     const s = newGame({ seed: 101, userClubId: 'ash', managerName: 'T', currency: 'EUR' });
-    while (!seasonOver(s)) playMatchday(s);
+    for (let guard = 0; !seasonOver(s) && !s.career?.sacked && guard < 400; guard++) playMatchday(s);
     startNewSeason(s);
     const r = s.records!;
     expect(r.points.length).toBe(s.world.leagues.filter((l) => l.tier === 1).length);

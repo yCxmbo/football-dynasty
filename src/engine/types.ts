@@ -215,6 +215,9 @@ export interface GameState {
   matchPrep?: { fixtureId: string; focus?: import('./opposition').Focus; mark?: string };
   /** Your supporters' mood and ticket prices. */
   fans?: import('./fans').Fans;
+  /** Your league position after each league week this season, and past seasons' reviews (newest first). */
+  course?: number[];
+  reviews?: import('./seasonreview').SeasonReview[];
   /** Your saved player searches. */
   savedSearches?: Array<{ name: string; filters: import('./search').SearchFilters }>;
   /** You as a manager: attributes and coaching badges. */

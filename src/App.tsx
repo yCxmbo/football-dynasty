@@ -25,6 +25,7 @@ import International from './screens/International';
 import Career from './screens/Career';
 import Staff from './screens/Staff';
 import Medical from './screens/Medical';
+import SeasonReview from './screens/SeasonReview';
 import ClubScreen from './screens/ClubScreen';
 import StatsHub from './screens/StatsHub';
 import Calendar from './screens/Calendar';
@@ -46,7 +47,7 @@ import Tactics from './screens/Tactics';
 import Youth from './screens/Youth';
 import Frame from './screens/Frame';
 /** Screens that don't depend on having a club, still open while you're out of work. */
-const OPEN_WHEN_OUT = new Set<string>(['career', 'inbox', 'table', 'stats', 'records', 'settings']);
+const OPEN_WHEN_OUT = new Set<string>(['career', 'inbox', 'table', 'stats', 'records', 'settings', 'review']);
 import { NAV, type Screen, NAV_LABEL } from './screens/shared';
 
 function liveFx0(g: NonNullable<ReturnType<typeof useGame>['game']>, live: LiveState | null) {
@@ -206,6 +207,7 @@ export default function App() {
     case 'facilities': body = <FacilitiesScreen g={g} update={update} />; break;
     case 'staff': body = <Staff g={g} update={update} />; break;
     case 'medical': body = <Medical g={g} go={go} update={update} />; break;
+    case 'review': body = <SeasonReview g={g} go={go} />; break;
     case 'career': body = <Career g={g} go={go} update={update} />; break;
     case 'international': body = <International g={g} go={go} update={update} />; break;
     case 'match': body = <Match key={live?.fixtureId ?? param} g={g} id={live?.fixtureId ?? param} live={live} setLive={setLive} go={go} onFinish={finishLive} />; break;

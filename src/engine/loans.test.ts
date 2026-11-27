@@ -17,7 +17,7 @@ describe('loans', () => {
     expect(s.players[kid.id].clubId).toBe(dest[0].clubId);
     expect(wageBillOf(s, 'ash')).toBe(billBefore - kid.wage);
     expect(loanedOut(s).map((p) => p.id)).toEqual([kid.id]);
-    while (!seasonOver(s)) playMatchday(s);
+    for (let guard = 0; !seasonOver(s) && !s.career?.sacked && guard < 400; guard++) playMatchday(s);
     expect(s.players[kid.id].current.apps).toBeGreaterThan(5);
     startNewSeason(s);
     const back = s.players[kid.id];

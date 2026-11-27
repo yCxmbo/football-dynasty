@@ -8,7 +8,7 @@ describe('league formats', () => {
     const s = newGame({ seed: 61, userClubId: 'usa-miami', managerName: 'T', currency: 'USD', world: realWorld(), source: 'real' });
     expect(s.comps['tp-usa1'].name).toBe('MLS Cup Playoffs');
     expect(s.comps['tp-mex1'].name).toBe('Liguilla');
-    while (!seasonOver(s)) playMatchday(s);
+    for (let guard = 0; !seasonOver(s) && !s.career?.sacked && guard < 400; guard++) playMatchday(s);
     for (const lg of ['usa1', 'mex1']) {
       const fx = s.fixtures.filter((f) => f.comp === `tp-${lg}`);
       expect(fx.filter((f) => f.round === 'Quarter-final').length).toBe(4);

@@ -30,7 +30,7 @@ const note = (f: Fans, t: string) => { f.notes = [t, ...f.notes].slice(0, 6); };
 const clamp = (v: number) => Math.max(0, Math.min(100, v));
 
 /** After one of your competitive matches. Returns inbox messages (subject, body) for thresholds crossed. */
-export function fansAfterMatch(s: GameState, f: Fixture, derby?: string): Array<{ subject: string; body: string[] }> {
+export function fansAfterMatch(s: GameState, f: Fixture, derby?: string, standing?: { pos: number; target: number }): Array<{ subject: string; body: string[] }> {
   const fans = fansOf(s), us = s.userClubId;
   const home = f.homeId === us, opp = s.clubs[home ? f.awayId : f.homeId];
   const [h, a] = f.result!.score, gf = home ? h : a, ga = home ? a : h;
@@ -43,7 +43,9 @@ export function fansAfterMatch(s: GameState, f: Fixture, derby?: string): Array<
   if (won && gf - ga >= 3) d += 2;
   if (lost && ga - gf >= 3) d -= 3;
   if (home) d += TICKETS.find((x) => x.id === fans.ticket)!.mood;
-  d += (58 - fans.mood) * 0.08; // moods settle over time
+  // moods settle over time, towards where the club stands against what it should achieve
+  const settle = standing ? Math.max(35, Math.min(82, 58 + (standing.target - standing.pos) * 3)) : 58;
+  d += (settle - fans.mood) * 0.08;
   const before = fans.mood;
   fans.mood = clamp(Math.round((fans.mood + d) * 10) / 10);
   fans.trend = [...fans.trend, Math.round(fans.mood)].slice(-20);
@@ -53,7 +55,7 @@ export function fansAfterMatch(s: GameState, f: Fixture, derby?: string): Array<
   else if (d <= -4) note(fans, `${lost ? 'Lost to' : 'Dropped points against'} ${opp.name}`);
   // the board listens to the stands
   const c = s.career;
-  if (c && !c.sacked) c.trust = Math.max(0, Math.min(100, c.trust + (fans.mood - 50) * 0.01));
+  if (c && !c.sacked) c.trust = Math.max(0, Math.min(100, c.trust + (fans.mood - 50) * 0.005));
   return thresholds(s, before);
 }
 

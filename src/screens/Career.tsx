@@ -14,9 +14,10 @@ import type { Screen } from './shared';
 const stars = (rep: number) => Math.max(0.5, Math.min(5, Math.round(((rep - 30) / 60) * 10) / 2));
 const LEFT: Record<string, string> = { sacked: 'Sacked', resigned: 'Resigned', moved: 'Moved on' };
 
-function ClubCell({ g, id }: { g: GameState; id: string }) {
+function ClubCell({ g, id, go }: { g: GameState; id: string; go?: (s: Screen, id?: string) => void }) {
   const c = g.clubs[id];
-  return <span className="club-cell"><img className="club-badge" src={badgeUrl(c)} alt="" /><strong>{c.name}</strong></span>;
+  const inner = <><img className="club-badge" src={badgeUrl(c)} alt="" /><strong>{c.name}</strong></>;
+  return go ? <button type="button" className="pg-link club-cell" onClick={() => go('club', id)}>{inner}</button> : <span className="club-cell">{inner}</span>;
 }
 
 export default function Career({ g, go, update }: { g: GameState; go: (s: Screen, id?: string) => void; update: (fn: (d: GameState) => void) => void }) {
@@ -87,7 +88,7 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
               const line = clubLine(g, o.clubId);
               return (
                 <tr key={o.clubId}>
-                  <td><ClubCell g={g} id={o.clubId} /></td>
+                  <td><ClubCell g={g} go={go} id={o.clubId} /></td>
                   <td className="fd-muted">{line.league} · {line.country}</td>
                   <td><FD.StarRating value={stars(line.reputation)} size={13} /></td>
                   <td style={{ textAlign: 'right' }}><FD.Button onClick={() => take(o.clubId)}>Accept</FD.Button></td>
@@ -109,7 +110,7 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
               const p = applyChance(g, id);
               return (
                 <tr key={id}>
-                  <td><ClubCell g={g} id={id} /></td>
+                  <td><ClubCell g={g} go={go} id={id} /></td>
                   <td className="fd-muted">{line.league} · {line.country}</td>
                   <td><FD.StarRating value={stars(line.reputation)} size={13} /></td>
                   <td className="fd-muted">{(() => { const f = favouriteFor(g, id); return f ? <>Rival: {f.name} <span title="Reputation">({f.rep})</span></> : 'No strong rival'; })()}</td>
@@ -159,7 +160,7 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
             const row = open ? spell : sp;
             return (
               <tr key={i}>
-                <td>{g.clubs[sp.clubId] ? <ClubCell g={g} id={sp.clubId} /> : sp.club}</td>
+                <td>{g.clubs[sp.clubId] ? <ClubCell g={g} go={go} id={sp.clubId} /> : sp.club}</td>
                 <td className="fd-muted">{seasonLabel(sp.from)}{sp.to !== undefined ? ` – ${seasonLabel(sp.to)}` : ' – now'}</td>
                 <td className="fd-num">{row.w}</td><td className="fd-num">{row.d}</td><td className="fd-num">{row.l}</td><td className="fd-num">{row.trophies}</td>
                 <td className="fd-muted">{open ? (c.sacked ? (sp.left === 'resigned' ? 'Resigned' : 'Sacked') : 'Current') : LEFT[sp.left ?? ''] ?? ''}</td>

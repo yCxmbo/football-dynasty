@@ -229,3 +229,8 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .aw-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-2); }
 .aw-select { max-width: 100%; width: auto; }
 .mg-scroll { overflow-x: auto; margin-bottom: var(--space-2); }
+.lt-click .fd-league__club { cursor: pointer; }
+.lt-click .fd-league__club:hover { text-decoration: underline; }
+.pg-link.club-cell, .pg-link.club-name { text-decoration: none; color: inherit; font: inherit; }
+.pg-link.club-cell:hover, .pg-link.club-name:hover { text-decoration: underline; }
+@media (max-width: 600px) { .cs-results td:last-child { display: none; } }

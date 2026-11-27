@@ -24,6 +24,7 @@ import NewGame from './screens/NewGame';
 import International from './screens/International';
 import Career from './screens/Career';
 import Staff from './screens/Staff';
+import ClubScreen from './screens/ClubScreen';
 import Records from './screens/Records';
 import Tip, { TIPS } from './screens/Tip';
 import { simulate } from './sim/client';
@@ -147,7 +148,7 @@ export default function App() {
   const slotLabel = over ? (g.summer ? `Summer · ${summerLabel(g)}` : 'Season finished') : shownFx ? (shownFx.comp === 'friendly' ? `Pre-season · ${shownFx.round}` : `${compInfo(g, shownFx.comp).name}, ${shownFx.round}`) : currentSlot(g).week === 0 ? 'Pre-season' : `Week ${currentSlot(g).week}`;
   const liveFx = liveFx0(g, live);
   const unread = g.inbox.filter((m) => m.unread).length;
-  const navActive = screen === 'nationalMatch' ? 'international' : screen === 'player' ? (param && g.players[param]?.clubId !== g.userClubId ? 'transfers' : 'squad') : screen === 'match' ? 'fixtures' : screen === 'offer' ? 'transfers' : screen === 'contract' ? 'squad' : screen;
+  const navActive = screen === 'nationalMatch' ? 'international' : screen === 'player' ? (param && g.players[param]?.clubId !== g.userClubId ? 'transfers' : 'squad') : screen === 'match' ? 'fixtures' : screen === 'offer' ? 'transfers' : screen === 'club' ? (param === g.userClubId ? 'history' : 'table') : screen === 'contract' ? 'squad' : screen;
 
   let body: JSX.Element;
   switch (screen) {
@@ -166,7 +167,8 @@ export default function App() {
     case 'fixtures': body = <Fixtures g={g} go={go} />; break;
     case 'table': body = <Table g={g} go={go} />; break;
     case 'nationalMatch': body = <NationalMatch key={`${g.summer?.results.length}`} g={g} go={go} update={update} />; break;
-    case 'records': body = <Records g={g} />; break;
+    case 'records': body = <Records g={g} go={go} />; break;
+    case 'club': body = <ClubScreen key={param} g={g} id={param} go={go} />; break;
     case 'facilities': body = <FacilitiesScreen g={g} update={update} />; break;
     case 'staff': body = <Staff g={g} update={update} />; break;
     case 'career': body = <Career g={g} go={go} update={update} />; break;

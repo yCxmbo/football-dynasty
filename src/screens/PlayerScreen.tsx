@@ -37,6 +37,7 @@ export default function PlayerScreen({ g, id, go, act, update }: { g: GameState;
     const scouting = g.scouting.includes(p.id);
     if (k < 100) actions.push(<FD.Button key="s" size="sm" variant="secondary" icon="scouting" disabled={scouting || g.scouting.length >= MAX_SCOUTING} onClick={() => act.scout(p.id)}>{scouting ? 'Being scouted' : 'Scout'}</FD.Button>);
     actions.push(<FD.Button key="l" size="sm" variant="secondary" icon="star" onClick={() => act.shortlist(p.id)}>{g.shortlist.includes(p.id) ? 'Shortlisted' : 'Shortlist'}</FD.Button>);
+    if (g.clubs[p.clubId]) actions.push(<FD.Button key="vc" size="sm" variant="secondary" icon="home" onClick={() => go('club', p.clubId)}>View {g.clubs[p.clubId].short}</FD.Button>);
     actions.push(<FD.Button key="o" size="sm" icon="transfers" disabled={!windowOpen(g)} onClick={() => go('offer', p.id)}>Make offer</FD.Button>);
     actions.push(<FD.Button key="li" size="sm" variant="secondary" icon="transfers" onClick={() => {
       const v = loanInVerdict(g, p);

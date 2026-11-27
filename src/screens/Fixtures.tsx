@@ -29,7 +29,7 @@ export default function Fixtures({ g, go }: { g: GameState; go: (s: Screen, id?:
                   <td>{formatDate(f.date)}</td>
                   <td><span className={compInfo(g, f.comp).kind === 'league' ? '' : 'fd-gold'}>{compInfo(g, f.comp).name}</span>{derbyName(g, f.homeId, f.awayId) ? <span className="derby-tag">{derbyName(g, f.homeId, f.awayId)}</span> : null}</td>
                   <td className="fd-muted">{f.round}</td>
-                  <td><span className="club-cell"><img className="club-badge" src={badgeUrl(opp)} alt="" /><strong>{opp.name}</strong>{opp.country !== g.clubs[g.userClubId].country ? <span className="fd-muted"> · {g.world.countries.find((c) => c.id === opp.country)?.name}</span> : null}</span></td>
+                  <td><span className="club-cell"><img className="club-badge" src={badgeUrl(opp)} alt="" /><button type="button" className="pg-link club-name" onClick={(e) => { e.stopPropagation(); go('club', opp.id); }}><strong>{opp.name}</strong></button>{opp.country !== g.clubs[g.userClubId].country ? <span className="fd-muted"> · {g.world.countries.find((c) => c.id === opp.country)?.name}</span> : null}</span></td>
                   <td className="fd-muted">{f.neutral ? 'Neutral' : home ? 'Home' : 'Away'}</td>
                   <td>{r ? <span className="fx-res"><span className={`fx-badge fx-badge--${wdl}`} aria-label={wdl === 'W' ? 'Win' : wdl === 'L' ? 'Defeat' : 'Draw'}>{wdl}</span>{us}–{them}<span className="fd-muted" style={{ fontWeight: 400, fontFamily: 'var(--font-sans)', fontSize: 12 }}>{pens}</span></span>
                     : f === next ? <FD.Button size="sm" variant="ghost" onClick={() => go('home')}>Next match</FD.Button> : <span className="fd-muted">–</span>}</td>

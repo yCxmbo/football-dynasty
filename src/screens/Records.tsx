@@ -7,6 +7,7 @@ import { ordinal } from '../engine/game';
 import type { GameState } from '../engine/types';
 import { toCur } from '../store';
 import { badgeUrl } from './badge';
+import type { Screen } from './shared';
 
 function Table({ title, head, rows, empty }: { title: string; head: string[]; rows: Array<Array<string | number | JSX.Element>>; empty: string }) {
   return (
@@ -21,10 +22,10 @@ function Table({ title, head, rows, empty }: { title: string; head: string[]; ro
   );
 }
 
-export default function Records({ g }: { g: GameState }) {
+export default function Records({ g, go }: { g: GameState; go: (s: Screen, id?: string) => void }) {
   const r = g.records;
   const cur = g.currency;
-  const club = (id: string) => <span className="club-cell"><img className="club-badge" src={badgeUrl(g.clubs[id])} alt="" />{g.clubs[id].name}</span>;
+  const club = (id: string) => <button type="button" className="pg-link club-cell" onClick={() => go('club', id)}><img className="club-badge" src={badgeUrl(g.clubs[id])} alt="" />{g.clubs[id].name}</button>;
   const mine = (name: string) => (name === g.clubs[g.userClubId].name ? <strong className="fd-gold">{name}</strong> : name);
   const none = 'Records are kept from the end of your first season.';
   return (

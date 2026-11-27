@@ -1,3 +1,4 @@
+import type React from 'react';
 import { useState } from 'react';
 import { FD } from '../ds';
 import { compInfo, leagueTableOf, leaguesOf, tableOf } from '../engine/competitions';
@@ -6,6 +7,20 @@ import { seasonLabel } from '../engine/types';
 import { badgeUrl } from './badge';
 import { zonesFor } from './comp-ui';
 import type { Screen } from './shared';
+
+/** A club name that opens the club's page (without triggering the row's own click). */
+function ClubName({ g, id, go }: { g: GameState; id: string; go: (s: Screen, id?: string) => void }) {
+  return <button type="button" className="pg-link club-name" onClick={(e) => { e.stopPropagation(); go('club', id); }}>{g.clubs[id].name}</button>;
+}
+
+/** League tables render names as text: a click on a row opens that club. */
+function clubFromRow(g: GameState, go: (s: Screen, id?: string) => void) {
+  return (e: React.MouseEvent) => {
+    const name = (e.target as HTMLElement).closest('tr')?.querySelector('.fd-league__club')?.textContent;
+    const c = name ? Object.values(g.clubs).find((x) => x.name === name) : undefined;
+    if (c) go('club', c.id);
+  };
+}
 
 function Ties({ g, comp, go }: { g: GameState; comp: CompId; go: (s: Screen, id?: string) => void }) {
   const c = compInfo(g, comp);
@@ -25,9 +40,9 @@ function Ties({ g, comp, go }: { g: GameState; comp: CompId; go: (s: Screen, id?
               const mine = f.homeId === g.userClubId || f.awayId === g.userClubId;
               return (
                 <tr key={f.id} className={mine ? 'fd-gold' : undefined} onClick={res && mine ? () => go('match', f.id) : undefined} style={res && mine ? { cursor: 'pointer' } : undefined}>
-                  <td className="cup-home" style={{ fontWeight: win === f.homeId ? 700 : 400 }}><span className="club-cell club-cell--end">{g.clubs[f.homeId].name}<img className="club-badge" src={badgeUrl(g.clubs[f.homeId])} alt="" /></span></td>
+                  <td className="cup-home" style={{ fontWeight: win === f.homeId ? 700 : 400 }}><span className="club-cell club-cell--end"><ClubName g={g} id={f.homeId} go={go} /><img className="club-badge" src={badgeUrl(g.clubs[f.homeId])} alt="" /></span></td>
                   <td className="cup-score">{res ? `${res.score[0]}–${res.score[1]}` : 'v'}{res?.pens ? <span className="fd-muted"> ({res.pens[0]}–{res.pens[1]} p)</span> : null}</td>
-                  <td style={{ fontWeight: win === f.awayId ? 700 : 400 }}><span className="club-cell"><img className="club-badge" src={badgeUrl(g.clubs[f.awayId])} alt="" />{g.clubs[f.awayId].name}</span></td>
+                  <td style={{ fontWeight: win === f.awayId ? 700 : 400 }}><span className="club-cell"><img className="club-badge" src={badgeUrl(g.clubs[f.awayId])} alt="" /><ClubName g={g} id={f.awayId} go={go} /></span></td>
                   <td className="fd-muted fd-num">{f.neutral ? 'Neutral venue' : ''}</td>
                 </tr>
               );
@@ -55,7 +70,7 @@ export default function Table({ g, go }: { g: GameState; go: (s: Screen, id?: st
     const list = scorers(active.id);
     body = (
       <div className="pg-grid2">
-        <FD.LeagueTable title={`${active.name} · ${seasonLabel(g.year)}`} rows={leagueTableOf(g, active.id)} zones={zonesFor(g, active.id)} />
+        <div className="lt-click" onClick={clubFromRow(g, go)}><FD.LeagueTable title={`${active.name} · ${seasonLabel(g.year)}`} rows={leagueTableOf(g, active.id)} zones={zonesFor(g, active.id)} /></div>
         <section className="pg-card">
           <h2 className="pg-h">Top scorers (all competitions)</h2>
           {list.length ? (
@@ -71,10 +86,10 @@ export default function Table({ g, go }: { g: GameState; go: (s: Screen, id?: st
     body = groups.length ? (
       <div className="pg-stack" style={{ gap: 16 }}>
         {active.size === 36 ? (
-          <FD.LeagueTable title={`${active.name} · League phase`} rows={tableOf(g, active.id, groups[0], 0)}
-            zones={{ promotion: 8, promotionLabel: 'Round of 16', playoff: [9, 24], playoffLabel: 'Knockout play-off', relegation: 12, relegationLabel: 'Out' }} />
+          <div className="lt-click" onClick={clubFromRow(g, go)}><FD.LeagueTable title={`${active.name} · League phase`} rows={tableOf(g, active.id, groups[0], 0)}
+            zones={{ promotion: 8, promotionLabel: 'Round of 16', playoff: [9, 24], playoffLabel: 'Knockout play-off', relegation: 12, relegationLabel: 'Out' }} /></div>
         ) : (
-          <div className="cc-groups">
+          <div className="cc-groups lt-click" onClick={clubFromRow(g, go)}>
             {groups.map((grp, i) => <FD.LeagueTable key={i} compact title={`Group ${'ABCDEFGH'[i]}`} rows={tableOf(g, active.id, grp, i)} zones={{ promotion: 2, promotionLabel: 'Knockout stage' }} />)}
           </div>
         )}

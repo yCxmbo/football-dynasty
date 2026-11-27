@@ -1,5 +1,6 @@
 import { c, type RCountry } from './types';
 import { NED2, POR2, SCO2, TUR2 } from './second2';
+import { BEL2 } from './second3';
 
 export const PORTUGAL: RCountry = {
   id: 'por', name: 'Portugal', superCup: 'Supertaça Cândido de Oliveira',
@@ -68,8 +69,8 @@ export const NETHERLANDS: RCountry = {
 
 export const BELGIUM: RCountry = {
   id: 'bel', name: 'Belgium', superCup: false,
-  cups: [{ id: 'bel-cup', name: 'Belgian Cup', tiers: [1], main: true }],
-  leagues: [{ id: 'bel1', name: 'Belgian Pro League', short: 'Pro League', tier: 1, promote: 0, relegate: 0, tv: 200_000, clubs: [
+  cups: [{ id: 'bel-cup', name: 'Belgian Cup', tiers: [1, 2], main: true }],
+  leagues: [{ id: 'bel1', name: 'Belgian Pro League', short: 'Pro League', tier: 1, promote: 0, relegate: 2, tv: 200_000, clubs: [
     c('anderlecht', 'Brussels Purple & White', 'AND', 66, ['#4C2683', '#FFFFFF'], 'Lotto Park', 21500, [
       ['Colin Coosemans', 'GK', 32, 74, 'BEL'], ['Jan-Carlo Simić', 'CB', 20, 73, 'SRB'], ['Yari Verschaeren', 'AM', 24, 75, 'BEL'], ['Kasper Dolberg', 'ST', 27, 76, 'DEN']]),
     c('antwerp', 'Antwerp Great Old', 'ANT', 58, ['#E30613', '#FFFFFF'], 'Bosuil Park', 16144, [['Senne Lammens', 'GK', 23, 76, 'BEL'], ['Toby Alderweireld', 'CB', 36, 72, 'BEL']]),
@@ -85,7 +86,7 @@ export const BELGIUM: RCountry = {
     c('usg', 'Brussels Unionists', 'USG', 70, ['#FFD200', '#0055A4'], 'Joseph Marien Park', 9400, [
       ['Kjell Scherpen', 'GK', 25, 74, 'NED'], ['Christian Burgess', 'CB', 30, 74, 'ENG'], ['Kevin Mac Allister', 'CB', 28, 74, 'ARG'], ['Anouar Ait El Hadj', 'AM', 23, 74, 'BEL'], ['Promise David', 'ST', 24, 74, 'CAN']]),
     c('westerlo', 'Westerlo Kemphanen', 'WES', 40, ['#FFD200', '#0055A4'], 'Kuipje Park', 8035), c('zulte', 'Waregem Essevee', 'ZWA', 40, ['#D71920', '#00843D'], 'Elindus Park', 12400),
-  ] }],
+  ] }, BEL2],
 };
 
 export const TURKEY: RCountry = {

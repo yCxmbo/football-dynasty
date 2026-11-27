@@ -1,5 +1,6 @@
 import { c, type RCountry } from './types';
 import { BRA2 } from './second2';
+import { ARG2 } from './second3';
 
 export const BRAZIL: RCountry = {
   id: 'bra', name: 'Brazil', superCup: 'Supercopa do Brasil',
@@ -32,8 +33,8 @@ export const BRAZIL: RCountry = {
 
 export const ARGENTINA: RCountry = {
   id: 'arg', name: 'Argentina', superCup: 'Supercopa Argentina',
-  cups: [{ id: 'arg-cup', name: 'Copa Argentina', tiers: [1], main: true }],
-  leagues: [{ id: 'arg1', name: 'Liga Profesional', short: 'Liga Profesional', tier: 1, promote: 0, relegate: 0, tv: 160_000, clubs: [
+  cups: [{ id: 'arg-cup', name: 'Copa Argentina', tiers: [1, 2], main: true }],
+  leagues: [{ id: 'arg1', name: 'Liga Profesional', short: 'Liga Profesional', tier: 1, promote: 0, relegate: 2, tv: 160_000, clubs: [
     c('boca', 'Buenos Aires Xeneizes', 'BOC', 74, ['#0033A0', '#FFD100'], 'Bombonera Park', 54000, [['Agustín Marchesín', 'GK', 37, 74, 'ARG'], ['Leandro Paredes', 'DM', 31, 78, 'ARG'], ['Ander Herrera', 'CM', 35, 73, 'ESP'], ['Edinson Cavani', 'ST', 38, 73, 'URU'], ['Miguel Merentiel', 'ST', 29, 74, 'URU']]),
     c('river', 'Buenos Aires Millonarios', 'RIV', 76, ['#FFFFFF', '#E30613'], 'Monumental Park', 85018, [['Franco Armani', 'GK', 38, 75, 'ARG'], ['Germán Pezzella', 'CB', 34, 74, 'ARG'], ['Gonzalo Montiel', 'RB', 28, 75, 'ARG'], ['Enzo Pérez', 'DM', 39, 72, 'ARG'], ['Juan Fernando Quintero', 'AM', 32, 75, 'COL'], ['Miguel Borja', 'ST', 32, 74, 'COL'], ['Sebastián Driussi', 'ST', 29, 74, 'ARG']]),
     c('racing', 'Avellaneda Academy', 'RAC', 66, ['#6CABDD', '#FFFFFF'], 'Cylinder Park', 51389, [['Gabriel Arias', 'GK', 37, 73, 'CHI'], ['Juan Fernando Quintero', 'AM', 32, 0, 'COL'], ['Adrián Martínez', 'ST', 33, 74, 'ARG']]),
@@ -46,7 +47,7 @@ export const ARGENTINA: RCountry = {
     c('defensa', 'Florencio Varela Falcons', 'DYJ', 46, ['#FFD200', '#00843D'], 'Norberto Tomaghello Park', 18000), c('tigre', 'Victoria Matadores', 'TIG', 44, ['#0055A4', '#E30613'], 'Monumental de Victoria', 26282),
     c('platense', 'Vicente López Calamares', 'PLA', 42, ['#FFFFFF', '#6B3D2E'], 'Vicente López Park', 25000), c('union', 'Santa Fe Tatengues', 'UNI', 44, ['#E30613', '#FFFFFF'], '15 de Abril Park', 28000),
     c('gimnasia', 'La Plata Lobo', 'GIM', 46, ['#FFFFFF', '#002F6C'], 'Bosque Park', 21500),
-  ] }],
+  ] }, ARG2],
 };
 
 export const USA: RCountry = {

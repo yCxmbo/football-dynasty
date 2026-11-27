@@ -1,9 +1,10 @@
 import { c, type RCountry } from './types';
+import { KSA2 } from './second3';
 
 export const SAUDI: RCountry = {
   id: 'ksa', name: 'Saudi Arabia', superCup: 'Saudi Super Cup',
-  cups: [{ id: 'ksa-cup', name: 'King\'s Cup', tiers: [1], main: true }],
-  leagues: [{ id: 'ksa1', name: 'Saudi Pro League', short: 'Saudi Pro League', tier: 1, promote: 0, relegate: 0, tv: 400_000, clubs: [
+  cups: [{ id: 'ksa-cup', name: 'King\'s Cup', tiers: [1, 2], main: true }],
+  leagues: [{ id: 'ksa1', name: 'Saudi Pro League', short: 'Saudi Pro League', tier: 1, promote: 0, relegate: 3, tv: 400_000, clubs: [
     c('hilal', 'Riyadh Blue Waves', 'HIL', 78, ['#0055A4', '#FFFFFF'], 'Kingdom Park', 26000, [
       ['Yassine Bounou', 'GK', 34, 82, 'MAR'], ['Kalidou Koulibaly', 'CB', 34, 78, 'SEN'], ['Ali Al-Bulaihi', 'CB', 35, 72, 'KSA'], ['João Cancelo', 'RB', 31, 81, 'POR'],
       ['Theo Hernández', 'LB', 27, 83, 'FRA'], ['Rúben Neves', 'DM', 28, 82, 'POR'], ['Sergej Milinković-Savić', 'CM', 30, 82, 'SRB'], ['Malcom', 'RW', 28, 80, 'BRA'],
@@ -27,5 +28,5 @@ export const SAUDI: RCountry = {
     c('okhdood', 'Najran Okhdood', 'OKH', 38, ['#000000', '#FFFFFF'], 'Najran Park', 12000), c('hazem', 'Ar Rass Hazem', 'HAZ', 36, ['#E30613', '#FFFFFF'], 'Hazem Park', 8000),
     c('najma', 'Unaizah Stars', 'NAJ', 36, ['#0055A4', '#FFD200'], 'Unaizah Park', 8000), c('neom', 'Neom Futurists', 'NEO', 50, ['#002F6C', '#C39E6D'], 'Neom Park', 10000, [['Alexandre Lacazette', 'ST', 34, 75, 'FRA']]),
     c('damac', 'Khamis Mushait Knights', 'DAM', 42, ['#E30613', '#FFD200'], 'Prince Sultan Park', 20000),
-  ] }],
+  ] }, KSA2],
 };

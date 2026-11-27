@@ -1,4 +1,4 @@
-/* The built-in real-world database: 15 countries' top leagues (England with three divisions), their cups,
+/* The built-in real-world database: 15 countries' leagues (England with three divisions, twelve more with two), their cups,
    continental competitions, and notable players as of the start of 2025/26. Ratings are estimates. */
 import { WORLD_FORMAT, WORLD_VERSION, type ClubDef, type PlayerDef, type WorldDef } from '../../engine/worlddef';
 import { ENGLAND } from './england';

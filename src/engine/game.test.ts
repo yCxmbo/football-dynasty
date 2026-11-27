@@ -102,7 +102,7 @@ describe('worlds', () => {
     const w = realWorld();
     const v = validateWorld(w);
     expect(v.errors).toEqual([]);
-    expect(w.leagues.length).toBe(26);
+    expect(w.leagues.length).toBe(29);
     expect(new Set(w.leagues.map((l) => l.country)).size).toBe(15);
     expect(new Set(w.players!.map((p) => p.name)).size).toBe(w.players!.length);
     const s = newGame({ seed: 5, userClubId: 'eng-liverpool', managerName: 'T', currency: 'GBP', world: w, source: 'real' });
@@ -143,12 +143,20 @@ describe('worlds', () => {
     expect(Object.values(s.cups.ucl.exits).filter((x) => x === 'League phase').length).toBe(12);
     const down = leagueTableOf(s, 'esp1').slice(-3).map((r) => r.clubId);
     const up = leagueTableOf(s, 'ger2').slice(0, 2).map((r) => r.clubId);
+    // the new second tiers: automatic places go up (reserve sides can't), the bottom of the top flight goes down
+    const downMore = ['bel1', 'ksa1', 'arg1'].flatMap((l) => leagueTableOf(s, l).slice(-({ bel1: 2, ksa1: 3, arg1: 2 } as Record<string, number>)[l]).map((r) => r.clubId));
+    const upKsa = leagueTableOf(s, 'ksa2').slice(0, 2).map((r) => r.clubId);
+    const upBel = leagueTableOf(s, 'bel2').find((r) => !s.clubs[r.clubId].reserve)!.clubId;
     startNewSeason(s);
     expect(s.comps['sc-mex'].name).toBe('Campeón de Campeones');
     for (const id of down) expect(s.clubs[id].league).toBe('esp2');
     for (const id of up) expect(s.clubs[id].league).toBe('ger1');
     expect(clubsInLeague(s, 'esp1').length).toBe(20);
     expect(clubsInLeague(s, 'esp2').length).toBe(22);
+    for (const id of downMore) expect(s.clubs[id].league, id).toMatch(/^(bel|ksa|arg)2$/);
+    for (const id of [...upKsa, upBel]) expect(s.clubs[id].league, id).toMatch(/1$/);
+    for (const [l, n] of [['bel1', 16], ['bel2', 16], ['ksa1', 18], ['ksa2', 18], ['arg1', 20], ['arg2', 20]] as const) expect(clubsInLeague(s, l).length, l).toBe(n);
+    expect(Object.values(s.clubs).filter((c) => c.reserve && s.clubs[c.id].league === 'bel1')).toEqual([]);
   }, 120_000);
   it('generated players and staff never take a real player\'s name', () => {
     const w = realWorld();

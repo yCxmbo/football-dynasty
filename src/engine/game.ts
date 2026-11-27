@@ -4,6 +4,7 @@ import { prepFor } from './opposition';
 import { fansAfterMatch, fansNewSeason, homeLift } from './fans';
 import { recordInjury, relapses } from './medical';
 import { payAddOns } from './deals';
+import { checkBadge, managerExperience, motivationFactor, profileOf, youthCoaching } from './manager';
 import { captainOf, takersOf } from './leadership';
 import { withDefaults, type Instructions } from './instructions';
 import { makePredictions, predictedPos, previewMessage } from './preview';
@@ -77,6 +78,7 @@ export function newGame(opts: NewGameOpts): GameState {
   ensureFamiliarity(state);
   withSquadIndex(state, () => { makePredictions(state); const pv = previewMessage(state); if (pv) addMessage(state, { category: 'media', from: 'Season preview', ...pv }); });
   if (opts.style) state.managerStyle = opts.style;
+  profileOf(state); // starting attributes follow the style
   makeFriendlyOffers(state, rng);
   for (const p of Object.values(players)) p.caStart = p.ability;
   state.ledger.balanceHistory.push(clubs[opts.userClubId].balance);
@@ -271,7 +273,7 @@ function setupFor(state: GameState, f: Fixture) {
   const hx = xiFor(state, f.homeId, hs.formation), ax = xiFor(state, f.awayId, aw.formation);
   const hr = hs.roles ?? bestRoles(hs.formation, hx), ar = aw.roles ?? bestRoles(aw.formation, ax);
   const H = state.clubs[f.homeId], A = state.clubs[f.awayId];
-  const tilt = { ...styleTilt(state), talk: talkMultiplier(state) };
+  const tilt = { ...styleTilt(state), talk: talkMultiplier(state) * motivationFactor(state) };
   const sharp = sharpness(state, state.calendar[f.matchday - 1]?.week ?? 0);
   const derby = derbyName(state, f.homeId, f.awayId);
   // following the assistant's suggested formation gives a small edge
@@ -352,6 +354,11 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     if ((uh || ua) && f.comp !== 'friendly' && state.clauses?.length) payAddOns(state, uh ? result.ratings.home : result.ratings.away);
     if (uh || ua) for (const p of relapses(state, (uh ? result.ratings.home : result.ratings.away).filter((x) => x.minutes > 0).map((x) => x.playerId)))
       addMessage(state, { category: 'medical', from: 'Medical team', role: 'Head physio', playerId: p.id, subject: `${p.name} has broken down again`, body: [`${p.name} came back early and the injury has flared up: ${p.injury?.type.toLowerCase()}. He's out for ${p.injuredFor} matches, longer than the first time.`] });
+    if ((uh || ua) && f.comp !== 'friendly') {
+      const mine = uh ? result.ratings.home : result.ratings.away;
+      const won = result.winnerId ? result.winnerId === state.userClubId : uh ? result.score[0] > result.score[1] : result.score[1] > result.score[0];
+      managerExperience(state, won, mine.filter((x) => x.minutes > 0 && (state.players[x.playerId]?.age ?? 99) <= 21).length, mine.filter((x) => x.card).length);
+    }
     if ((uh || ua) && f.comp !== 'friendly') for (const m of fansAfterMatch(state, f, derbyName(state, f.homeId, f.awayId))) addMessage(state, { category: 'media', from: 'Supporters', ...m });
     if (derbyName(state, f.homeId, f.awayId)) derbyHomes.add(f.homeId);
     if (compInfo(state, f.comp).kind === 'league') homeIds.add(f.homeId); else if (f.comp !== 'friendly') cupGate(state, f);
@@ -378,7 +385,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
       for (const p of Object.values(state.players)) {
         if (p.clubId === FREE_AGENT) continue;
         const mine = p.clubId === state.userClubId;
-        developStep(rng, p, 0.6 / Math.floor(state.leagueWeeks / every), mine ? te.development * developmentBoost(state) * trainingFacilityBoost(state) * youthDevelopmentBoost(state, p.age) : 1, mine ? state.training.focus[p.id] : undefined);
+        developStep(rng, p, 0.6 / Math.floor(state.leagueWeeks / every), mine ? te.development * developmentBoost(state) * trainingFacilityBoost(state) * youthDevelopmentBoost(state, p.age) * youthCoaching(state, p.age) : 1, mine ? state.training.focus[p.id] : undefined);
       }
     }
     if (slot.week === state.leagueWeeks) setupPlayoffs(state);
@@ -476,6 +483,7 @@ function postMatchMessages(state: GameState, f: Fixture) {
     start three weeks before your winter window. Logged so each happens once, even when days are skipped. */
 function newDay(state: GameState) {
   if (seasonOver(state)) return;
+  { const b = checkBadge(state); if (b) addMessage(state, { category: 'board', from: 'Coaching association', subject: `You have passed the ${b.name}`, body: [`Congratulations: you now hold the ${b.name}. Your coaching attributes have improved.`, 'Bigger clubs look for higher licences when they appoint a manager. See the Career screen.'] }); }
   const d = today(state), year = state.year;
   const us = state.clubs[state.userClubId];
   const log = (state.windowLog ??= {});
@@ -948,6 +956,7 @@ export function migrate(state: GameState): GameState {
   state.bids ??= []; state.negotiations ??= {}; state.installments ??= [];
   state.training ??= defaultTraining(); state.ledger ??= emptyLedger(); state.autoRotate ??= true;
   career(state);
+  profileOf(state);
   if (!state.staff) initStaff(state, createRng(state.rngState ^ 0x5eed));
   managers(state);
   ensureFamiliarity(state);

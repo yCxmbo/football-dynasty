@@ -483,3 +483,10 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 
 /* Medical */
 .med-log { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; }
+
+/* Manager profile */
+.mgr-attrs { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px 24px; margin: 4px 0 8px; }
+.mgr-attr { display: grid; grid-template-columns: 1fr 90px 24px; align-items: center; gap: 10px; font-size: 13px; }
+.mgr-attr .fd-meter { width: 90px; }
+.mgr-study { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--surface-sunken); font-size: 13px; }
+.mgr-study .fd-meter { flex: 1 1 160px; }

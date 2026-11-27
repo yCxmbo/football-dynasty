@@ -3,6 +3,7 @@ import { marketFee } from './market';
 import { scoutPerMatchday } from './staff';
 import { afterTransfer } from './achievements';
 import { fansOnTransfer } from './fans';
+import { dealExperience, priceFactor, wageFactor } from './manager';
 import { addClause, agentDemand, bidTerms, buyBackFor, settleSale } from './deals';
 import { recordTransfer } from './records';
 import { honourPreContract, preContracts, triggerClauses, wantsOut } from './contracts';
@@ -72,6 +73,7 @@ export function wageDemand(s: GameState, p: Player, renewing = false) {
   if (!renewing) w *= 1.1;
   if (renewing && p.morale === 'low') w *= 1.15;
   if (p.age >= 32) w *= 0.85;
+  w *= wageFactor(s);
   return Math.max(p.wage * (renewing ? 1.05 : 1.15), Math.round(w / 500) * 500);
 }
 
@@ -83,7 +85,7 @@ export function askingPrice(s: GameState, p: Player) {
   if (p.squad !== 'First team') m = 1.2;
   if (p.contractEnd <= s.year) m *= 0.6; // contract ends this summer
   if (s.transferListedAI?.includes(p.id)) m *= 0.8;
-  return Math.max(100000, Math.round((p.value * m) / 100000) * 100000);
+  return Math.max(100000, Math.round((p.value * m * priceFactor(s)) / 100000) * 100000);
 }
 
 /* ---------- scouting ---------- */
@@ -174,6 +176,7 @@ export function completeTransfer(s: GameState, p: Player, o: OfferTerms) {
   const upfront = Math.round((o.fee * o.upfront) / 100);
   afterTransfer(s, o.fee, false);
   fansOnTransfer(s, p, true);
+  dealExperience(s);
   if (from !== FREE_AGENT) settleSale(s, p.id, from, o.fee);
   recordTransfer(s, p.name, s.clubs[p.clubId]?.name ?? 'Free agent', s.clubs[s.userClubId].name, o.fee, seasonLabel(s.year), { playerId: p.id, fromId: p.clubId, toId: s.userClubId });
   club.transferBudget -= upfront + o.signingBonus + o.agentFee;

@@ -1,3 +1,4 @@
+import { motivationFactor } from './manager';
 /* International football: national-team squads from the world's players, and the summer tournaments
    (World Cup, Euro, Copa América) played between seasons with the same match engine as club football. */
 import { pickLineup, type Formation, type MatchMods } from './match';
@@ -195,7 +196,7 @@ export function* tournamentSteps(s: GameState, rng: Rng, id: TournamentId, year:
     const homeAdv = hosts.includes(h) && !hosts.includes(a);
     const seed = rng.int(0, 2 ** 30);
     const userSide = job && (h === job.code || a === job.code) ? job.code : undefined;
-    const tilt = { ...styleTilt(s), talk: talkMultiplier(s) };
+    const tilt = { ...styleTilt(s), talk: talkMultiplier(s) * motivationFactor(s) };
     const home = { xi: H.xi, bench: H.bench, formation: H.formation, name: NATION[h].name, user: userSide === h, ...(userSide === h ? { tilt } : {}) };
     const away = { xi: A.xi, bench: A.bench, formation: A.formation, name: NATION[a].name, user: userSide === a, ...(userSide === a ? { tilt } : {}) };
     const venue = homeAdv ? `${NATION[h].name} home stadium` : 'Neutral venue';

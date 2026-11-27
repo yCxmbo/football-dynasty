@@ -1,3 +1,4 @@
+import { familiarityGain } from './manager';
 /* Tactics: three saved tactics (formation, roles and duties, instructions), style presets to start from, and
    familiarity. A squad needs time to learn a shape and a way of playing: a new formation or a big change of
    instructions costs a little on the pitch until it has been played a few times. */
@@ -130,10 +131,11 @@ export const familiarityFactor = (fam: number) => 0.975 + 0.025 * Math.min(100, 
 /** After each of your matches: the shape and instructions you used sink in. */
 export function learnFromMatch(s: GameState) {
   const fam = ensureFamiliarity(s);
-  fam[s.formation] = Math.min(100, (fam[s.formation] ?? FLOOR) + 6);
-  if (s.defFormation) fam[s.defFormation] = Math.min(100, (fam[s.defFormation] ?? FLOOR) + 6);
+  const k = familiarityGain(s);
+  fam[s.formation] = Math.min(100, (fam[s.formation] ?? FLOOR) + 6 * k);
+  if (s.defFormation) fam[s.defFormation] = Math.min(100, (fam[s.defFormation] ?? FLOOR) + 6 * k);
   const ts = tacticsOf(s);
-  ts.slots[ts.active].fam = Math.min(100, ts.slots[ts.active].fam + 8);
+  ts.slots[ts.active].fam = Math.min(100, ts.slots[ts.active].fam + 8 * k);
 }
 
 /** Each league week: shapes you aren't using fade slowly. */

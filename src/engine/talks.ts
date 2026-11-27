@@ -8,6 +8,7 @@ import { squadMoods } from './dynamics';
 import { leagueTableOf } from './competitions';
 import { dateOf } from './windows';
 import { currentLeagueWeek } from './media';
+import { disciplineSkill, talkExperience, talkSkill } from './manager';
 import type { GameState, Morale, Player } from './types';
 
 export type TalkTopic = 'praise' | 'criticise' | 'warn' | 'reassure' | 'promise' | 'mood';
@@ -70,27 +71,27 @@ export function talkTo(s: GameState, playerId: string, topic: TalkTopic): { reac
   let reaction: Reaction = 'neutral', text = '';
   switch (topic) {
     case 'praise':
-      if (r >= 7) { reaction = 'good'; text = `${he} is delighted: "Thanks, boss. I'll keep it going."`; }
+      if (r >= 7 || (r >= 6.6 && rng.chance(talkSkill(s)))) { reaction = 'good'; text = `${he} is delighted: "Thanks, boss. I'll keep it going."`; }
       else if (r >= 6.6) { reaction = rng.chance(0.6) ? 'good' : 'neutral'; text = reaction === 'good' ? `${he} appreciates it.` : `${he} nods: he knows he can do more.`; }
       else { reaction = rng.chance(0.3) ? 'bad' : 'neutral'; text = reaction === 'bad' ? `${he} looks confused: he knows he hasn't played well, and the praise rings hollow.` : `${he} shrugs it off.`; }
       break;
     case 'criticise': {
       const fair = r < 6.7;
       const steel = (det + prof) / 2 + (fair ? 2 : -3);
-      const c = Math.max(0.05, Math.min(0.9, (steel - 8) / 10));
+      const c = Math.max(0.05, Math.min(0.9, (steel - 8) / 10 + talkSkill(s)));
       reaction = rng.chance(c) ? 'good' : rng.chance(0.5) ? 'neutral' : 'bad';
       text = reaction === 'good' ? `${he} takes it on board: "You're right. I'll show you."` : reaction === 'neutral' ? `${he} listens in silence.` : fair ? `${he} sulks: he doesn't take criticism well.` : `${he} is furious: he thinks he's been playing well and that you're picking on him.`;
       break;
     }
     case 'warn': {
-      const c = Math.max(0.1, Math.min(0.85, 0.75 - (temper - 10) * 0.05 + (prof - 10) * 0.03));
+      const c = Math.max(0.1, Math.min(0.9, 0.75 - (temper - 10) * 0.05 + (prof - 10) * 0.03 + disciplineSkill(s)));
       reaction = rng.chance(c) ? 'good' : rng.chance(0.5) ? 'neutral' : 'bad';
       text = reaction === 'good' ? `${he} accepts it: "I'll keep my head."` : reaction === 'neutral' ? `${he} says he will try.` : `${he} bristles: he thinks referees have it in for him.`;
       break;
     }
     case 'reassure': {
       const unsettled = !!mood && mood.score < 0;
-      const c = unsettled ? (mood!.reasons.includes('Not playing enough') ? 0.45 : 0.65) : 0.5;
+      const c = (unsettled ? (mood!.reasons.includes('Not playing enough') ? 0.45 : 0.65) : 0.5) + talkSkill(s);
       reaction = rng.chance(c) ? 'good' : unsettled && rng.chance(0.3) ? 'bad' : 'neutral';
       text = reaction === 'good' ? `${he} feels better: "Good to know where I stand."` : reaction === 'bad' ? `${he} isn't convinced: he wants actions, not words.` : `${he} thanks you, but nothing much changes.`;
       break;
@@ -107,6 +108,7 @@ export function talkTo(s: GameState, playerId: string, topic: TalkTopic): { reac
   if (reaction === 'good') p.morale = up(p.morale);
   if (reaction === 'bad') p.morale = down(p.morale);
   (s.talks ??= {})[playerId] = { date: today, topic, reaction };
+  talkExperience(s);
   return { reaction, text };
 }
 
@@ -150,6 +152,7 @@ export function teamMeeting(s: GameState, topic: MeetingTopic, target?: number):
     else if (pos) { good = 0.25; bad = 0.18; line = 'Talk of targets puts some players under pressure.'; }
     else line = 'The squad listens.';
   }
+  good = Math.min(0.9, good + talkSkill(s) / 2 + (topic === 'demand' ? disciplineSkill(s) / 2 : 0));
   let lifted = 0, upset = 0;
   for (const p of ft) {
     if (rng.chance(good)) { if (p.morale !== 'high') lifted++; p.morale = up(p.morale); }

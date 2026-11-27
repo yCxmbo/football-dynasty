@@ -1,3 +1,4 @@
+import { licencePenalty } from './manager';
 /* A manager's career across clubs: board confidence carried between seasons, the sack, offers from other
    clubs, applying for vacancies, and moving to a new club (in any country). */
 import { clubsInLeague, leagueDef, leagueTableOf, roundsOf } from './competitions';
@@ -185,7 +186,7 @@ export function makeOffers(s: GameState, rng: Rng, vacancies: string[], mode: 'g
 export const applyChance = (s: GameState, clubId: string) => {
   const rival = favouriteFor(s, clubId);
   const bar = Math.max(s.clubs[clubId].reputation, (rival?.rep ?? 0) - 4);
-  return clamp((managerReputation(s) - bar + 14) / 28, 0.05, 0.95);
+  return clamp((managerReputation(s) - bar + 14) / 28 - licencePenalty(s, s.clubs[clubId].reputation), 0.03, 0.95);
 };
 
 /** Applies for a vacancy; the club answers at once. Returns true if appointed. */

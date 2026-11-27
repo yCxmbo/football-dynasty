@@ -6,6 +6,7 @@ import { askBoard, makeVision, REQUESTS, type BoardRequest } from '../engine/vis
 import { baseTarget, boardTarget } from '../engine/game';
 import { ACHIEVEMENTS } from '../engine/achievements';
 import { STYLES, setStyle, styleOf } from '../engine/style';
+import { BADGES, MGR_ATTRS, licenceNeeded, licencePenalty, nextBadge, profileOf, startBadge, studyProgress, untilLabel } from '../engine/manager';
 import { managerReputation } from '../engine/nationaljob';
 import { favouriteFor, topManagers } from '../engine/managers';
 import { nationName } from '../engine/nations';
@@ -90,6 +91,8 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
 
       {!c.sacked ? <VisionCard g={g} conf={conf} update={update} /> : null}
 
+      <ProfileCard g={g} update={update} />
+
       <section className="pg-card">
         <h2 className="pg-h">Coaching style</h2>
         <div className="fd-seg" role="radiogroup" aria-label="Coaching style" style={{ flexWrap: 'wrap' }}>
@@ -158,7 +161,7 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
                   <td className="fd-muted">{line.league} · {line.country}</td>
                   <td><FD.StarRating value={stars(line.reputation)} size={13} /></td>
                   <td className="fd-muted">{(() => { const f = favouriteFor(g, id); return f ? <>Rival: {f.name} <span title="Reputation">({f.rep})</span></> : 'No strong rival'; })()}</td>
-                  <td className="fd-muted">{p >= 0.7 ? 'Good chance' : p >= 0.35 ? 'Possible' : 'Long shot'}</td>
+                  <td className="fd-muted">{p >= 0.7 ? 'Good chance' : p >= 0.35 ? 'Possible' : 'Long shot'}{licencePenalty(g, line.reputation) > 0 ? <span className="fd-tag fd-tag--warn" style={{ marginLeft: 6 }} title="Your licence is below what this club expects: it counts against you">Wants {licenceNeeded(line.reputation)} licence</span> : null}</td>
                   <td style={{ textAlign: 'right' }}><FD.Button variant="secondary" onClick={() => { setNote(''); setInterview({ id, answers: [] }); }}>Apply</FD.Button></td>
                 </tr>
               );
@@ -281,6 +284,48 @@ function VisionCard({ g, conf, update }: { g: GameState; conf: number; update: (
         <span className="hm-note" style={{ margin: 0 }}>{asked ? 'You have been to the board this season.' : 'One request a season; the board weighs its trust in you and the finances.'}</span>
       </div>
       {note ? <p className="fd-warn" role="status" style={{ marginBottom: 0 }}>{note}</p> : null}
+    </section>
+  );
+}
+
+/** You as a manager: attributes, licence, and studying for the next one. */
+function ProfileCard({ g, update }: { g: GameState; update: (fn: (d: GameState) => void) => void }) {
+  const [msg, setMsg] = useState('');
+  const pr = g.managerProfile ?? profileOf(structuredClone(g));
+  const next = nextBadge(structuredClone(g));
+  const held = BADGES.find((b) => b.id === pr.badge);
+  return (
+    <section className="pg-card" aria-labelledby="mgr-h">
+      <div className="talk__head">
+        <h2 className="pg-h" id="mgr-h" style={{ margin: 0 }}>You as a manager</h2>
+        <span className="fd-muted talk__meta">{held ? held.name : 'No coaching licence'}</span>
+      </div>
+      <div className="mgr-attrs">
+        {MGR_ATTRS.map((a) => {
+          const v = pr.attrs[a.id];
+          return (
+            <div key={a.id} className="mgr-attr" title={a.effect}>
+              <span>{a.label}</span>
+              <span className="fd-meter"><span className={`fd-meter__bar sq-attbar ${v >= 15 ? 'sq-att--hi' : v >= 11 ? 'sq-att--mid' : 'sq-att--lo'}`} style={{ width: (v / 20) * 100 + '%' }} /></span>
+              <strong className="fd-num">{Math.floor(v)}</strong>
+            </div>
+          );
+        })}
+      </div>
+      <p className="hm-note">They start from your coaching style and grow with experience: winning sharpens your tactics, playing youngsters your youth work, clean games your discipline, deals your negotiating, and talks your man management. Hover one for what it does.</p>
+      {pr.studying ? (
+        <div className="mgr-study">
+          <span>Studying for the <strong>{BADGES.find((b) => b.id === pr.studying!.badge)!.name}</strong>, until {untilLabel(g)}</span>
+          <span className="fd-meter fd-meter--wide"><span className="fd-meter__bar fd-meter__bar--low" style={{ width: studyProgress(g) + '%' }} /></span>
+        </div>
+      ) : next ? (
+        <div className="mgr-study">
+          <span>Next: the <strong>{next.name}</strong> · {Math.round(next.cost / 1000)}k from your own earnings · about {Math.round(next.days / 30)} months alongside the job. Passing it raises every attribute.</span>
+          <FD.Button size="sm" variant="secondary" onClick={() => { const e = startBadge(structuredClone(g)); if (e) setMsg(e); else { setMsg(''); update((d) => { startBadge(d); }); } }}>Start the course</FD.Button>
+        </div>
+      ) : <p className="hm-note">You hold the highest licence there is.</p>}
+      {msg ? <p className="fd-warn" role="status" style={{ margin: '6px 0 0' }}>{msg}</p> : null}
+      <p className="hm-note" style={{ marginBottom: 0 }}>Clubs expect a licence by size: B for mid-sized clubs, A for big ones, Pro for the biggest. Each level short of that costs you at interview.</p>
     </section>
   );
 }

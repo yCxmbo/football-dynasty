@@ -5,6 +5,7 @@ import { compInfo, leagueTableOf, leaguesOf, tableOf } from '../engine/competiti
 import type { CompId, GameState } from '../engine/types';
 import { seasonLabel } from '../engine/types';
 import { badgeUrl } from './badge';
+import { seasonLabel as label } from '../engine/types';
 import { zonesFor } from './comp-ui';
 import type { Screen } from './shared';
 
@@ -71,6 +72,7 @@ export default function Table({ g, go }: { g: GameState; go: (s: Screen, id?: st
     body = (
       <div className="pg-grid2">
         <div className="lt-click" onClick={clubFromRow(g, go)}><FD.LeagueTable title={`${active.name} · ${seasonLabel(g.year)}`} rows={leagueTableOf(g, active.id)} zones={zonesFor(g, active.id)} /></div>
+        <div className="pg-stack" style={{ gap: 16 }}>
         <section className="pg-card">
           <h2 className="pg-h">Top scorers (all competitions)</h2>
           {list.length ? (
@@ -79,6 +81,8 @@ export default function Table({ g, go }: { g: GameState; go: (s: Screen, id?: st
               <tbody>{list.map((p) => <tr key={p.id} className={p.clubId === g.userClubId ? 'fd-gold' : undefined}><td><button className="pg-link" onClick={() => go('player', p.id)}>{p.name}</button></td><td>{g.clubs[p.clubId].short}</td><td className="fd-num">{p.current.apps}</td><td className="fd-num"><strong>{p.current.goals}</strong></td></tr>)}</tbody>
             </table>) : <p className="hm-note">No goals yet this season.</p>}
         </section>
+        <Predicted g={g} leagueId={active.id} go={go} />
+        </div>
       </div>
     );
   } else if (active.kind === 'continental') {
@@ -108,5 +112,30 @@ export default function Table({ g, go }: { g: GameState; go: (s: Screen, id?: st
       </div>
       {body}
     </div>
+  );
+}
+
+/** The pundits' pre-season order next to the current table: who is beating the predictions. */
+function Predicted({ g, leagueId, go }: { g: GameState; leagueId: string; go: (s: Screen, id?: string) => void }) {
+  const pred = g.predictions?.season === label(g.year) ? g.predictions.tables[leagueId] : undefined;
+  if (!pred) return null;
+  const now = leagueTableOf(g, leagueId).map((r) => r.clubId);
+  const started = leagueTableOf(g, leagueId).some((r) => r.p > 0);
+  return (
+    <section className="pg-card">
+      <h2 className="pg-h">Pre-season predictions</h2>
+      <table className="fd-mini"><thead><tr><th className="fd-num">Tip</th><th>Club</th>{started ? <><th className="fd-num">Now</th><th className="fd-num">+/−</th></> : null}</tr></thead><tbody>
+        {pred.map((id, i) => {
+          const pos = now.indexOf(id) + 1, diff = i + 1 - pos;
+          return (
+            <tr key={id} className={id === g.userClubId ? 'fd-gold' : undefined}>
+              <td className="fd-num fd-muted">{i + 1}</td>
+              <td><ClubName g={g} id={id} go={go} /></td>
+              {started ? <><td className="fd-num">{pos}</td><td className={'fd-num ' + (diff > 0 ? 'pred-up' : diff < 0 ? 'pred-down' : 'fd-muted')}>{diff > 0 ? `▲${diff}` : diff < 0 ? `▼${-diff}` : '–'}</td></> : null}
+            </tr>
+          );
+        })}
+      </tbody></table>
+    </section>
   );
 }

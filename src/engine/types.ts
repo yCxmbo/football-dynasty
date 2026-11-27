@@ -188,6 +188,8 @@ export interface GameState {
   managers?: import('./managers').ManagersState;
   /** Transfer rumours before the next window. */
   rumours?: import('./market').Rumour[];
+  /** The pundits' predicted tables for this season. */
+  predictions?: import('./preview').Predictions;
   /** All-time records across the world. */
   records?: import('./records').Records;
   /** Achievements unlocked, with the season. */

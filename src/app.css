@@ -244,3 +244,6 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .interview__q { border: 0; padding: 0; margin: 0 0 10px; display: flex; flex-direction: column; gap: 4px; }
 .interview__q legend { font-weight: 700; margin-bottom: 4px; }
 .interview__opt { display: flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer; }
+.hm-odds { margin: 6px 0 0; font-size: 13px; }
+.pred-up { color: var(--teal); font-weight: 700; }
+.pred-down { color: var(--warn, #e0a030); font-weight: 700; }

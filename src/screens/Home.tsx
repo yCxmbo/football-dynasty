@@ -1,5 +1,6 @@
 import { FD } from '../ds';
 import { formatDate } from '../engine/fixtures';
+import { matchOdds } from '../engine/preview';
 import { boardTarget, currentDate, leagueTable, nextUserFixture, ordinal, seasonOver } from '../engine/game';
 import { compInfo, cupResult, topLeague, withThe } from '../engine/competitions';
 import type { GameState } from '../engine/types';
@@ -54,6 +55,12 @@ export default function Home({ g, go, onPlay, update }: { g: GameState; go: (s: 
           <h2 className="pg-h">Next match</h2>
           {next ? <FD.FixtureCard {...fixtureCardProps(g, next)} action={isNow ? <FD.Button size="sm" icon="play" onClick={onPlay}>Play match</FD.Button> : <FD.Button size="sm" variant="secondary" icon="sim" onClick={onPlay}>Continue to it</FD.Button>} />
             : <div className="pg-card hm-note">{over ? 'No more league matches this season.' : 'No match this week.'}</div>}
+          {next && next.comp !== 'friendly' ? (() => {
+            const o = matchOdds(g, next.homeId, next.awayId, next.neutral);
+            const home = next.homeId === g.userClubId;
+            const win = home ? o.home : o.away, loss = home ? o.away : o.home;
+            return <p className="hm-note hm-odds">Pundits: win {win}% · draw {o.draw}% · loss {loss}%</p>;
+          })() : null}
           {g.matchday === 1 && ((g.friendlyOffers?.length ?? 0) > 0 || friendliesArranged(g).length > 0) && <>
             <h2 className="pg-h">Pre-season friendlies</h2>
             <div className="pg-card hm-pre">

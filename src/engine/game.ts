@@ -1,4 +1,5 @@
 import { makeRumours, runMarket } from './market';
+import { makePredictions, predictedPos, previewMessage } from './preview';
 import { managerBoost, managerOf, managers, managersAfterSeason, midSeasonSackings, weeklyAppointments } from './managers';
 import { awardPremium, awardsMessage, seasonAwards } from './awards';
 import { formatDate } from './fixtures';
@@ -62,6 +63,7 @@ export function newGame(opts: NewGameOpts): GameState {
   career(state);
   initStaff(state, rng);
   managers(state);
+  withSquadIndex(state, () => { makePredictions(state); const pv = previewMessage(state); if (pv) addMessage(state, { category: 'media', from: 'Season preview', ...pv }); });
   if (opts.style) state.managerStyle = opts.style;
   makeFriendlyOffers(state, rng);
   for (const p of Object.values(players)) p.caStart = p.ability;
@@ -424,7 +426,7 @@ function seasonEndMessage(state: GameState) {
   const title = l?.titlePlayoff ? state.cups[`tp-${l.id}`] : undefined;
   const champion = l?.titlePlayoff ? title?.winner === us.id : pos === 1;
   addMessage(state, { category: 'board', from: 'The board', role: us.name, subject: champion ? `Champions! ${l?.titlePlayoff ? `You won the ${l.titlePlayoff.trophy}. ` : ''}The board is overjoyed` : mv?.dir === 'promoted' ? 'Promoted! The board is delighted' : mv?.dir === 'relegated' ? 'Relegated. A painful day for the club' : ok ? 'Season review: target met' : 'Season review: below expectations',
-    body: [`We finished ${ordinal(pos)} in ${withThe(leagueName(state, us.league))}. The target was ${target.text}.`,
+    body: [`We finished ${ordinal(pos)} in ${withThe(leagueName(state, us.league))}. The target was ${target.text}.${predictedPos(state, us.id) ? ` The pundits had us down for ${ordinal(predictedPos(state, us.id)!)}.` : ''}`,
       mv ? `Next season we play in ${withThe(leagueName(state, mv.to))}.${mv.dir === 'relegated' ? ' The board expects an immediate return.' : ''}` : ok ? 'The board is pleased with your work.' : 'The board expects improvement next season.',
       'Start the new season from the home screen when you are ready.'] });
 }
@@ -632,6 +634,7 @@ function rollover(state: GameState) {
   state.lineup = pickLineup(squadOf(state, state.userClubId), state.formation);
   state.rngState = rng.state();
   for (const p of Object.values(state.players)) { p.caStart = p.ability; p.progress = {}; p.condition = 95; }
+  { makePredictions(state); const pv = previewMessage(state); if (pv) addMessage(state, { category: 'media', from: 'Season preview', ...pv }); }
   state.lastLedger = state.ledger;
   state.ledger = emptyLedger();
   state.ledger.balanceHistory.push(state.clubs[state.userClubId].balance);
@@ -813,6 +816,7 @@ export function migrate(state: GameState): GameState {
   career(state);
   if (!state.staff) initStaff(state, createRng(state.rngState ^ 0x5eed));
   managers(state);
+  if (!state.predictions) withSquadIndex(state, () => makePredictions(state));
   return state;
 }
 

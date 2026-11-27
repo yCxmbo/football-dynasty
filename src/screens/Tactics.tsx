@@ -1,20 +1,25 @@
 import SetPieces from './SetPieces';
 import OppReport from './OppReport';
 import type { Screen } from './shared';
-import { nextUserFixture, setInstructions } from '../engine/game';
+import { applyPreset, nextUserFixture, setInstructions, setRole, useTactic } from '../engine/game';
 import InstructionsPanel from './InstructionsPanel';
+import TacticsBoard, { FORMATION_LIST } from './TacticsBoard';
+import { familiarity, formationFamiliarity, renameTactic, STYLE_PRESETS, tacticsOf } from '../engine/tactics';
+import { useState } from 'react';
 import { FD } from '../ds';
 import { available, slotsOf, type Formation } from '../engine/match';
+import { describeInstructions, withDefaults } from '../engine/instructions';
 import { bestLineup, recoveryPerDay, squadOf, userLineup } from '../engine/game';
 import { EQUIVALENT } from '../engine/world';
 import type { GameState, Player } from '../engine/types';
 
 /** Saves made before wide-position equivalents existed still show LW→LM etc. as accomplished. */
-const lite = (p: Player) => {
+const withEquivalents = (p: Player): Player => {
   const positions = { ...p.positions };
   for (const e of EQUIVALENT[p.pos] ?? []) positions[e] ??= 'accomplished';
-  return { id: p.id, number: p.number, name: p.name, pos: p.pos, positions };
+  return { ...p, positions };
 };
+const famWord = (f: number) => (f >= 90 ? 'Fluid' : f >= 70 ? 'Familiar' : f >= 50 ? 'Learning' : 'New to the squad');
 const cond = (p: Player) => Math.round(p.condition ?? 100);
 
 function FitnessRow({ g, p, slot, rotated }: { g: GameState; p: Player; slot?: string; rotated?: boolean }) {
@@ -40,26 +45,55 @@ export default function Tactics({ g, go, update, onChange, onAutoRotate, liveNot
   const slots = slotsOf(g.formation);
   const rotateOn = g.autoRotate !== false;
   const tired = xi.filter((p) => cond(p) < 70);
+  const ts = tacticsOf(structuredClone({ tactics: g.tactics, formation: g.formation, roles: g.roles, instructions: g.instructions }) as GameState);
+  const fam = familiarity({ ...g, tactics: ts } as GameState);
+  const [renaming, setRenaming] = useState(false);
   return (
     <div className="pg-stack">
       <div className="pg-head" style={{ marginBottom: 0 }}>
-        <div><h1 className="pg-title">Tactics</h1><p className="pg-sub">Choose a formation and swap players by clicking one, then another. Players out of position or tired perform worse.</p></div>
+        <div><h1 className="pg-title">Tactics</h1><p className="pg-sub">Three saved tactics, each with a formation, a role and duty for every player, and instructions for every phase of play. Pick a player on the pitch to set his role or swap him.</p></div>
         <FD.Button variant="secondary" icon="sim" onClick={() => onChange(g.formation, bestLineup(g))}>Pick best XI</FD.Button>
       </div>
       {liveNote && <p className="tr-window" role="status">A match is in progress. Changes here apply from the next match; make substitutions from the match screen.</p>}
       {unavailable.length > 0 && <p className="fd-money--neg" role="alert">{unavailable.map((p) => p.name).join(', ')} {unavailable.length === 1 ? 'is' : 'are'} unavailable and will be replaced automatically. Pick a replacement or use Pick best XI.</p>}
       {nextFx && nextFx.comp !== 'friendly' ? <OppReport g={g} f={nextFx} go={go} /> : null}
-      <FD.FormationBoard
-        formation={g.formation}
-        onFormationChange={(f: Formation) => onChange(f, bestLineup(g, f))}
-        lineup={xi.map(lite)}
-        bench={bench.map((p) => ({ ...lite(p), name: !available(p) ? `${p.name} (${p.injuredFor ? 'injured' : 'suspended'})` : `${p.name} · ${cond(p)}%` }))}
-        onChange={(l: Array<{ id: string }>) => onChange(g.formation, l.slice(0, slots.length).map((x) => x.id))}
-      />
+      <section className="pg-card tac-bar">
+        <div className="fd-seg" role="tablist" aria-label="Saved tactics">
+          {ts.slots.map((t, i) => (
+            <button key={i} type="button" role="tab" aria-selected={ts.active === i} className={'fd-seg__opt' + (ts.active === i ? ' is-on' : '')} onClick={() => update((d) => useTactic(d, i))}>{t.name} · {t.formation}</button>
+          ))}
+        </div>
+        {renaming ? (
+          <input className="fd-input tac-name" autoFocus defaultValue={ts.slots[ts.active].name} aria-label="Tactic name" maxLength={24}
+            onBlur={(e) => { const v = e.target.value; update((d) => renameTactic(d, tacticsOf(d).active, v)); setRenaming(false); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
+        ) : <button type="button" className="pg-link" onClick={() => setRenaming(true)}>Rename</button>}
+        <label className="tac-field"><span className="fd-label">Formation</span>
+          <select className="fd-input" value={g.formation} aria-label="Formation" onChange={(e) => { const f = e.target.value as Formation; onChange(f, bestLineup(g, f)); }}>
+            {FORMATION_LIST.map((f) => <option key={f} value={f}>{f} · {famWord(formationFamiliarity(g, f))}</option>)}
+          </select>
+        </label>
+        <label className="tac-field"><span className="fd-label">Start from a style</span>
+          <select className="fd-input" value="" aria-label="Load a tactical style" onChange={(e) => {
+            const p = STYLE_PRESETS.find((x) => x.id === e.target.value);
+            if (p && window.confirm(`Replace ${ts.slots[ts.active].name} with the ${p.name} style (${p.formation})? ${p.desc}`)) update((d) => applyPreset(d, p.id));
+          }}>
+            <option value="">Choose a style…</option>
+            {STYLE_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.formation})</option>)}
+          </select>
+        </label>
+        <div className="tac-fam" title="A new shape or big changes to the instructions cost a little on the pitch until the squad has played them a few times.">
+          <span className="fd-label">Familiarity · {famWord(fam)}</span>
+          <span className="fd-meter fd-meter--wide"><span className={`fd-meter__bar fd-meter__bar--${fam >= 70 ? 'low' : fam >= 50 ? 'medium' : 'high'}`} style={{ width: fam + '%' }} /></span>
+        </div>
+      </section>
+      <TacticsBoard formation={g.formation} roles={g.roles} xi={xi.map(withEquivalents)} bench={bench.map(withEquivalents)}
+        onSwap={(l) => onChange(g.formation, l.slice(0, slots.length))} onRole={(i, r) => update((d) => setRole(d, i, r))} />
       <section className="pg-card">
-        <h2 className="pg-h">Team instructions</h2>
-        <p className="hm-note" style={{ marginTop: 0 }}>How the team plays from kick-off. Every choice trades something: hover an option for what it does. You can change them during a match too.</p>
+        <h2 className="pg-h">Team instructions · {ts.slots[ts.active].name}</h2>
+        <p className="hm-note" style={{ marginTop: 0 }}>How the team plays in each phase. Every choice trades something, and many depend on the opponent: hover an option for what it does. Changing several at once costs familiarity until the squad has played them; you can also change them during a match.</p>
         <InstructionsPanel value={g.instructions} onChange={(c) => update((d) => setInstructions(d, c))} />
+        <p className="hm-note" style={{ marginBottom: 0, fontSize: 12 }}>{describeInstructions(withDefaults(g.instructions))}</p>
       </section>
       <SetPieces g={g} update={update} />
       <section className="pg-card">

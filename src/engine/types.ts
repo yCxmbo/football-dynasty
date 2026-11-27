@@ -190,6 +190,12 @@ export interface GameState {
   rumours?: import('./market').Rumour[];
   /** The pundits' predicted tables for this season. */
   predictions?: import('./preview').Predictions;
+  /** Your three saved tactics and which one is active. */
+  tactics?: import('./tactics').TacticsState;
+  /** How well your squad knows each formation, 0–100. */
+  familiarity?: Record<string, number>;
+  /** Your roles and duties, one per slot of your formation. */
+  roles?: import('./roles').SlotRole[];
   /** Your team instructions. */
   instructions?: import('./instructions').Instructions;
   /** Your chosen set-piece takers. */

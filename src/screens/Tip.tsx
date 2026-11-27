@@ -12,7 +12,7 @@ export function tipsOff() { return !!read().off; }
 export const TIPS: Record<string, { title: string; text: string }> = {
   home: { title: 'Welcome, boss', text: 'Play match plays your next game live; Continue skips days without one. Sim (next to it) plays ahead without watching: one match, four weeks or the whole season. The board\'s target and confidence are below the table.' },
   squad: { title: 'Your squad', text: 'Gold stars are ability, compared with your league; the outline stars are potential. Click a player for his attributes, contract, loans and transfer list. U21 and U18 are your academy squads.' },
-  tactics: { title: 'Tactics', text: 'Pick a formation and click two players to swap them. Players out of position perform worse. Rotate tired players (on by default) rests starters under 70% condition for one match.' },
+  tactics: { title: 'Tactics', text: 'Pick a formation or start from a style, give each player a role and duty (stars show how well he suits it), and set instructions for each phase. New shapes and big changes take a few matches to learn: watch the familiarity bar.' },
   training: { title: 'Training', text: 'Harder, technical weeks develop players faster but raise the injury risk. Give young players an individual focus to steer their growth. Staff and the training ground add to all of this.' },
   transfers: { title: 'Transfers', text: 'Windows: pre-season and mid-season. Search, scout (attributes show as ranges until you know a player), then make an offer: fee, instalments and add-ons to the club, wage and role to the player. You can also ask to loan fringe players.' },
   scouting: { title: 'Scouting', text: 'Follow up to five players; each matchday adds knowledge until you get a full report. Bids for your players arrive here and in the inbox.' },
@@ -23,7 +23,7 @@ export const TIPS: Record<string, { title: string; text: string }> = {
   staff: { title: 'Staff', text: 'Six roles rated 1–20 (10 is average). Better staff speed up development, recovery and scouting and shorten injuries. New candidates every summer.' },
   facilities: { title: 'Stadium and facilities', text: 'Expand the ground when demand is higher than capacity, and upgrade the training ground and academy. Work is paid from the balance and the transfer budget.' },
   youth: { title: 'Academy', text: 'Silver stars mark youth players. Promote the best to the first team (they get a professional contract), or loan them out to play. A new intake arrives each summer.' },
-  match: { title: 'Match day', text: 'Choose a team talk before kickoff and at half-time, and change your instructions (mentality, pressing, tempo, width, line) at any time. Change speed, make up to five substitutions (the match pauses), or sim to the end. Nothing is saved until full time.' },
+  match: { title: 'Match day', text: 'Choose a team talk before kickoff and at half-time, and switch between your three tactics or change instructions at any time. Change speed, make up to five substitutions (the match pauses), or sim to the end. Nothing is saved until full time.' },
 };
 
 export default function Tip({ id }: { id: keyof typeof TIPS | string }) {

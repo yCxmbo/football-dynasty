@@ -3,11 +3,14 @@
 import { squadOf } from './index';
 import { pickLineup, ROLE, slotsOf, type Formation } from './match';
 import { matchOdds } from './preview';
+import { aiFormation } from './managers';
 import type { Fixture, GameState, Player } from './types';
 
 export type Unit = 'def' | 'mid' | 'att';
 export interface OppReport {
   oppId: string;
+  /** Their usual shape under their manager. */
+  formation: Formation;
   form: Array<'W' | 'D' | 'L'>;
   xi: Array<{ slot: string; id: string; name: string }>;
   danger: Array<{ id: string; name: string; why: string }>;
@@ -36,8 +39,9 @@ export function oppositionReport(s: GameState, f: Fixture): OppReport | undefine
   if (f.homeId !== us && f.awayId !== us) return undefined;
   const oppId = f.homeId === us ? f.awayId : f.homeId;
   const squad = squadOf(s, oppId);
-  const slots = slotsOf('4-3-3');
-  const xiIds = pickLineup(squad);
+  const shape = aiFormation(s, oppId);
+  const slots = slotsOf(shape);
+  const xiIds = pickLineup(squad, shape);
   const xi = xiIds.map((id, i) => ({ slot: slots[i], p: s.players[id] })).filter((x) => x.p);
   const ourSlots = slotsOf(s.formation);
   const ours = s.lineup.map((id, i) => ({ slot: ourSlots[i], p: s.players[id] })).filter((x) => x.p && x.slot);
@@ -89,7 +93,7 @@ export function oppositionReport(s: GameState, f: Fixture): OppReport | undefine
   const meetings = s.fixtures.filter((x) => x.result && x.comp !== 'friendly' && ((x.homeId === us && x.awayId === oppId) || (x.homeId === oppId && x.awayId === us)))
     .map((x) => `${s.clubs[x.homeId].short} ${x.result!.score[0]}–${x.result!.score[1]} ${s.clubs[x.awayId].short} (${s.comps[x.comp]?.short ?? ''})`);
   return {
-    oppId, form, xi: xi.map(({ slot, p }) => ({ slot, id: p.id, name: p.name })), danger, missing, edges, advice, suggested,
+    oppId, formation: shape, form, xi: xi.map(({ slot, p }) => ({ slot, id: p.id, name: p.name })), danger, missing, edges, advice, suggested,
     odds: { win: home ? o.home : o.away, draw: o.draw, loss: home ? o.away : o.home }, meetings,
   };
 }

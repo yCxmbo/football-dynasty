@@ -10,6 +10,7 @@ import type { GameState, Squad } from './types';
 import { makePlayer } from './world';
 import { initStaff } from './staff';
 import { favouriteFor, userTakesOver } from './managers';
+import { resetFamiliarity } from './tactics';
 
 export interface ClubSpell { clubId: string; club: string; from: number; to?: number; w: number; d: number; l: number; trophies: number; left?: 'sacked' | 'resigned' | 'moved'; start: { w: number; d: number; l: number; trophies: number } }
 export interface CareerState {
@@ -212,6 +213,7 @@ export function moveTo(s: GameState, rng: Rng, clubId: string, left: ClubSpell['
   c.offers = []; // offers lapse once you take a job
   c.vacancies = c.vacancies.filter((id) => id !== clubId);
   userTakesOver(s, s.userClubId, clubId);
+  resetFamiliarity(s);
   s.userClubId = clubId;
   s.world.userCountry = club.country;
   // things that belonged to the old job

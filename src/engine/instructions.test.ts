@@ -42,8 +42,8 @@ describe('in matches', () => {
   };
   it('open, fast football makes for more goals; a high press tires the side', () => {
     const s = game();
-    const open = run(s, { mentality: 'attacking', press: 'medium', tempo: 'fast', width: 'normal', line: 'high' });
-    const shut = run(s, { mentality: 'defensive', press: 'low', tempo: 'slow', width: 'narrow', line: 'deep' });
+    const open = run(s, { ...DEFAULT_INSTRUCTIONS, mentality: 'attacking', press: 'medium', tempo: 'fast', width: 'normal', line: 'high', passing: 'direct' });
+    const shut = run(s, { ...DEFAULT_INSTRUCTIONS, mentality: 'defensive', press: 'low', tempo: 'slow', width: 'narrow', line: 'deep', block: 'low', onWin: 'hold' });
     expect(open.goals).toBeGreaterThan(shut.goals * 1.15);
     const press = run(s, { ...DEFAULT_INSTRUCTIONS, press: 'high' }, 30), calm = run(s, { ...DEFAULT_INSTRUCTIONS, press: 'low' }, 30);
     expect(press.cond).toBeLessThan(calm.cond - 3);

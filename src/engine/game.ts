@@ -1,9 +1,11 @@
 import { makeRumours, runMarket } from './market';
 import { planBoost } from './opposition';
 import { captainOf, takersOf } from './leadership';
-import { DEFAULT_INSTRUCTIONS, type Instructions } from './instructions';
+import { withDefaults, type Instructions } from './instructions';
 import { makePredictions, predictedPos, previewMessage } from './preview';
-import { managerBoost, managerOf, managers, managersAfterSeason, midSeasonSackings, weeklyAppointments } from './managers';
+import { bestRoles, fixRoles, type SlotRole } from './roles';
+import { ensureFamiliarity, familiarity, familiarityFactor, learnFromMatch, loadPreset, saveActive, switchTactic, weeklyFamiliarity } from './tactics';
+import { aiFormation, managerBoost, managerOf, managers, managersAfterSeason, midSeasonSackings, weeklyAppointments } from './managers';
 import { awardPremium, awardsMessage, seasonAwards } from './awards';
 import { formatDate } from './fixtures';
 import { available, fitFor, pickLineup, slotsOf, type Formation, type MatchMods } from './match';
@@ -66,6 +68,7 @@ export function newGame(opts: NewGameOpts): GameState {
   career(state);
   initStaff(state, rng);
   managers(state);
+  ensureFamiliarity(state);
   withSquadIndex(state, () => { makePredictions(state); const pv = previewMessage(state); if (pv) addMessage(state, { category: 'media', from: 'Season preview', ...pv }); });
   if (opts.style) state.managerStyle = opts.style;
   makeFriendlyOffers(state, rng);
@@ -178,9 +181,15 @@ export function userLineup(state: GameState): string[] {
   return ids;
 }
 
-function xiFor(state: GameState, clubId: string): Player[] {
+function xiFor(state: GameState, clubId: string, formation: Formation = '4-3-3'): Player[] {
   if (clubId === state.userClubId) return userLineup(state).map((id) => state.players[id]);
-  return pickLineup(squadOf(state, clubId)).map((id) => state.players[id]);
+  return pickLineup(squadOf(state, clubId), formation).map((id) => state.players[id]);
+}
+
+/** A side's shape for a match: yours from the Tactics screen, a computer-run club's from its manager. */
+export function sideShape(state: GameState, clubId: string) {
+  if (clubId === state.userClubId) return { formation: state.formation, roles: fixRoles(state.formation, state.roles) };
+  return { formation: aiFormation(state, clubId), roles: undefined as SlotRole[] | undefined };
 }
 
 function benchFor(state: GameState, clubId: string, xi: Player[]) {
@@ -229,17 +238,21 @@ function marketNews(state: GameState, window: 'Summer' | 'January', ids: string[
 function setupFor(state: GameState, f: Fixture) {
   const te = effects(state.training);
   const uh = f.homeId === state.userClubId, ua = f.awayId === state.userClubId;
-  const hx = xiFor(state, f.homeId), ax = xiFor(state, f.awayId);
+  const hs = sideShape(state, f.homeId), aw = sideShape(state, f.awayId);
+  const hx = xiFor(state, f.homeId, hs.formation), ax = xiFor(state, f.awayId, aw.formation);
+  const hr = hs.roles ?? bestRoles(hs.formation, hx), ar = aw.roles ?? bestRoles(aw.formation, ax);
   const H = state.clubs[f.homeId], A = state.clubs[f.awayId];
   const tilt = { ...styleTilt(state), talk: talkMultiplier(state) };
   const sharp = sharpness(state, state.calendar[f.matchday - 1]?.week ?? 0);
   const derby = derbyName(state, f.homeId, f.awayId);
   // following the assistant's suggested formation gives a small edge
   const plan = (uh || ua) && f.comp !== 'friendly' ? planBoost(state, f) : 1;
-  const mods: MatchMods = { derby, homeBoost: uh ? te.matchBoost * sharp * plan : managerBoost(state, f.homeId), awayBoost: ua ? te.matchBoost * sharp * plan : managerBoost(state, f.awayId), homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1, neutral: f.neutral, knockout: f.ko };
+  // how well the squad knows the tactic (computer-run sides play theirs every week)
+  const fam = uh || ua ? familiarityFactor(familiarity(state)) : 1, aiFam = familiarityFactor(90);
+  const mods: MatchMods = { derby, homeBoost: uh ? te.matchBoost * sharp * plan * fam : managerBoost(state, f.homeId) * aiFam, awayBoost: ua ? te.matchBoost * sharp * plan * fam : managerBoost(state, f.awayId) * aiFam, homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1, neutral: f.neutral, knockout: f.ko };
   return {
-    home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: (uh ? state.formation : '4-3-3') as Formation, name: H.name, user: uh, captain: captainOf(state, f.homeId)?.id, ...(uh ? { tilt, takers: takersOf(state), instr: state.instructions ?? DEFAULT_INSTRUCTIONS } : {}) },
-    away: { xi: ax, bench: benchFor(state, f.awayId, ax), formation: (ua ? state.formation : '4-3-3') as Formation, name: A.name, user: ua, captain: captainOf(state, f.awayId)?.id, ...(ua ? { tilt, takers: takersOf(state), instr: state.instructions ?? DEFAULT_INSTRUCTIONS } : {}) },
+    home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: hs.formation, roles: hr, name: H.name, user: uh, captain: captainOf(state, f.homeId)?.id, ...(uh ? { tilt, takers: takersOf(state), instr: withDefaults(state.instructions) } : {}) },
+    away: { xi: ax, bench: benchFor(state, f.awayId, ax), formation: aw.formation, roles: ar, name: A.name, user: ua, captain: captainOf(state, f.awayId)?.id, ...(ua ? { tilt, takers: takersOf(state), instr: withDefaults(state.instructions) } : {}) },
     venue: H.stadium, mods,
   };
 }
@@ -290,7 +303,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     let lm: LiveMatch;
     if (live && live.fixtureId === f.id) lm = structuredClone(live.lm);
     else { const st = setupFor(state, f); lm = createLive(rng.int(0, 2 ** 31 - 1), st.home, st.away, st.venue, st.mods); }
-    if (uh || ua) state.lineup = repairLineup(state);
+    if (uh || ua) { state.lineup = repairLineup(state); learnFromMatch(state); }
     runToEnd(lm);
     const { result, conditions } = toResult(lm, f.homeId, f.awayId);
     f.result = result;
@@ -346,6 +359,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     payInstallments(state);
     aiBids(state, state.rngState ^ (state.matchday * 104729));
     { const cc = state.career; if (cc?.contract && !cc.sacked) cc.earnings = (cc.earnings ?? 0) + cc.contract.wage; }
+    weeklyFamiliarity(state);
     managerNews(state, [], weeklyAppointments(state, createRng((state.rngState ^ (state.matchday * 0x9e37)) >>> 0)));
     const week = currentWeek(state);
     const win = windows(state);
@@ -800,11 +814,30 @@ export function leagueScale(state: GameState) {
 export function youthScale() { return { low: 35, high: 140 }; }
 
 export function setAutoRotate(state: GameState, on: boolean) { state.autoRotate = on; }
-export function setInstructions(state: GameState, change: Partial<Instructions>) { state.instructions = { ...(state.instructions ?? DEFAULT_INSTRUCTIONS), ...change }; }
+export function setInstructions(state: GameState, change: Partial<Instructions>) { saveActive(state, { instr: change }); }
 
 export function setTactics(state: GameState, formation: Formation, lineup: string[]) {
+  if (formation !== state.formation) saveActive(state, { formation });
   state.formation = formation;
   state.lineup = lineup;
+}
+/** Changes the role and duty in one slot of the active tactic. */
+export function setRole(state: GameState, index: number, role: SlotRole) {
+  const roles = fixRoles(state.formation, state.roles);
+  roles[index] = role;
+  saveActive(state, { roles });
+}
+/** Switches tactic (A/B/C) and picks the best eleven for its shape if the shape changed. */
+export function useTactic(state: GameState, index: number) {
+  const before = state.formation;
+  switchTactic(state, index);
+  if (state.formation !== before) state.lineup = bestLineup(state);
+}
+/** Replaces the active tactic with a style preset. */
+export function applyPreset(state: GameState, presetId: string) {
+  const before = state.formation;
+  loadPreset(state, presetId);
+  if (state.formation !== before) state.lineup = bestLineup(state);
 }
 
 export function bestLineup(state: GameState, formation: Formation = state.formation) {
@@ -822,6 +855,7 @@ export function migrate(state: GameState): GameState {
   career(state);
   if (!state.staff) initStaff(state, createRng(state.rngState ^ 0x5eed));
   managers(state);
+  ensureFamiliarity(state);
   if (!state.predictions) withSquadIndex(state, () => makePredictions(state));
   return state;
 }

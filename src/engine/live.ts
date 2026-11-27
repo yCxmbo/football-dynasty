@@ -1,3 +1,4 @@
+import { fixRoles, ROLE_BY_ID, roleFactor, roleStars, slotShape, type SlotRole } from './roles';
 import { aiInstructions, instructionEffects, type Instructions } from './instructions';
 /* Minute-by-minute match engine. Every match runs through it: the user's match is ticked live
    (so substitutions change the outcome), every other match is ticked straight to full time.
@@ -12,17 +13,28 @@ export interface Snap {
   id: string; name: string; number: number; pos: string; positions: Player['positions']; ability: number; morale: Player['morale'];
   attrs: Record<(typeof KEY_ATTRS)[number], number>; injuryProneness: number; condition: number;
   /** Character: big-match temperament, this match's form (consistency), a leader, a hothead. */ bigMatches?: number; form?: number; leader?: boolean; hothead?: boolean;
+  /** Suitability (0–5 stars) per role, worked out from his full attributes when first needed. */ rs?: Record<string, number>;
+  /** Full attributes (for role suitability). */ fa?: Record<string, number>;
 }
 export const snap = (p: Player): Snap => ({
   id: p.id, name: p.name, number: p.number, pos: p.pos, positions: p.positions, ability: p.ability, morale: p.morale,
   attrs: Object.fromEntries(KEY_ATTRS.map((k) => [k, p.attributes[k] ?? 10])) as Snap['attrs'], injuryProneness: p.hidden.injuryProneness, condition: p.condition ?? 100,
   bigMatches: p.hidden.bigMatches, leader: (p.attributes.Leadership ?? 0) >= 16 && p.age >= 23, hothead: (p.attributes.Aggression ?? 0) >= 15 && p.hidden.professionalism <= 9,
+  rs: {}, fa: p.attributes,
 });
+
+/** A player's suitability for a role, cached on his match snapshot. */
+export function starsFor(p: Snap, role: string) {
+  const rs = (p.rs ??= {});
+  let v = rs[role];
+  if (v === undefined) v = rs[role] = p.fa ? roleStars({ attributes: p.fa }, role) : 2.5;
+  return v;
+}
 
 interface Perf { base: number; goals: number; assists: number; saves: number; card?: 'yellow' | 'red'; onAt: number; offAt?: number; injured?: boolean }
 type SideKey = 'home' | 'away';
 export interface SetPieceTakers { pen?: string; fk?: string; corner?: string }
-export interface LiveSide { formation: Formation; xi: Array<string | null>; bench: string[]; subsUsed: number; boost: number; injury: number; user: boolean; name: string; /** Style tilt: attack and defence multipliers. */ atk?: number; def?: number; /** Team talks count this much more. */ talk?: number; /** The captain (else the best leader on the pitch) and chosen set-piece takers. */ captain?: string; takers?: SetPieceTakers; /** Team instructions (computer-run sides change theirs with the score). */ instr?: Instructions }
+export interface LiveSide { formation: Formation; xi: Array<string | null>; bench: string[]; subsUsed: number; boost: number; injury: number; user: boolean; name: string; /** Style tilt: attack and defence multipliers. */ atk?: number; def?: number; /** Team talks count this much more. */ talk?: number; /** The captain (else the best leader on the pitch) and chosen set-piece takers. */ captain?: string; takers?: SetPieceTakers; /** Team instructions (computer-run sides change theirs with the score). */ instr?: Instructions; /** Role and duty per slot. */ roles?: SlotRole[] }
 export interface LiveMatch {
   rng: number; minute: number; done: boolean; neutral: boolean; knockout: boolean; venue: string; derby?: string;
   home: LiveSide; away: LiveSide;
@@ -42,7 +54,7 @@ const surname = (n: string) => { const i = n.indexOf(' '); return i < 0 ? n : n.
 /** Tired players play worse: full strength above 85%, about −10% at 55%. */
 export const conditionFactor = (c: number) => (c >= 85 ? 1 : 0.7 + c * 0.0035);
 
-export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; formation: Formation; name: string; user?: boolean; tilt?: { atk: number; def: number; talk: number }; captain?: string; takers?: SetPieceTakers; instr?: Instructions }, away: typeof home, venue: string, mods: MatchMods = {}): LiveMatch {
+export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; formation: Formation; name: string; user?: boolean; tilt?: { atk: number; def: number; talk: number }; captain?: string; takers?: SetPieceTakers; instr?: Instructions; roles?: SlotRole[] }, away: typeof home, venue: string, mods: MatchMods = {}): LiveMatch {
   const rng = createRng(seed);
   const players: Record<string, Snap> = {}, perf: Record<string, Perf> = {};
   const sideOf: Record<string, SideKey> = {};
@@ -51,7 +63,7 @@ export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; 
   for (const p of [...home.xi, ...home.bench]) { players[p.id] = withForm(p); sideOf[p.id] = 'home'; }
   for (const p of [...away.xi, ...away.bench]) { players[p.id] = withForm(p); sideOf[p.id] = 'away'; }
   for (const p of [...home.xi, ...away.xi]) perf[p.id] = { base: 6.3 + rng.normal(0, 0.3), goals: 0, assists: 0, saves: 0, onAt: 0 };
-  const side = (s: typeof home, boost = 1, injury = 1): LiveSide => ({ formation: s.formation, xi: s.xi.map((p) => p.id), bench: s.bench.map((p) => p.id), subsUsed: 0, boost, injury, user: !!s.user, name: s.name, ...(s.tilt ? { atk: s.tilt.atk, def: s.tilt.def, talk: s.tilt.talk } : {}), ...(s.captain ? { captain: s.captain } : {}), ...(s.takers ? { takers: s.takers } : {}), ...(s.instr ? { instr: { ...s.instr } } : {}) });
+  const side = (s: typeof home, boost = 1, injury = 1): LiveSide => ({ formation: s.formation, xi: s.xi.map((p) => p.id), bench: s.bench.map((p) => p.id), subsUsed: 0, boost, injury, user: !!s.user, name: s.name, ...(s.tilt ? { atk: s.tilt.atk, def: s.tilt.def, talk: s.tilt.talk } : {}), ...(s.captain ? { captain: s.captain } : {}), ...(s.takers ? { takers: s.takers } : {}), ...(s.instr ? { instr: { ...s.instr } } : {}), roles: fixRoles(s.formation, s.roles) });
   return {
     rng: rng.state(), minute: 0, done: false, neutral: !!mods.neutral, knockout: !!mods.knockout, venue, ...(mods.derby ? { derby: mods.derby } : {}),
     home: side(home, mods.homeBoost, mods.homeInjury), away: side(away, mods.awayBoost, mods.awayInjury),
@@ -70,13 +82,14 @@ function roleIdx(f: Formation, r: string) {
 }
 
 /** Team strength changes slowly (fatigue) or on a change of personnel: recompute every three minutes or when the XI changes. */
-const strengthCache = new WeakMap<LiveSide, { at: number; sig: string; val: ReturnType<typeof computeStrength> }>();
+const strengthCache = new WeakMap<LiveSide, { at: number; xi: Array<string | null>; boost: number; roles?: SlotRole[]; formation: Formation; val: ReturnType<typeof computeStrength> }>();
+const sameXi = (a: Array<string | null>, b: Array<string | null>) => a.length === b.length && a.every((x, i) => x === b[i]);
 function strength(lm: LiveMatch, s: LiveSide) {
-  const sig = s.xi.join(',') + s.boost;
   const c = strengthCache.get(s);
-  if (c && c.sig === sig && lm.minute - c.at < 3) return c.val;
+  // roles and formation are replaced (never edited in place) when they change
+  if (c && lm.minute - c.at < 3 && c.boost === s.boost && c.roles === s.roles && c.formation === s.formation && sameXi(c.xi, s.xi)) return c.val;
   const val = computeStrength(lm, s);
-  strengthCache.set(s, { at: lm.minute, sig, val });
+  strengthCache.set(s, { at: lm.minute, xi: [...s.xi], boost: s.boost, roles: s.roles, formation: s.formation, val });
   return val;
 }
 
@@ -89,17 +102,55 @@ function computeStrength(lm: LiveMatch, s: LiveSide) {
     return p.ability * fitFor(p as unknown as Player, slots[i]) * (p.morale === 'high' ? 1.03 : p.morale === 'low' ? 0.96 : 1) * conditionFactor(p.condition) * (p.form ?? 1) * big;
   };
   const idx = (r: string) => roleIdx(s.formation, r);
-  const avg = (ix: number[]) => ix.reduce((a, i) => a + eff(s.xi[i], i), 0) / ix.length;
+  // each outfield slot adds to defence, midfield and attack by its role and duty, weighted by how well he suits it
+  const roles = s.roles ?? fixRoles(s.formation);
+  const tot = [0, 0, 0], wsum = [0, 0, 0], bonus = [1, 1, 1];
+  for (let i = 1; i < slots.length; i++) {
+    const sr = roles[i], shape = slotShape(sr), id = s.xi[i];
+    const stars = id ? starsFor(lm.players[id], sr.role) : 0;
+    const e = eff(id, i) * (id ? roleFactor(stars) : 1);
+    for (let u = 0; u < 3; u++) { tot[u] += shape.w[u] * e; wsum[u] += shape.w[u]; }
+    const b = ROLE_BY_ID[sr.role]?.bonus;
+    if (b && id) { const q = Math.min(1, stars / 3.5); bonus[0] *= 1 + (b.def ?? 0) * q; bonus[1] *= 1 + (b.mid ?? 0) * q; bonus[2] *= 1 + (b.att ?? 0) * q; }
+  }
+  const unit = (u: number) => (wsum[u] > 0 ? (tot[u] / wsum[u]) * bonus[u] : 60);
+  const gkStars = s.xi[0] ? starsFor(lm.players[s.xi[0]], roles[0].role) : 2.5;
   // a leader on the pitch lifts everyone a little; so does a good captain, more so when chasing the game
   const cap = captainOnPitch(lm, s);
   const L = cap ? cap.attrs.Leadership : 10;
   const si = s === lm.home ? 0 : 1;
   const behind = lm.minute >= 45 && lm.score[si] < lm.score[1 - si];
   const k = s.boost * (s.xi.some((id) => id && lm.players[id].leader) ? 1.015 : 1) * (1 + (L - 10) * 0.0015) * (behind ? 1 + (L - 10) * 0.002 : 1);
-  return { gk: eff(s.xi[0], 0) * k, defence: avg(idx('def')) * k, mid: avg(idx('mid')) * k, attack: avg(idx('att')) * k, defIdx: [0, ...idx('def')] };
+  return { gk: eff(s.xi[0], 0) * roleFactor(gkStars) * k, defence: unit(0) * k, mid: unit(1) * k, attack: unit(2) * k, defIdx: [0, ...idx('def')], sp: roleSpecials(s) };
 }
 
 const onPitch = (s: LiveSide) => s.xi.filter((x): x is string => !!x);
+
+/** Instruction effects for both sides, recomputed only when either side's instructions change. */
+const effCache = new WeakMap<LiveMatch, { h?: Instructions; a?: Instructions; eH: ReturnType<typeof instructionEffects>; eA: ReturnType<typeof instructionEffects> }>();
+function effectsFor(lm: LiveMatch) {
+  const c = effCache.get(lm);
+  if (c && c.h === lm.home.instr && c.a === lm.away.instr) return c;
+  const eH = instructionEffects(lm.home.instr, lm.away.instr), eA = instructionEffects(lm.away.instr, lm.home.instr);
+  const v = { h: lm.home.instr, a: lm.away.instr, eH, eA };
+  effCache.set(lm, v);
+  return v;
+}
+
+/** The role a player has in his current slot. */
+const roleAt = (s: LiveSide, id: string) => s.roles?.[s.xi.indexOf(id)]?.role;
+/** How often a player gets into scoring positions: from his slot's role and duty. */
+function scorerWeight(s: LiveSide, p: Snap) {
+  const i = s.xi.indexOf(p.id);
+  const sr = s.roles?.[i];
+  return sr ? slotShape(sr).scorer : SCORER_WEIGHT[POS_GROUP[p.pos]] ?? 1;
+}
+/** Specials from roles: a sweeper keeper covers a high line, a pressing forward unsettles their midfield,
+    a target forward feeds on wide play. */
+export function roleSpecials(s: LiveSide) {
+  const has = (sp: string) => (s.roles ?? []).some((r, i) => s.xi[i] && ROLE_BY_ID[r.role]?.special === sp);
+  return { sweeper: has('sweeper'), target: has('target'), presser: (s.roles ?? []).filter((r, i) => s.xi[i] && ROLE_BY_ID[r.role]?.special === 'presser').length };
+}
 
 /** The captain if he's on the pitch, else whoever leads best among those playing. */
 export function captainOnPitch(lm: LiveMatch, s: LiveSide): Snap | undefined {
@@ -164,13 +215,18 @@ export function tick(lm: LiveMatch) {
     }
     s.instr = next;
   }
-  const eH = instructionEffects(lm.home.instr, lm.away.instr), eA = instructionEffects(lm.away.instr, lm.home.instr);
-  const midH = H.mid * eH.mid * eA.oppMid, midA = A.mid * eA.mid * eH.oppMid;
+  const { eH, eA } = effectsFor(lm);
+  const spH = H.sp, spA = A.sp;
+  // role specials: a sweeper keeper covers a high line; a target forward feeds on wide play
+  const defH = eH.def * (spH.sweeper && lm.home.instr?.line === 'high' ? 1.03 : 1), defA = eA.def * (spA.sweeper && lm.away.instr?.line === 'high' ? 1.03 : 1);
+  const atkH = eH.atk * (spH.target && (lm.home.instr?.width === 'wide' || lm.home.instr?.approach === 'flanks') ? 1.015 : 1);
+  const atkA = eA.atk * (spA.target && (lm.away.instr?.width === 'wide' || lm.away.instr?.approach === 'flanks') ? 1.015 : 1);
+  const midH = H.mid * eH.mid * eA.oppMid * Math.pow(0.99, spA.presser), midA = A.mid * eA.mid * eH.oppMid * Math.pow(0.99, spH.presser);
   const reds = (s: LiveSide) => s.xi.filter((x) => !x).length;
   const redH = Math.pow(0.82, reds(lm.home)), redA = Math.pow(0.82, reds(lm.away));
   const tH = lm.home, tA = lm.away;
-  const attH = (((H.attack * 0.6 + midH * 0.4) * (tH.atk ?? 1) * eH.atk) / ((A.defence * 0.7 + A.gk * 0.3) * (tA.def ?? 1) * eA.def || 1)) * redH / redA;
-  const attA = (((A.attack * 0.6 + midA * 0.4) * (tA.atk ?? 1) * eA.atk) / ((H.defence * 0.7 + H.gk * 0.3) * (tH.def ?? 1) * eH.def || 1)) * redA / redH;
+  const attH = (((H.attack * 0.6 + midH * 0.4) * (tH.atk ?? 1) * atkH) / ((A.defence * 0.7 + A.gk * 0.3) * (tA.def ?? 1) * defA || 1)) * redH / redA;
+  const attA = (((A.attack * 0.6 + midA * 0.4) * (tA.atk ?? 1) * atkA) / ((H.defence * 0.7 + H.gk * 0.3) * (tH.def ?? 1) * defH || 1)) * redA / redH;
   const chaos = eH.chaos * eA.chaos;
   // open play (set pieces are added separately below)
   const xg90 = [clamp(1.085 * Math.pow(attH, 2.6) * (lm.neutral ? 1 : 1.12) * chaos, 0.12, 4), clamp(1.085 * Math.pow(attA, 2.6) * chaos, 0.12, 4)] as const;
@@ -189,7 +245,7 @@ export function tick(lm: LiveMatch) {
     const pl = ids.map((id) => lm.players[id]);
     // goal
     if (rng.chance(xg)) {
-      const sc = rng.weighted(pl, (p) => (SCORER_WEIGHT[POS_GROUP[p.pos]] ?? 1) * (p.attrs.Finishing / 10));
+      const sc = rng.weighted(pl, (p) => scorerWeight(s, p) * (p.attrs.Finishing / 10));
       const as = rng.weighted(pl.filter((p) => p !== sc), (p) => ((POS_GROUP[p.pos] === 'GK' ? 0.1 : 1) * p.attrs.Passing) / 10);
       lm.perf[sc.id].goals++; if (as) lm.perf[as.id].assists++;
       lm.score[si]++;
@@ -199,7 +255,7 @@ export function tick(lm: LiveMatch) {
       push(lm, { minute: m, type: 'goal', side: key, playerId: sc.id, player: surname(sc.name), score: [...lm.score] as [number, number], text: rng.pick(lines) });
     } else if (rng.chance((xg90[si] * 6.5) / 90)) {
       lm.stats.shots[si]++;
-      const shooter = rng.weighted(pl, (p) => (SCORER_WEIGHT[POS_GROUP[p.pos]] ?? 1) + 0.2);
+      const shooter = rng.weighted(pl, (p) => scorerWeight(s, p) + 0.2);
       if (rng.chance(0.38)) {
         lm.stats.onTarget[si]++;
         const gk = other.xi[0] ? lm.players[other.xi[0]!] : undefined;
@@ -243,7 +299,7 @@ export function tick(lm: LiveMatch) {
         const p = cornerChance(tk);
         lm.stats.xg[si] += p;
         if (rng.chance(p)) {
-          const header = rng.weighted(pl.filter((x) => x !== tk && POS_GROUP[x.pos] !== 'GK'), (x) => x.attrs.Heading * (POS_GROUP[x.pos] === 'CB' || POS_GROUP[x.pos] === 'ST' ? 2 : 1));
+          const header = rng.weighted(pl.filter((x) => x !== tk && POS_GROUP[x.pos] !== 'GK'), (x) => x.attrs.Heading * (POS_GROUP[x.pos] === 'CB' || POS_GROUP[x.pos] === 'ST' ? 2 : 1) * (roleAt(s, x.id) === 'tf' ? 2 : 1));
           if (header) scoreSetPiece(header, tk, 'goal', `${tk.name} whips in the corner and ${header.name} heads it home!`);
         }
       }
@@ -329,6 +385,28 @@ export function ratingOf(lm: LiveMatch, id: string, key: SideKey) {
 
 /** Finishes the simulation if needed (no more user input) and converts to a stored result. */
 export function runToEnd(lm: LiveMatch) { while (!lm.done) tick(lm); }
+
+/** Switches a side to another tactic mid-match: the players on the pitch move into the new shape (best fit
+    first; a side down to ten leaves an attacking slot empty), with its roles and instructions. */
+export function changeTactic(lm: LiveMatch, key: SideKey, tc: { formation: Formation; roles?: SlotRole[]; instr?: Instructions; name?: string }) {
+  const s = lm[key];
+  const onField = onPitch(s);
+  const slots = slotsOf(tc.formation);
+  const order = slots.map((_, i) => i).sort((a, b) => ['gk', 'def', 'mid', 'att'].indexOf(ROLE[slots[a]]) - ['gk', 'def', 'mid', 'att'].indexOf(ROLE[slots[b]]));
+  const xi: Array<string | null> = new Array(slots.length).fill(null);
+  const pool = [...onField];
+  for (const i of order) {
+    if (!pool.length) break;
+    let best = 0, bs = -1;
+    pool.forEach((id, j) => { const p = lm.players[id]; const v = p.ability * fitFor(p as unknown as Player, slots[i]); if (v > bs) { bs = v; best = j; } });
+    xi[i] = pool.splice(best, 1)[0];
+  }
+  s.formation = tc.formation;
+  s.xi = xi;
+  s.roles = fixRoles(tc.formation, tc.roles);
+  if (tc.instr) s.instr = { ...tc.instr };
+  push(lm, { minute: lm.minute, type: 'chance', side: key, text: `${s.name} change it up${tc.name ? ` (${tc.name})` : ''}: now ${tc.formation}.` });
+}
 
 export function toResult(lm: LiveMatch, homeId: string, awayId: string): { result: MatchResult; conditions: Record<string, number> } {
   const side = (key: SideKey): PlayerRating[] => Object.entries(lm.perf)

@@ -7,6 +7,7 @@ import { nameFor } from './namepools';
 import { clamp } from './ratings';
 import { createRng, type Rng } from './rng';
 import { seasonLabel, type GameState } from './types';
+import type { Formation } from './match';
 
 export interface ManagerSpell { clubId: string; club: string; from: number; to?: number; left?: 'sacked' | 'moved' | 'retired' }
 export interface AIManager {
@@ -186,3 +187,13 @@ export function managersAfterSeason(s: GameState, rng: Rng, sackings: string[], 
 
 /** The best managers in the world now, by reputation. */
 export const topManagers = (s: GameState, n = 25) => Object.values(managers(s).all).sort((a, b) => b.rep - a.rep).slice(0, n);
+
+/** The shapes computer-run managers favour (the most common more often). */
+const AI_FORMATIONS: Formation[] = ['4-3-3', '4-3-3', '4-3-3', '4-2-3-1', '4-2-3-1', '4-2-3-1', '4-4-2', '4-4-2', '4-3-3 DM', '4-1-4-1', '3-4-2-1', '3-5-2', '5-3-2', '4-4-2 diamond', '3-4-3', '4-4-1-1', '5-4-1'];
+/** A club's formation under its manager: each manager has his favourite. */
+export function aiFormation(s: GameState, clubId: string): Formation {
+  const id = s.managers?.byClub[clubId] ?? clubId;
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return AI_FORMATIONS[h % AI_FORMATIONS.length];
+}

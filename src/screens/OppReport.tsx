@@ -28,7 +28,7 @@ export default function OppReport({ g, f, go, compact }: { g: GameState; f: Fixt
       {!compact ? (
         <>
           {r.danger.length ? <p className="hm-note" style={{ margin: '8px 0 0' }}>Danger men: {r.danger.map((d, i) => <span key={d.id}>{i ? ', ' : ''}<button type="button" className="pg-link club-name" onClick={() => go('player', d.id)}><strong>{d.name}</strong></button> ({d.why})</span>)}</p> : null}
-          <p className="hm-note" style={{ margin: '8px 0 0' }}>Likely eleven (4-3-3): {r.xi.map((x) => `${x.name} (${x.slot})`).join(', ')}.</p>
+          <p className="hm-note" style={{ margin: '8px 0 0' }}>Likely eleven ({r.formation}): {r.xi.map((x) => `${x.name} (${x.slot})`).join(', ')}.</p>
           {r.meetings.length ? <p className="hm-note" style={{ margin: '8px 0 0' }}>This season: {r.meetings.join(' · ')}</p> : null}
         </>
       ) : null}

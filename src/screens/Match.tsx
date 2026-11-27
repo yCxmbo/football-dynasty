@@ -3,7 +3,8 @@ import { DEFAULT_INSTRUCTIONS } from '../engine/instructions';
 import { useEffect, useMemo, useState } from 'react';
 import { FD } from '../ds';
 import { compInfo } from '../engine/competitions';
-import { MAX_SUBS, ratingOf, substitute, tick, type LiveMatch, TALKS, talkDue, teamTalk } from '../engine/live';
+import { changeTactic, MAX_SUBS, ratingOf, substitute, tick, type LiveMatch, TALKS, talkDue, teamTalk } from '../engine/live';
+import { tacticsOf } from '../engine/tactics';
 import { slotsOf } from '../engine/match';
 import type { GameState, MatchStats } from '../engine/types';
 import type { Screen } from './shared';
@@ -20,6 +21,7 @@ export default function Match({ g, id, live, setLive, go, onFinish }: {
   const isLive = !!live && !!f && live.fixtureId === f.id;
   const [speed, setSpeed] = useState<string>('2');
   const [subOpen, setSubOpen] = useState(false);
+  const [allInstr, setAllInstr] = useState(false);
   const lm = live?.lm;
   const userKey = f && f.homeId === g.userClubId ? 'home' : 'away';
   const talk = isLive && lm ? talkDue(lm, userKey) : null;
@@ -80,7 +82,23 @@ export default function Match({ g, id, live, setLive, go, onFinish }: {
     <>
       {isLive && lm && side && !lm.done ? (
         <section className="pg-card instr-bar" aria-label="Instructions during the match">
-          <InstructionsPanel compact value={side.instr} onChange={(c) => setLive((prev) => {
+          <div className="match-tac">
+            <span className="pg-h" style={{ margin: 0 }}>Tactic</span>
+            <div className="fd-seg" role="radiogroup" aria-label="Switch tactic">
+              {tacticsOf(structuredClone({ tactics: g.tactics, formation: g.formation, roles: g.roles, instructions: g.instructions }) as GameState).slots.map((tc, i) => (
+                <button key={i} type="button" role="radio" aria-checked={side.formation === tc.formation && JSON.stringify(side.roles) === JSON.stringify(tc.roles)} className={'fd-seg__opt' + (side.formation === tc.formation && JSON.stringify(side.roles) === JSON.stringify(tc.roles) ? ' is-on' : '')}
+                  title={`${tc.name}: ${tc.formation}`} onClick={() => setLive((prev) => {
+                    if (!prev) return prev;
+                    const next = structuredClone(prev.lm);
+                    changeTactic(next, view.key as 'home' | 'away', { formation: tc.formation, roles: tc.roles, instr: tc.instr, name: tc.name });
+                    return { ...prev, lm: next };
+                  })}>{tc.name} · {tc.formation}</button>
+              ))}
+            </div>
+            <span className="hm-note" style={{ margin: 0 }}>Now: {side.formation}</span>
+            <button type="button" className="pg-link" onClick={() => setAllInstr((v) => !v)}>{allInstr ? 'Fewer instructions' : 'More instructions'}</button>
+          </div>
+          <InstructionsPanel compact keys={allInstr ? undefined : ['mentality', 'passing', 'tempo', 'press', 'line']} value={side.instr} onChange={(c) => setLive((prev) => {
             if (!prev) return prev;
             const next = structuredClone(prev.lm);
             const s = next[view.key as 'home' | 'away'];

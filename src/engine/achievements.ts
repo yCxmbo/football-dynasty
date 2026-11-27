@@ -66,9 +66,11 @@ export function afterMatch(s: GameState, f: Fixture) {
 export function afterSeason(s: GameState, outcome: { promoted: boolean; champion: boolean }) {
   const us = s.clubs[s.userClubId];
   const won = Object.values(s.comps).filter((c) => c.kind !== 'league' && c.kind !== 'playoff' && c.kind !== 'super' && s.cups[c.id]?.winner === us.id);
+  // a super cup is silverware too
+  const superCup = Object.values(s.comps).some((c) => c.kind === 'super' && s.cups[c.id]?.winner === us.id);
   const mainCup = won.some((c) => c.kind === 'cup' && c.main);
   const continental = won.some((c) => c.kind === 'continental');
-  if (outcome.champion || won.length) unlock(s, 'first-trophy');
+  if (outcome.champion || won.length || superCup) unlock(s, 'first-trophy');
   if (outcome.champion) unlock(s, 'league-title');
   if (outcome.champion && mainCup) unlock(s, 'double');
   if (continental) unlock(s, 'continental');

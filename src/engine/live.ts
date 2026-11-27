@@ -3,7 +3,7 @@ import { aiInstructions, instructionEffects, type Instructions } from './instruc
 /* Minute-by-minute match engine. Every match runs through it: the user's match is ticked live
    (so substitutions change the outcome), every other match is ticked straight to full time.
    A LiveMatch is plain data so it can sit in React state and be cloned cheaply. */
-import { fitFor, ROLE, slotsOf, type Formation, type MatchMods } from './match';
+import { fitFor, improveLineup, ROLE, slotsOf, type Formation, type MatchMods } from './match';
 import { POS_GROUP, clamp } from './ratings';
 import { createRng, type Rng } from './rng';
 import type { MatchEvent, MatchResult, Player, PlayerRating } from './types';
@@ -409,7 +409,9 @@ export function changeTactic(lm: LiveMatch, key: SideKey, tc: { formation: Forma
     xi[i] = pool.splice(best, 1)[0];
   }
   s.formation = tc.formation;
-  s.xi = xi;
+  // then fix any greedy misplacements (the empty slot of a sent-off player stays empty)
+  const improved = improveLineup(xi.map((x) => x ?? ''), slots, onField.map((id) => lm.players[id] as unknown as Player));
+  s.xi = improved.map((x) => x || null);
   s.roles = fixRoles(tc.formation, tc.roles);
   if (tc.instr) s.instr = { ...tc.instr };
   push(lm, { minute: lm.minute, type: 'chance', side: key, text: `${s.name} change it up${tc.name ? ` (${tc.name})` : ''}: now ${tc.formation}.` });

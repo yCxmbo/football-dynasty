@@ -30,12 +30,14 @@ describe('training', () => {
   });
   it('individual focus improves that attribute', () => {
     const s = game();
-    const p = squadOf(s, 'ash').filter((x) => x.age <= 21 && x.potential - x.ability > 20)[0];
+    // several young prospects, so one player's quiet season doesn't decide it
     const attr = 'Pace';
-    s.training.focus[p.id] = attr;
-    const before = p.attributes[attr];
+    const kids = squadOf(s, 'ash').filter((x) => x.age <= 21 && x.potential - x.ability > 20 && (x.attributes[attr] ?? 20) < 17).slice(0, 5);
+    expect(kids.length).toBeGreaterThan(1);
+    for (const p of kids) s.training.focus[p.id] = attr;
+    const before = kids.reduce((a, p) => a + p.attributes[attr], 0);
     season(s);
-    expect(s.players[p.id].attributes[attr]).toBeGreaterThan(before);
+    expect(kids.reduce((a, p) => a + s.players[p.id].attributes[attr], 0)).toBeGreaterThan(before);
   });
 });
 

@@ -240,3 +240,7 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .heat { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; border: 1px solid var(--line); white-space: nowrap; }
 .heat--2 { border-color: var(--warn, #e0a030); }
 .heat--3 { border-color: var(--gold); color: var(--gold-ink); }
+.interview { margin: var(--space-2) 0; border-color: var(--gold); }
+.interview__q { border: 0; padding: 0; margin: 0 0 10px; display: flex; flex-direction: column; gap: 4px; }
+.interview__q legend { font-weight: 700; margin-bottom: 4px; }
+.interview__opt { display: flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer; }

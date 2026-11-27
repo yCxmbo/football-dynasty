@@ -22,6 +22,87 @@ export interface CareerState {
   vacancies: string[];
   /** Out of work: pick a new club before playing on. */
   sacked?: boolean;
+  /** Your contract: weekly wage (EUR) and the last season it covers (by start year). */
+  contract?: { wage: number; until: number };
+  /** Everything you have earned as a manager: wages and compensation. */
+  earnings?: number;
+  /** The season you last asked the board for a new contract. */
+  asked?: number;
+  /** What you promised at your interview: the board holds you to it for your first season. */
+  promise?: { clubId: string; season: number; pos: number; text: string };
+}
+
+/** A manager's weekly wage at a club: steeply up with the club's size, a little up with your reputation. */
+export function managerWage(s: GameState, clubId: string) {
+  const rep = s.clubs[clubId]?.reputation ?? 50;
+  const w = Math.pow(rep, 3) * 0.4 * (0.85 + managerReputation(s) / 300);
+  return Math.max(2000, Math.round(w / 1000) * 1000);
+}
+
+/** Wage and length for a new job: offers (they came to you) give three seasons, appointments after an interview two. */
+export const jobContract = (s: GameState, clubId: string, years: number) => ({ wage: managerWage(s, clubId), until: s.year + years - 1 });
+
+/** Seasons left on your contract, counting this one. */
+export const yearsLeft = (s: GameState) => Math.max(0, (career(s).contract?.until ?? s.year) - s.year + 1);
+
+/** Paid off when sacked: half the wages still owed (at least half a season). */
+export function compensation(s: GameState) {
+  const c = career(s);
+  if (!c.contract) return 0;
+  const owed = c.contract.wage * 52 * Math.max(0.5, yearsLeft(s) - 0.5);
+  return Math.round(owed * 0.5 / 1000) * 1000;
+}
+
+/** Ask the board for a new contract: with their trust high and two seasons or fewer left, they extend it by three
+    seasons and raise your wage. Once a season. Returns the board's answer. */
+export function requestNewContract(s: GameState, confidence: number): { ok: boolean; text: string } {
+  const c = career(s);
+  if (c.sacked || !c.contract) return { ok: false, text: 'You have no contract to renew.' };
+  if (c.asked === s.year) return { ok: false, text: 'You have already asked this season.' };
+  c.asked = s.year;
+  if (yearsLeft(s) > 2) return { ok: false, text: 'The board points out that your contract still has years to run.' };
+  if (confidence < 70) return { ok: false, text: 'The board wants to see more before committing to you. Ask again once results improve.' };
+  const old = c.contract.wage;
+  c.contract = { wage: Math.max(Math.round(old * 1.15 / 1000) * 1000, managerWage(s, s.userClubId)), until: s.year + 3 };
+  return { ok: true, text: `The board agrees: a new deal until ${s.year + 3}/${String((s.year + 4) % 100).padStart(2, '0')}, with your wage up from ${Math.round(old / 1000)}k to ${Math.round(c.contract.wage / 1000)}k a week.` };
+}
+
+/* ---------- job interviews ---------- */
+export interface InterviewQuestion { q: string; options: Array<{ label: string; score: number; promise?: number }> }
+type Size = 'giant' | 'established' | 'small';
+const sizeOf = (s: GameState, clubId: string): Size => { const r = s.clubs[clubId]?.reputation ?? 50; return r >= 80 ? 'giant' : r >= 60 ? 'established' : 'small'; };
+
+/** Three questions; what the board wants to hear depends on the club's size. `target` is the board's usual target position. */
+export function interviewQuestions(s: GameState, clubId: string, target: number): InterviewQuestion[] {
+  const size = sizeOf(s, clubId);
+  const n = s.clubs[clubId]?.league ? clubsInLeague(s, s.clubs[clubId].league!).length : 20;
+  const higher = Math.max(1, target - 3), lower = Math.min(n, target + 3);
+  return [
+    { q: 'What can the club achieve in your first season?', options: [
+      { label: higher <= 1 ? 'Win the league' : `Finish ${ordinalWord(higher)} or higher`, score: size === 'small' ? 0.5 : 1, promise: higher },
+      { label: `Finish ${ordinalWord(target)} or higher, as the board expects`, score: 0.5, promise: target },
+      { label: `A season of rebuilding: ${ordinalWord(lower)} would be fine`, score: size === 'giant' ? -2 : size === 'established' ? -1 : -0.5 },
+    ] },
+    { q: 'How will your team play?', options: [
+      { label: 'Attacking, front-foot football', score: size === 'giant' ? 1 : size === 'established' ? 0.5 : -0.5 },
+      { label: 'Balanced and pragmatic', score: size === 'established' ? 1 : 0.5 },
+      { label: 'Hard to beat, organised first', score: size === 'small' ? 1 : size === 'giant' ? -1 : 0 },
+      { label: 'Built around young players', score: size === 'small' ? 0.5 : size === 'established' ? 0.5 : -0.5 },
+    ] },
+    { q: 'What do you need in the transfer market?', options: [
+      { label: 'Big signings to compete at once', score: size === 'giant' ? 0.5 : size === 'established' ? -0.5 : -1 },
+      { label: 'I can work within the budget', score: size === 'small' ? 1 : 0.5 },
+      { label: 'Give the academy a chance', score: size === 'giant' ? -0.5 : 0.5 },
+    ] },
+  ];
+}
+const ordinalWord = (n: number) => { const x = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (x[(v - 20) % 10] || x[v] || x[0]); };
+
+/** Your chance after the interview: the usual chance moved by how well your answers fit (about ±8% per point). */
+export function interviewChance(s: GameState, clubId: string, target: number, answers: number[]) {
+  const qs = interviewQuestions(s, clubId, target);
+  const score = answers.reduce((a, pick, i) => a + (qs[i]?.options[pick]?.score ?? 0), 0);
+  return clamp(applyChance(s, clubId) + score * 0.08, 0.03, 0.97);
 }
 
 export function career(s: GameState): CareerState {
@@ -29,6 +110,7 @@ export function career(s: GameState): CareerState {
     const club = s.clubs[s.userClubId];
     s.career = { trust: 65, offers: [], vacancies: [], spells: [{ clubId: club.id, club: club.name, from: s.manager.since, w: 0, d: 0, l: 0, trophies: 0, start: { w: 0, d: 0, l: 0, trophies: 0 } }] };
   }
+  if (!s.career.contract && s.clubs[s.userClubId]) { s.career.contract = jobContract(s, s.userClubId, 3); s.career.earnings ??= 0; }
   return s.career;
 }
 
@@ -106,16 +188,18 @@ export const applyChance = (s: GameState, clubId: string) => {
 };
 
 /** Applies for a vacancy; the club answers at once. Returns true if appointed. */
-export function applyFor(s: GameState, rng: Rng, clubId: string) {
+export function applyFor(s: GameState, rng: Rng, clubId: string, chance = applyChance(s, clubId)) {
   const c = career(s);
   if (!c.vacancies.includes(clubId)) return false;
   c.vacancies = c.vacancies.filter((x) => x !== clubId);
-  return rng.next() < applyChance(s, clubId);
+  return rng.next() < chance;
 }
 
 /** Leaves your club (sacked, resigned or moved) and takes over another. */
-export function moveTo(s: GameState, rng: Rng, clubId: string, left: ClubSpell['left']) {
+export function moveTo(s: GameState, rng: Rng, clubId: string, left: ClubSpell['left'], years = 3) {
   const c = career(s);
+  c.contract = jobContract(s, clubId, years);
+  c.promise = undefined;
   const now = { w: s.manager.w, d: s.manager.d, l: s.manager.l, trophies: s.manager.trophies.length };
   const cur = c.spells[c.spells.length - 1];
   if (cur && cur.to === undefined) {
@@ -184,7 +268,22 @@ export function applyForJob(s: GameState, clubId: string) {
   const rng = actionRng(s);
   s.nextId++;
   if (!applyFor(s, rng, clubId)) return false;
-  moveTo(s, rng, clubId, wasSacked ? 'sacked' : 'moved');
+  moveTo(s, rng, clubId, wasSacked ? 'sacked' : 'moved', 2);
+  return true;
+}
+
+/** An interview for a vacancy: the club decides at once. Appointed, you move on a two-season contract and
+    the board holds you to any promise about the league position. `target` is the board's usual target. */
+export function interviewForJob(s: GameState, clubId: string, target: number, answers: number[]) {
+  const c = career(s);
+  const wasSacked = !!c.sacked;
+  const rng = actionRng(s);
+  s.nextId++;
+  const chance = interviewChance(s, clubId, target, answers);
+  if (!applyFor(s, rng, clubId, chance)) return false;
+  moveTo(s, rng, clubId, wasSacked ? 'sacked' : 'moved', 2);
+  const promised = interviewQuestions(s, clubId, target)[0].options[answers[0]]?.promise;
+  if (promised !== undefined && promised < target) c.promise = { clubId, season: s.year, pos: promised, text: promised <= 1 ? 'win the league, as you promised' : `finish ${ordinalWord(promised)} or higher, as you promised` };
   return true;
 }
 

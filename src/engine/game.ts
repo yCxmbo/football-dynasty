@@ -17,7 +17,7 @@ import { afterMatch, afterSeason, afterTournament } from './achievements';
 import { finishBuilding, trainingFacilityBoost, youthFacilityBonus } from './facilities';
 import { pressAfterMatch, weeklyMood } from './media';
 import { developmentBoost, initStaff, injuryLengthFactor, moraleRecoveryChance, recoveryBonus, refreshPool, youthPotentialBonus } from './staff';
-import { career, makeOffers, midSeasonVerdict, seasonVerdict, vacanciesAfterSeason } from './career';
+import { career, compensation, makeOffers, managerWage, midSeasonVerdict, seasonVerdict, vacanciesAfterSeason } from './career';
 import { NATION, nationCode, nationName } from './nations';
 import { reserveNames } from './namepools';
 import { createRng } from './rng';
@@ -83,7 +83,16 @@ export const leagueName = (state: GameState, id?: string) => leagueDef(state, id
 export { squadOf };
 export function firstTeam(state: GameState, clubId: string) { return squadOf(state, clubId).filter((p) => p.squad === 'First team'); }
 
-export function boardTarget(state: GameState, clubId: string) {
+/** The board's target for a club this season; for you, any promise from your interview if it's tougher. */
+export function boardTarget(state: GameState, clubId: string): { pos: number; text: string } {
+  const base = baseTarget(state, clubId);
+  const pr = state.career?.promise;
+  if (clubId === state.userClubId && pr && pr.clubId === clubId && pr.season === state.year && pr.pos < base.pos) return { pos: pr.pos, text: pr.text };
+  return base;
+}
+
+/** The board's usual target, by the club's size in its league. */
+export function baseTarget(state: GameState, clubId: string) {
   const club = state.clubs[clubId];
   const l = leagueDef(state, club.league);
   if (!l) return { pos: 99, text: 'do well in cup competitions' };
@@ -313,10 +322,13 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     if (slot.week % 4 === 0) managerNews(state, midSeasonSackings(state, rng, slot.week, (id) => boardTarget(state, id)), []);
     if (slot.week % 4 === 0 && state.clubs[state.userClubId].league && midSeasonVerdict(state, boardTarget(state, state.userClubId), slot.week)) {
       const c = career(state);
+      const comp = compensation(state);
+      c.earnings = (c.earnings ?? 0) + comp;
       c.sacked = true;
       c.offers = makeOffers(state, rng, c.vacancies, 'sacked');
       addMessage(state, { category: 'board', from: 'The board', role: state.clubs[state.userClubId].name, subject: 'You have been sacked', body: [
         `Results have fallen far short of the target (${boardTarget(state, state.userClubId).text}). The board has decided to make a change, effective immediately.`,
+        `You receive ${Math.round(comp / 1e5) / 10}M in compensation for the rest of your contract.`,
         `${c.offers.length} club${c.offers.length === 1 ? '' : 's'} would give you a new start. Choose one on the Career screen to carry on.`] });
     }
   }
@@ -326,6 +338,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     scoutingTick(state);
     payInstallments(state);
     aiBids(state, state.rngState ^ (state.matchday * 104729));
+    { const cc = state.career; if (cc?.contract && !cc.sacked) cc.earnings = (cc.earnings ?? 0) + cc.contract.wage; }
     managerNews(state, [], weeklyAppointments(state, createRng((state.rngState ^ (state.matchday * 0x9e37)) >>> 0)));
     const week = currentWeek(state);
     const win = windows(state);
@@ -488,10 +501,27 @@ function rollover(state: GameState) {
       const sacked = seasonVerdict(state, target, { pos, champion: pos === 1, promoted: moves[us.id]?.dir === 'promoted', relegated: moves[us.id]?.dir === 'relegated', trophies: won });
       c.vacancies = open;
       c.offers = sacked ? makeOffers(state, rng, c.vacancies, 'sacked') : c.trust >= 60 ? makeOffers(state, rng, c.vacancies, 'good') : [];
+      // a contract that runs out now: renewed if the board still believes in you, otherwise you leave
+      if (!sacked && c.contract && c.contract.until <= state.year) {
+        if (c.trust >= 45) {
+          const old = c.contract.wage;
+          c.contract = { wage: Math.max(Math.round(old * (pos === 1 ? 1.25 : 1.1) / 1000) * 1000, managerWage(state, us.id)), until: state.year + 2 };
+          addMessage(state, { category: 'board', from: 'The board', role: us.name, subject: 'Your contract is renewed', body: [
+            `Your contract was due to end this summer. The board has extended it for two more seasons, with your wage up from ${Math.round(old / 1000)}k to ${Math.round(c.contract.wage / 1000)}k a week.`] });
+        } else {
+          c.sacked = true;
+          c.offers = makeOffers(state, rng, c.vacancies, 'sacked');
+          addMessage(state, { category: 'board', from: 'The board', role: us.name, subject: 'Your contract will not be renewed', body: [
+            `Your contract ends this summer and the board has decided not to offer a new one.`,
+            `${c.offers.length} club${c.offers.length === 1 ? '' : 's'} would give you a new start, and ${c.vacancies.length} clubs are looking for a manager. Choose your next job on the Career screen.`] });
+        }
+      }
       if (sacked) {
+        const comp = compensation(state);
+        c.earnings = (c.earnings ?? 0) + comp;
         c.sacked = true;
         addMessage(state, { category: 'board', from: 'The board', role: us.name, subject: 'You have been sacked', body: [
-          `Finishing ${ordinal(pos)} against a target of ${target.text} was not good enough. The board has ended your contract.`,
+          `Finishing ${ordinal(pos)} against a target of ${target.text} was not good enough. The board has ended your contract, with ${Math.round(comp / 1e5) / 10}M in compensation.`,
           `${c.offers.length} club${c.offers.length === 1 ? '' : 's'} would give you a new start, and ${c.vacancies.length} clubs are looking for a manager. Choose your next job on the Career screen.`] });
       } else if (c.offers.length) {
         addMessage(state, { category: 'board', from: 'Your agent', subject: `${c.offers.length} club${c.offers.length === 1 ? '' : 's'} want you`, body: [

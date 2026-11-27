@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { FD } from '../ds';
-import { acceptOffer, applyChance, applyForJob, boardConfidence, career, clubLine, confidenceWord, currentSpell, resign } from '../engine/career';
-import { boardTarget } from '../engine/game';
+import { acceptOffer, applyChance, boardConfidence, career, clubLine, confidenceWord, currentSpell, interviewForJob, interviewQuestions, managerWage, requestNewContract, resign } from '../engine/career';
+import { toCur } from '../store';
+import { baseTarget, boardTarget } from '../engine/game';
 import { ACHIEVEMENTS } from '../engine/achievements';
 import { STYLES, setStyle, styleOf } from '../engine/style';
 import { managerReputation } from '../engine/nationaljob';
@@ -36,14 +37,26 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
     update((d) => acceptOffer(d, id));
     go('home');
   };
-  const apply = (id: string) => {
+  const [interview, setInterview] = useState<{ id: string; answers: Array<number | undefined> } | null>(null);
+  const [contractNote, setContractNote] = useState('');
+  const money = (n: number) => FD.formatMoney(toCur(n, g.currency), g.currency);
+  const wk = (n: number) => `${money(n)} a week`;
+  const submitInterview = () => {
+    if (!interview) return;
+    const id = interview.id, answers = interview.answers.map((a) => a ?? 0);
     let ok = false;
-    update((d) => { ok = applyForJob(d, id); });
+    update((d) => { ok = interviewForJob(d, id, baseTarget(d, id).pos, answers); });
     // the update runs synchronously inside React's state setter; read the result on the next tick
     setTimeout(() => {
+      setInterview(null);
       if (ok) go('home');
-      else setNote(`${g.clubs[id].name} went with another candidate.`);
+      else setNote(`${g.clubs[id].name} thanked you for your time and went with another candidate.`);
     }, 0);
+  };
+  const askContract = () => {
+    let r = { ok: false, text: '' };
+    update((d) => { r = requestNewContract(d, conf); });
+    setTimeout(() => setContractNote(r.text), 0);
   };
 
   return (
@@ -65,6 +78,9 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
             <p className="pg-h" style={{ margin: 0 }}>Manager since {seasonLabel(spell.from)}</p>
             <h2 className="pg-title" style={{ margin: '2px 0' }}>{club.name}</h2>
             <p className="hm-note" style={{ margin: 0 }}>{clubLine(g, club.id).league} · {spell.w}–{spell.d}–{spell.l} · {spell.trophies} trophies here · Board: {confidenceWord(conf)}</p>
+            <p className="hm-note" style={{ margin: '4px 0 0' }}>Contract: {c.contract ? `${wk(c.contract.wage)} until ${seasonLabel(c.contract.until)}` : '—'} · career earnings {money(c.earnings ?? 0)}
+              {' '}<button type="button" className="pg-link" onClick={askContract}>Ask for a new contract</button></p>
+            {contractNote ? <p className="fd-warn" role="status" style={{ margin: '4px 0 0' }}>{contractNote}</p> : null}
             <span className="fd-meter fd-meter--wide" style={{ marginTop: 8 }}><span className={`fd-meter__bar fd-meter__bar--${conf >= 60 ? 'low' : conf >= 40 ? 'medium' : 'high'}`} style={{ width: conf + '%' }} /></span>
           </div>
           <FD.Button variant="ghost" onClick={() => { if (window.confirm(`Resign as ${club.name} manager? You'll have to find a new club before playing on.`)) update((d) => resign(d)); }}>Resign</FD.Button>
@@ -91,6 +107,7 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
                   <td><ClubCell g={g} go={go} id={o.clubId} /></td>
                   <td className="fd-muted">{line.league} · {line.country}</td>
                   <td><FD.StarRating value={stars(line.reputation)} size={13} /></td>
+                  <td className="fd-muted">{wk(managerWage(g, o.clubId))} · 3 seasons</td>
                   <td style={{ textAlign: 'right' }}><FD.Button onClick={() => take(o.clubId)}>Accept</FD.Button></td>
                 </tr>
               );
@@ -103,6 +120,30 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
         <h2 className="pg-h">Vacancies</h2>
         <p className="hm-note" style={{ marginTop: 0 }}>Clubs without a manager. You can apply once to each and the club answers straight away, weighing you against the best manager out of work. Clubs fill their jobs within a few weeks, so don't wait too long.</p>
         {note && <p className="fd-warn" role="status">{note}</p>}
+        {interview && g.clubs[interview.id] ? (() => {
+          const target = baseTarget(g, interview.id).pos;
+          const qs = interviewQuestions(g, interview.id, target);
+          const done = qs.every((_, i) => interview.answers[i] !== undefined);
+          return (
+            <div className="pg-card interview" role="group" aria-label={`Interview at ${g.clubs[interview.id].name}`}>
+              <h3 className="pg-title" style={{ margin: 0, fontSize: 20 }}>Interview: {g.clubs[interview.id].name}</h3>
+              <p className="hm-note" style={{ margin: '4px 0 10px' }}>The board meets you. On offer: {wk(managerWage(g, interview.id))} for two seasons. Promise more than they expect and they'll hold you to it in your first season.</p>
+              {qs.map((q, i) => (
+                <fieldset key={i} className="interview__q">
+                  <legend>{q.q}</legend>
+                  {q.options.map((o, j) => (
+                    <label key={j} className="interview__opt"><input type="radio" name={`iq${i}`} checked={interview.answers[i] === j}
+                      onChange={() => setInterview({ ...interview, answers: Object.assign([...interview.answers], { [i]: j }) })} /> {o.label}</label>
+                  ))}
+                </fieldset>
+              ))}
+              <div className="pg-row" style={{ marginTop: 8 }}>
+                <FD.Button disabled={!done} onClick={submitInterview}>Give your answers</FD.Button>
+                <FD.Button variant="ghost" onClick={() => setInterview(null)}>Cancel</FD.Button>
+              </div>
+            </div>
+          );
+        })() : null}
         {vacancies.length ? (
           <table className="fd-mini"><tbody>
             {vacancies.map((id) => {
@@ -115,7 +156,7 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
                   <td><FD.StarRating value={stars(line.reputation)} size={13} /></td>
                   <td className="fd-muted">{(() => { const f = favouriteFor(g, id); return f ? <>Rival: {f.name} <span title="Reputation">({f.rep})</span></> : 'No strong rival'; })()}</td>
                   <td className="fd-muted">{p >= 0.7 ? 'Good chance' : p >= 0.35 ? 'Possible' : 'Long shot'}</td>
-                  <td style={{ textAlign: 'right' }}><FD.Button variant="secondary" onClick={() => apply(id)}>Apply</FD.Button></td>
+                  <td style={{ textAlign: 'right' }}><FD.Button variant="secondary" onClick={() => { setNote(''); setInterview({ id, answers: [] }); }}>Apply</FD.Button></td>
                 </tr>
               );
             })}

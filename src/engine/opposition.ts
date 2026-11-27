@@ -100,6 +100,35 @@ export function oppositionReport(s: GameState, f: Fixture): OppReport | undefine
 
 /** Lining up in the suggested formation: a small edge from following the plan. */
 export function planBoost(s: GameState, f: Fixture) {
+  return prepFor(s, f).boost;
+}
+
+export type Focus = 'att' | 'mid' | 'def';
+export const FOCUS: Array<{ id: Focus; label: string; edge: keyof OppReport['edges']; desc: string }> = [
+  { id: 'att', label: 'Attack their defence', edge: 'attack', desc: 'Get the ball to our forwards early and often.' },
+  { id: 'mid', label: 'Win the midfield', edge: 'midfield', desc: 'Keep the ball and outnumber them in the middle.' },
+  { id: 'def', label: 'Shut out their attack', edge: 'defence', desc: 'Stay tight and deny their forwards space.' },
+];
+/** What a focus is worth: a real edge (+4 or more) pays off, focusing where we're weaker backfires a little. */
+export const focusValue = (edge: number) => (edge >= 4 ? 1.012 : edge < 0 ? 0.995 : 1.004);
+
+/** Your preparation for a match: the formation plan, the focus and a man-marking job, as one multiplier on
+    your side, plus the opponent marked out of the game (if any). Only counts for the fixture it was set for. */
+export function prepFor(s: GameState, f: Fixture): { boost: number; marked?: string } {
   const r = oppositionReport(s, f);
-  return r && r.suggested === s.formation ? 1.015 : 1;
+  if (!r) return { boost: 1 };
+  let boost = r.suggested === s.formation ? 1.015 : 1;
+  const prep = s.matchPrep?.fixtureId === f.id ? s.matchPrep : undefined;
+  if (prep?.focus) boost *= focusValue(r.edges[FOCUS.find((x) => x.id === prep.focus)!.edge]);
+  const marked = prep?.mark && s.players[prep.mark]?.clubId === r.oppId ? prep.mark : undefined;
+  if (marked) boost *= 0.995; // one of ours is tied up following him
+  return { boost, marked };
+}
+
+/** Sets (or clears, with undefined) part of the preparation for a fixture. */
+export function setPrep(s: GameState, fixtureId: string, change: { focus?: Focus | null; mark?: string | null }) {
+  const cur = s.matchPrep?.fixtureId === fixtureId ? { ...s.matchPrep } : { fixtureId };
+  if (change.focus !== undefined) { if (change.focus) cur.focus = change.focus; else delete cur.focus; }
+  if (change.mark !== undefined) { if (change.mark) cur.mark = change.mark; else delete cur.mark; }
+  s.matchPrep = cur;
 }

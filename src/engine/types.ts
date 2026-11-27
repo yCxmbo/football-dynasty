@@ -209,6 +209,8 @@ export interface GameState {
   mentoring?: import('./dynamics').Mentoring[];
   /** Your last one-to-one with each player, and the last team meeting. */
   talks?: Record<string, import('./talks').TalkRecord>;
+  /** Preparation for your next match: a focus and a player to man-mark. */
+  matchPrep?: { fixtureId: string; focus?: import('./opposition').Focus; mark?: string };
   meeting?: { date: string; topic: import('./talks').MeetingTopic; reaction: import('./talks').Reaction };
   /** Your shape without the ball, if different. */
   defFormation?: import('./match').Formation;

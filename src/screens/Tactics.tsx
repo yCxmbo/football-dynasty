@@ -61,7 +61,7 @@ export default function Tactics({ g, go, update, onChange, onAutoRotate, liveNot
       </div>
       {liveNote && <p className="tr-window" role="status">A match is in progress. Changes here apply from the next match; make substitutions from the match screen.</p>}
       {unavailable.length > 0 && <p className="fd-money--neg" role="alert">{unavailable.map((p) => p.name).join(', ')} {unavailable.length === 1 ? 'is' : 'are'} unavailable and will be replaced automatically. Pick a replacement or use Pick best XI.</p>}
-      {nextFx && nextFx.comp !== 'friendly' ? <OppReport g={g} f={nextFx} go={go} /> : null}
+      {nextFx && nextFx.comp !== 'friendly' ? <OppReport g={g} f={nextFx} go={go} update={update} /> : null}
       <section className="pg-card tac-bar">
         <div className="fd-seg" role="tablist" aria-label="Saved tactics">
           {ts.slots.map((t, i) => (

@@ -1,6 +1,6 @@
 import { makeRumours, runMarket } from './market';
 import { windowsFor } from './windows';
-import { planBoost } from './opposition';
+import { prepFor } from './opposition';
 import { captainOf, takersOf } from './leadership';
 import { withDefaults, type Instructions } from './instructions';
 import { makePredictions, predictedPos, previewMessage } from './preview';
@@ -272,13 +272,14 @@ function setupFor(state: GameState, f: Fixture) {
   const sharp = sharpness(state, state.calendar[f.matchday - 1]?.week ?? 0);
   const derby = derbyName(state, f.homeId, f.awayId);
   // following the assistant's suggested formation gives a small edge
-  const plan = (uh || ua) && f.comp !== 'friendly' ? planBoost(state, f) : 1;
+  const prep = (uh || ua) && f.comp !== 'friendly' ? prepFor(state, f) : { boost: 1, marked: undefined };
+  const plan = prep.boost;
   // how well the squad knows the tactic (computer-run sides play theirs every week)
   const fam = uh || ua ? familiarityFactor(familiarity(state)) * atmosphereFactor(atmosphere(state)) : 1, aiFam = familiarityFactor(90);
   const mods: MatchMods = { derby, homeBoost: uh ? te.matchBoost * sharp * plan * fam : managerBoost(state, f.homeId) * aiFam, awayBoost: ua ? te.matchBoost * sharp * plan * fam : managerBoost(state, f.awayId) * aiFam, homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1, neutral: f.neutral, knockout: f.ko };
   return {
-    home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: hs.formation, roles: hr, name: H.name, user: uh, captain: captainOf(state, f.homeId)?.id, ...(uh ? { tilt, takers: takersOf(state), instr: withDefaults(state.instructions), defFormation: state.defFormation } : {}) },
-    away: { xi: ax, bench: benchFor(state, f.awayId, ax), formation: aw.formation, roles: ar, name: A.name, user: ua, captain: captainOf(state, f.awayId)?.id, ...(ua ? { tilt, takers: takersOf(state), instr: withDefaults(state.instructions), defFormation: state.defFormation } : {}) },
+    home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: hs.formation, roles: hr, name: H.name, user: uh, captain: captainOf(state, f.homeId)?.id, ...(ua && prep.marked ? { marked: prep.marked } : {}), ...(uh ? { tilt, takers: takersOf(state), instr: withDefaults(state.instructions), defFormation: state.defFormation } : {}) },
+    away: { xi: ax, bench: benchFor(state, f.awayId, ax), formation: aw.formation, roles: ar, name: A.name, user: ua, captain: captainOf(state, f.awayId)?.id, ...(uh && prep.marked ? { marked: prep.marked } : {}), ...(ua ? { tilt, takers: takersOf(state), instr: withDefaults(state.instructions), defFormation: state.defFormation } : {}) },
     venue: H.stadium, mods,
   };
 }
@@ -337,7 +338,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     let lm: LiveMatch;
     if (live && live.fixtureId === f.id) lm = structuredClone(live.lm);
     else { const st = setupFor(state, f); lm = createLive(rng.int(0, 2 ** 31 - 1), st.home, st.away, st.venue, st.mods); }
-    if (uh || ua) { state.lineup = repairLineup(state); learnFromMatch(state); }
+    if (uh || ua) { state.lineup = repairLineup(state); learnFromMatch(state); if (state.matchPrep?.fixtureId === f.id) delete state.matchPrep; }
     runToEnd(lm);
     const { result, conditions } = toResult(lm, f.homeId, f.awayId);
     f.result = result;

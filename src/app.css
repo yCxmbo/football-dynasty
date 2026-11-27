@@ -457,3 +457,16 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .hm-form { display: flex; gap: 3px; min-height: 24px; align-items: center; }
 .hm-form .fd-form { width: 20px; height: 20px; font-size: 11px; }
 .hm-coming .club-badge { width: 18px; height: 18px; }
+
+/* Match prep */
+.opp__prep { display: grid; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.opp__focus { flex-wrap: wrap; }
+.opp__prep .tac-field { max-width: 340px; }
+.opp__xi { display: grid; gap: 6px; margin-top: 12px; }
+.opp__pitch { position: relative; height: 220px; max-width: 520px; border-radius: var(--radius-md); background: var(--pitch, #1f6b43); border: 1px solid var(--line); overflow: hidden; }
+.opp__pitch::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid rgba(255,255,255,.25); }
+.opp__pitch::after { content: ''; position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px 0 0 -30px; border: 1px solid rgba(255,255,255,.25); border-radius: 50%; }
+.opp__dot { position: absolute; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 2px; font: 600 10px/12px var(--font-sans); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6); white-space: nowrap; z-index: 1; }
+.opp__dot i { width: 12px; height: 12px; border-radius: 50%; background: #e9edf2; border: 2px solid rgba(0,0,0,.35); }
+.opp__dot.is-danger i { background: var(--loss); }
+.opp__dot.is-marked i { box-shadow: 0 0 0 3px var(--gold); }

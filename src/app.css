@@ -522,3 +522,28 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .mp__pitch.is-still .mp__dot, .mp__pitch.is-still .mp__ball { transition: none; }
 @media (prefers-reduced-motion: reduce) { .mp__dot, .mp__ball { transition: none; } .mp__flash { animation: none; } }
 @media (max-width: 520px) { .mp__dot { width: 16px; height: 16px; margin: -8px 0 0 -8px; font-size: 8px; } }
+
+/* Phone navigation: bottom tab bar and a More sheet */
+.tabbar, .sheet { display: none; }
+@media (max-width: 720px) {
+  .fd-sidebar { display: none; }
+  .fd-main { padding: 16px 16px calc(84px + env(safe-area-inset-bottom)); }
+  .tabbar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    padding-bottom: env(safe-area-inset-bottom); background: var(--surface-sunken); border-top: 1px solid var(--line); }
+  .tabbar__tab { position: relative; display: grid; justify-items: center; gap: 2px; min-height: 58px; padding: 8px 2px 6px; border: 0; background: none;
+    color: var(--ink-muted); font: 600 11px/14px var(--font-sans); cursor: pointer; }
+  .tabbar__tab.is-on { color: var(--ink); box-shadow: inset 0 3px 0 var(--gold); }
+  .tabbar__tab.is-on .fd-icon { color: var(--gold-ink); }
+  .tabbar__tab:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
+  .tabbar__dots { font-size: 18px; line-height: 22px; letter-spacing: 1px; }
+  .tabbar__badge { position: absolute; top: 4px; left: calc(50% + 6px); min-width: 18px; padding: 0 5px; border-radius: var(--radius-pill); background: var(--gold); color: var(--on-gold); font: 700 10px/16px var(--font-sans); }
+  .sheet { display: block; position: fixed; inset: 0; z-index: 39; background: rgba(5, 10, 20, .55); }
+  .sheet__panel { position: absolute; left: 0; right: 0; bottom: calc(58px + env(safe-area-inset-bottom)); max-height: 70vh; overflow-y: auto; padding: 14px 16px 16px;
+    background: var(--surface-raised); border-top: 1px solid var(--line); border-radius: 14px 14px 0 0; display: grid; gap: 12px; }
+  .sheet__group { display: grid; gap: 6px; }
+  .sheet__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .sheet__item { display: grid; justify-items: center; gap: 4px; padding: 10px 4px; min-height: 64px; border: 1px solid var(--line); border-radius: var(--radius-md);
+    background: var(--surface-sunken); color: var(--ink); font: 600 12px/15px var(--font-sans); text-align: center; cursor: pointer; }
+  .sheet__item.is-on { border-color: var(--gold); }
+  .sheet__item:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+}

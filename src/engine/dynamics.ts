@@ -4,6 +4,7 @@
 import { squadOf } from './index';
 import { createRng, type Rng } from './rng';
 import { developStep } from './training';
+import { ROLE_SHARE } from './negotiation';
 import { nationName } from './nations';
 import type { GameState, Player } from './types';
 
@@ -43,10 +44,12 @@ export function squadMoods(s: GameState): Mood[] {
     const reasons: string[] = [];
     let score = 0;
     const rank = byAbility.indexOf(p) + 1;
-    const expect = rank <= 11 ? 0.6 : rank <= 16 ? 0.3 : 0;
+    // a role agreed in his contract sets what he expects; otherwise his standing in the squad does
+    const expect = p.terms?.role ? ROLE_SHARE[p.terms.role] : rank <= 11 ? 0.6 : rank <= 16 ? 0.3 : 0;
     const share = p.current.apps / games;
     if (games >= 4 && expect && share < expect - 0.25) { score -= 2; reasons.push('Not playing enough'); }
     else if (games >= 4 && !expect && share >= 0.3) { score += 1; reasons.push('Enjoying his chances'); }
+    if (p.brokenPromises) { score -= 1; reasons.push('Remembers a broken promise'); }
     if (p.morale === 'high') { score += 1; reasons.push('In good spirits'); } else if (p.morale === 'low') { score -= 2; reasons.push('Low morale'); }
     if (p.contractEnd <= s.year && !p.preContract) { score -= 1; reasons.push('Contract running down'); }
     if (s.transferListed.includes(p.id)) { score -= 2; reasons.push('Transfer-listed'); }

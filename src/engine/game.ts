@@ -4,6 +4,7 @@ import { prepFor } from './opposition';
 import { fansAfterMatch, fansNewSeason, homeLift } from './fans';
 import { recordInjury, relapses } from './medical';
 import { payAddOns } from './deals';
+import { checkContractPromises, summerWages } from './negotiation';
 import { scoutingNetworkDay } from './network';
 import { matchOdds } from './preview';
 import { postMatchConference, preMatchConference } from './press';
@@ -504,6 +505,8 @@ function standingOf(state: GameState) {
 
 function newDay(state: GameState) {
   if (seasonOver(state)) return;
+  for (const { p, kept } of checkContractPromises(state)) addMessage(state, { category: 'media', from: p.name, role: 'Player', playerId: p.id, subject: kept ? `${p.name}: “You kept your word”` : `${p.name}: “You promised me a signing”`,
+    body: [kept ? `${p.name} is pleased: you promised a quality signing when he signed his contract, and one has arrived.` : `When ${p.name} signed his contract you promised a quality signing this window. None arrived. He is unhappy and will remember it the next time you talk contracts.`] });
   { const found = scoutingNetworkDay(state); if (found.length) addMessage(state, { category: 'scouting', from: 'Chief scout', subject: `Scouting reports: ${found.length === 1 ? 'new recommendations' : `${found.length} assignments report`}`, body: [...found, 'They are on the Scouting screen, graded against our squad.'], link: { screen: 'scouting', label: 'See recommendations' } }); }
   { // the day before your match (or on the day): the pre-match press conference
     const nf = nextUserFixture(state);
@@ -760,6 +763,7 @@ function rollover(state: GameState) {
   }
   resetLeagueCache(state);
   const userMove = moves[state.userClubId]?.dir;
+  summerWages(state, userMove);
 
   state.year++;
   const summerDeals = runMarket(state, rng, 'Summer', seasonLabel(state.year));

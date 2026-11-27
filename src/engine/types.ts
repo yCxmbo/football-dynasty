@@ -57,6 +57,10 @@ export interface Player {
   preContract?: string;
   /** On loan: the owning club, the season it ends, and the squad he returns to. */
   loan?: import('./loans').Loan;
+  /** Your players: contract terms beyond wage and length, open promises, and promises you broke. */
+  terms?: import('./negotiation').ContractTerms;
+  promises?: import('./negotiation').ContractPromise[];
+  brokenPromises?: number;
   /** Your players only: what the current injury is, and whether he was rushed back. */
   injury?: import('./medical').Injury;
   /** International career: caps, goals and tournaments won. */

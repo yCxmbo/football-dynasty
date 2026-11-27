@@ -5,7 +5,7 @@ import { FREE_AGENT, type Currency, type GameState, type Player } from '../engin
 import { seasonLabel } from '../engine/types';
 import { toCur } from '../store';
 
-export type Screen = 'home' | 'inbox' | 'squad' | 'player' | 'tactics' | 'fixtures' | 'table' | 'match' | 'youth' | 'history' | 'settings' | 'transfers' | 'training' | 'scouting' | 'finances' | 'offer' | 'contract' | 'international' | 'career' | 'staff' | 'facilities' | 'nationalMatch' | 'records' | 'club' | 'stats' | 'calendar' | 'medical' | 'review';
+export type Screen = 'home' | 'inbox' | 'squad' | 'player' | 'tactics' | 'fixtures' | 'table' | 'match' | 'youth' | 'history' | 'settings' | 'transfers' | 'training' | 'scouting' | 'finances' | 'offer' | 'contract' | 'international' | 'career' | 'staff' | 'facilities' | 'nationalMatch' | 'records' | 'club' | 'stats' | 'calendar' | 'medical' | 'review' | 'press';
 
 export const NAV = (unread: number) => [
   { id: 'home', label: 'Home', icon: 'home' }, { id: 'inbox', label: 'Inbox', icon: 'inbox', badge: unread || undefined },
@@ -74,5 +74,5 @@ export const NAV_LABEL: Partial<Record<Screen, string>> = {
   home: 'Home', inbox: 'Inbox', squad: 'Squad', player: 'player', tactics: 'Tactics', fixtures: 'Fixtures', table: 'Competitions', match: 'match',
   youth: 'Academy', history: 'Club history', settings: 'Settings', transfers: 'Transfers', training: 'Training', scouting: 'Scouting', finances: 'Finances',
   offer: 'offer', contract: 'contract', international: 'International', career: 'Career', staff: 'Staff', facilities: 'Facilities', nationalMatch: 'match',
-  records: 'Records', club: 'club', stats: 'Stats', calendar: 'Calendar', medical: 'Medical', review: 'Season review',
+  records: 'Records', club: 'club', stats: 'Stats', calendar: 'Calendar', medical: 'Medical', review: 'Season review', press: 'Press room',
 };

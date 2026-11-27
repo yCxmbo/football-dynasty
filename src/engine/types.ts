@@ -140,7 +140,7 @@ export type ChanceSource = 'open' | 'counter' | 'penalty' | 'free kick' | 'corne
 export interface MatchAnalysis { xg: Array<[number, number]>; chances: Array<{ m: number; side: 0 | 1; src: ChanceSource; goal: boolean; player?: string }> }
 export interface MatchResult { score: [number, number]; pens?: [number, number]; winnerId?: string; events: MatchEvent[]; stats: MatchStats; ratings: { home: PlayerRating[]; away: PlayerRating[] }; analysis?: MatchAnalysis }
 
-export interface InboxMessage { id: string; category: 'board' | 'transfers' | 'scouting' | 'medical' | 'media' | 'training' | 'youth' | 'match' | 'finance'; from: string; role?: string; date: string; subject: string; body: string[]; unread: boolean; bidId?: string; playerId?: string; /** A question to answer (press conference, player request). */ choice?: import('./media').Choice }
+export interface InboxMessage { id: string; category: 'board' | 'transfers' | 'scouting' | 'medical' | 'media' | 'training' | 'youth' | 'match' | 'finance'; from: string; role?: string; date: string; subject: string; body: string[]; unread: boolean; bidId?: string; playerId?: string; /** A question to answer (press conference, player request). */ choice?: import('./media').Choice; /** A screen to open from the message. */ link?: { screen: string; label: string } }
 
 /** An AI club's bid for one of the user's players. */
 export interface Bid { id: string; playerId: string; fromClubId: string; fee: number; status: 'open' | 'accepted' | 'rejected' | 'expired'; /** % paid now (the rest over a year). */ upfront?: number; /** % of his next sale, for you. */ sellOn?: number; /** Fee to buy him back within two seasons. */ buyBack?: number }
@@ -215,6 +215,8 @@ export interface GameState {
   matchPrep?: { fixtureId: string; focus?: import('./opposition').Focus; mark?: string };
   /** Your supporters' mood and ticket prices. */
   fans?: import('./fans').Fans;
+  /** The press conference waiting for you (before or after your match), if any. */
+  press?: import('./press').PressConference;
   /** Your league position after each league week this season, and past seasons' reviews (newest first). */
   course?: number[];
   reviews?: import('./seasonreview').SeasonReview[];

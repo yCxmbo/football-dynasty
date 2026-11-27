@@ -4,6 +4,8 @@ import { prepFor } from './opposition';
 import { fansAfterMatch, fansNewSeason, homeLift } from './fans';
 import { recordInjury, relapses } from './medical';
 import { payAddOns } from './deals';
+import { matchOdds } from './preview';
+import { postMatchConference, preMatchConference } from './press';
 import { archiveReview, noteCourse } from './seasonreview';
 import { checkBadge, managerExperience, motivationFactor, profileOf, youthCoaching } from './manager';
 import { captainOf, takersOf } from './leadership';
@@ -27,7 +29,7 @@ import { moraleBonus, styleTilt, talkMultiplier, youthDevelopmentBoost, youthInt
 import { recordSeason, recordTransfer } from './records';
 import { afterMatch, afterSeason, afterTournament } from './achievements';
 import { finishBuilding, trainingFacilityBoost, youthFacilityBonus } from './facilities';
-import { pressAfterMatch, weeklyMood } from './media';
+import { weeklyMood } from './media';
 import { atmosphere, atmosphereFactor, weeklyDynamics } from './dynamics';
 import { judgeVision, maybeTakeover, renewVisionIfDone, visionOf } from './vision';
 import { developmentBoost, initStaff, injuryLengthFactor, moraleRecoveryChance, recoveryBonus, refreshPool, youthPotentialBonus } from './staff';
@@ -423,7 +425,15 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     addMessage(state, { category: 'match', from: 'Club media', subject: `${uf.round}: ${state.clubs[uf.homeId].name} ${r.score[0]}–${r.score[1]} ${state.clubs[uf.awayId].name}`, body: [
       `${home ? 'A run-out at home' : `On tour against ${state.clubs[uf.homeId].name}`}: the players are sharper for it.`,
       `The club earned ${Math.round(earned / 1e5) / 10}M${tour ? ', and the tour has raised our profile abroad' : ''}.`] });
-  } else if (uf) { postMatchMessages(state, uf); pressAfterMatch(state, createRng((state.rngState ^ 0x9e37) >>> 0), uf); afterMatch(state, uf); }
+  } else if (uf) {
+    postMatchMessages(state, uf);
+    const pc = postMatchConference(state, uf);
+    if (pc && pc.questions.length) {
+      state.press = pc;
+      addMessage(state, { category: 'media', from: 'Press officer', subject: `Post-match press conference: ${pc.opp}`, body: [`The press want your thoughts after the game against ${pc.opp}: ${pc.questions.length} questions. Answer them, or send your assistant.`], link: { screen: 'press', label: 'Go to the press room' } });
+    }
+    afterMatch(state, uf);
+  }
   for (const line of cupNews) if (line.includes(state.clubs[state.userClubId].name) || line.startsWith('Continental')) addMessage(state, { category: 'media', from: 'Football news', subject: line, body: [line] });
   if (seasonOver(state)) seasonEndMessage(state);
   return uf;
@@ -493,6 +503,15 @@ function standingOf(state: GameState) {
 
 function newDay(state: GameState) {
   if (seasonOver(state)) return;
+  { // the day before your match (or on the day): the pre-match press conference
+    const nf = nextUserFixture(state);
+    const nd = nf ? state.calendar[nf.matchday - 1]?.date : undefined;
+    if (nf && nd && nf.comp !== 'friendly' && state.press?.fixtureId !== nf.id && (Date.parse(nd) - Date.parse(today(state))) / 86_400_000 <= 1) {
+      const o = matchOdds(state, nf.homeId, nf.awayId, nf.neutral);
+      state.press = preMatchConference(state, nf, derbyName(state, nf.homeId, nf.awayId), nf.homeId === state.userClubId ? o.home : o.away);
+      addMessage(state, { category: 'media', from: 'Press officer', subject: `Pre-match press conference: ${state.press.opp}`, body: [`The press are waiting before the game against ${state.press.opp}: ${state.press.questions.length} questions. Answer them, or send your assistant.`], link: { screen: 'press', label: 'Go to the press room' } });
+    }
+  }
   { const b = checkBadge(state); if (b) addMessage(state, { category: 'board', from: 'Coaching association', subject: `You have passed the ${b.name}`, body: [`Congratulations: you now hold the ${b.name}. Your coaching attributes have improved.`, 'Bigger clubs look for higher licences when they appoint a manager. See the Career screen.'] }); }
   const d = today(state), year = state.year;
   const us = state.clubs[state.userClubId];

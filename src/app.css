@@ -573,3 +573,9 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .sr-end { fill: var(--ink); font: 700 12px var(--font-sans); }
 .sr-tip { position: absolute; top: 0; transform: translateX(-50%); padding: 3px 8px; border-radius: var(--radius-sm); background: var(--surface-sunken); border: 1px solid var(--line); font-size: 12px; pointer-events: none; white-space: nowrap; }
 .sr-table summary { cursor: pointer; font-size: 13px; color: var(--ink-muted); margin-top: 8px; }
+
+/* Press room */
+.press-q { display: grid; gap: 10px; }
+.press-q__text { margin: 0; font: 600 18px/26px var(--font-sans); color: var(--ink); }
+.press-q__opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+.talk__opt.is-chosen { border-color: var(--gold); opacity: 1; }

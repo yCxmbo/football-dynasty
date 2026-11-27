@@ -35,6 +35,7 @@ export default function InboxScreen({ g, selectedId, onOpen, onBid, onAnswer, go
       out.push(<FD.Button key="r" size="sm" variant="secondary" onClick={() => onBid(bid.id, false)}>Reject</FD.Button>);
     }
     if (m.choice && m.choice.answered === undefined) m.choice.options.forEach((o, i) => out.push(<FD.Button key={`c${i}`} size="sm" variant={i === 0 ? 'primary' : 'secondary'} onClick={() => onAnswer(m.id, i)}>{o}</FD.Button>));
+    if (m.link) out.push(<FD.Button key="l" size="sm" onClick={() => go(m.link!.screen as Screen)}>{m.link.label}</FD.Button>);
     if (m.playerId && g.players[m.playerId]) out.push(<FD.Button key="v" size="sm" variant="ghost" onClick={() => go('player', m.playerId)}>View player</FD.Button>);
     return { out, status: bid && bid.status !== 'open' ? `This bid was ${bid.status}.` : undefined };
   };

@@ -41,6 +41,7 @@ export default function Home({ g, go, onPlay, onSimNext, update }: { g: GameStat
   const confWord = confidenceWord(conf);
   const mine = Object.values(g.players).filter((p) => p.clubId === g.userClubId);
   const alerts = [
+    ...(g.press && !g.press.done ? [{ icon: 'inbox', tone: 'fd-warn', t: `${g.press.kind === 'pre' ? 'Pre-match' : 'Post-match'} press conference`, s: `${g.press.questions.length} questions about ${g.press.opp}`, id: '', screen: 'press' as Screen }] : []),
     ...bidsFor(g).map(({ b, p }) => ({ icon: 'transfers', tone: 'fd-ok', t: `Bid for ${p.name}`, s: `${g.clubs[b.fromClubId].name} offer ${FD.formatMoney(toCur(b.fee, cur), cur)}`, id: p.id, screen: 'scouting' as Screen })),
     ...g.lineup.map((id) => g.players[id]).filter((p) => p && (p.condition ?? 100) < 70).map((p) => ({ icon: 'training', tone: 'fd-warn', t: `${p.name}: tired (${Math.round(p.condition ?? 100)}%)`, s: g.autoRotate !== false ? 'Will be rested if a fresh player is available' : 'Consider resting this player', id: p.id, screen: 'tactics' as Screen })),
     ...mine.filter((p) => p.injuredFor > 0).map((p) => ({ icon: 'injury', tone: 'fd-money--neg', t: `${p.name}: ${p.injury?.type.toLowerCase() ?? 'injured'}`, s: `Out ${p.injuredFor} more ${p.injuredFor === 1 ? 'match' : 'matches'}`, id: p.id, screen: 'medical' as Screen })),

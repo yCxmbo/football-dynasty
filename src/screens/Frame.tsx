@@ -6,7 +6,7 @@ export interface NavItem { id: string; label: string; icon: string; badge?: numb
 
 /** The app frame: top bar and a sidebar grouped into sections (same look as the design system's frame). */
 export default function Frame({ crestSrc, club, season, budget, currency, onCurrencyChange, active, nav, onNavigate, primaryAction, children }: {
-  crestSrc: string; club: string; season: string; budget: number; currency: Currency; onCurrencyChange: (c: Currency) => void;
+  crestSrc: string; club: string; season: string; budget?: number; currency: Currency; onCurrencyChange: (c: Currency) => void;
   active: string; nav: NavItem[]; onNavigate: (id: string) => void; primaryAction?: ReactNode; children: ReactNode;
 }) {
   return (
@@ -15,7 +15,7 @@ export default function Frame({ crestSrc, club, season, budget, currency, onCurr
         <div className="fd-topbar__brand"><img src={crestSrc} alt="Football Dynasty" className="fd-topbar__crest" /><span className="fd-topbar__game">Football Dynasty</span></div>
         <div className="fd-topbar__club"><span className="fd-topbar__clubname">{club}</span><span className="fd-topbar__date">{season}</span></div>
         <div className="fd-topbar__right">
-          <span className="fd-topbar__budget"><span className="fd-label">Transfer budget</span><FD.Money amount={budget} currency={currency} /></span>
+          {budget !== undefined ? <span className="fd-topbar__budget"><span className="fd-label">Transfer budget</span><FD.Money amount={budget} currency={currency} /></span> : null}
           <FD.CurrencyToggle value={currency} onChange={onCurrencyChange} />
           {primaryAction}
         </div>

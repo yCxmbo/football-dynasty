@@ -44,6 +44,8 @@ import Table from './screens/Table';
 import Tactics from './screens/Tactics';
 import Youth from './screens/Youth';
 import Frame from './screens/Frame';
+/** Screens that don't depend on having a club, still open while you're out of work. */
+const OPEN_WHEN_OUT = new Set<string>(['career', 'inbox', 'table', 'stats', 'records', 'settings']);
 import { NAV, type Screen, NAV_LABEL } from './screens/shared';
 
 function liveFx0(g: NonNullable<ReturnType<typeof useGame>['game']>, live: LiveState | null) {
@@ -214,17 +216,17 @@ export default function App() {
   // a first-visit tip above each main screen
   if (TIPS[screen] && !(screen === 'match' && !live)) body = <>{<Tip key={screen} id={screen} />}{body}</>;
   // out of work: only the career screen until you take a new job
-  if (outOfWork && !live) body = <Career g={g} go={go} update={update} />;
+  if (outOfWork && !live && !OPEN_WHEN_OUT.has(screen)) body = <Career g={g} go={go} update={update} />;
 
   return (
     <Frame
-      crestSrc={`${import.meta.env.BASE_URL}crest-128.png`} club={club.name}
-      season={`Season ${g.year - g.manager.since + 1} · ${slotLabel} · ${liveFx ? formatDate(liveFx.date) : currentDate(g)}`}
-      budget={toCur(club.transferBudget, g.currency)} currency={g.currency}
+      crestSrc={`${import.meta.env.BASE_URL}crest-128.png`} club={outOfWork && !live ? g.managerName : club.name}
+      season={outOfWork && !live ? `Unattached manager · ${currentDate(g)}` : `Season ${g.year - g.manager.since + 1} · ${slotLabel} · ${liveFx ? formatDate(liveFx.date) : currentDate(g)}`}
+      budget={outOfWork && !live ? undefined : toCur(club.transferBudget, g.currency)} currency={g.currency}
       onCurrencyChange={(c: 'EUR' | 'USD' | 'GBP') => update((d) => { d.currency = c; })}
-      active={navActive} nav={NAV(unread)} onNavigate={(id) => go(id as Screen)} primaryAction={primary}
+      active={outOfWork && !live && !OPEN_WHEN_OUT.has(screen) ? 'career' : navActive} nav={outOfWork && !live ? NAV(unread).filter((n) => OPEN_WHEN_OUT.has(n.id as Screen)) : NAV(unread)} onNavigate={(id) => go(id as Screen)} primaryAction={primary}
     >
-      {hist.length && !(outOfWork && !live) ? (
+      {hist.length && !(outOfWork && !live && !OPEN_WHEN_OUT.has(screen)) ? (
         <button type="button" className="nav-back" onClick={() => { try { window.history.back(); } catch { back(); } }} aria-label={`Back to ${NAV_LABEL[hist[hist.length - 1].s] ?? 'previous screen'}`}>
           <span aria-hidden="true">←</span> Back{NAV_LABEL[hist[hist.length - 1].s] ? ` to ${NAV_LABEL[hist[hist.length - 1].s]}` : ''}
         </button>

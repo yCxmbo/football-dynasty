@@ -207,6 +207,9 @@ export interface GameState {
   vision?: import('./vision').ClubVision;
   /** Mentoring pairs at your club (experienced player and youngster). */
   mentoring?: import('./dynamics').Mentoring[];
+  /** Your last one-to-one with each player, and the last team meeting. */
+  talks?: Record<string, import('./talks').TalkRecord>;
+  meeting?: { date: string; topic: import('./talks').MeetingTopic; reaction: import('./talks').Reaction };
   /** Your shape without the ball, if different. */
   defFormation?: import('./match').Formation;
   /** Your roles and duties, one per slot of your formation. */

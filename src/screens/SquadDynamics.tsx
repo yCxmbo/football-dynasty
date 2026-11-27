@@ -4,6 +4,7 @@ import { atmosphere, atmosphereWord, canMentor, groupLabel, groups, MAX_MENTORIN
 import { squadOf } from '../engine/game';
 import type { GameState } from '../engine/types';
 import type { Screen } from './shared';
+import { TeamMeeting } from './Talks';
 
 const TIERS: Tier[] = ['Team leader', 'Highly influential', 'Influential', 'Other'];
 const moodClass = (score: number) => (score >= 1 ? 'pred-up' : score <= -1 ? 'pred-down' : 'fd-muted');
@@ -24,6 +25,7 @@ export default function SquadDynamics({ g, go, update }: { g: GameState; go: (s:
   const pairs = g.mentoring ?? [];
   return (
     <div className="pg-stack" style={{ gap: 16, marginTop: 12 }}>
+      <TeamMeeting g={g} update={update} />
       <section className="pg-card">
         <div className="aw-head">
           <h2 className="pg-h" style={{ margin: 0 }}>Dressing-room atmosphere · {atmosphereWord(atm)}</h2>

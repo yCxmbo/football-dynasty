@@ -538,6 +538,7 @@ export function startNewSeason(state: GameState) {
   if (!seasonOver(state)) throw new Error('Season not finished');
   withSquadIndex(state, () => rollover(state));
   delete state.today; // the new season starts on its first fixture date
+  delete state.talks;
   if (state.windowLog) for (const k of Object.keys(state.windowLog)) if (!k.startsWith(`${state.year}:`)) delete state.windowLog[k];
 }
 

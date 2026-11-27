@@ -422,3 +422,16 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .fd-meter__bar.sq-attbar.sq-att--hi { background: var(--form-win); }
 .fd-meter__bar.sq-attbar.sq-att--mid { background: var(--teal); }
 .fd-meter__bar.sq-attbar.sq-att--lo { background: var(--ink-muted); }
+
+/* Talks and meetings */
+.talk__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; margin-bottom: 10px; }
+.talk__meta { font-size: 13px; }
+.talk__opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.talk__opt { display: grid; gap: 3px; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--ink); font: inherit; cursor: pointer; }
+.talk__opt span { font-size: 12px; line-height: 16px; color: var(--ink-muted); }
+.talk__opt:hover:not(:disabled) { border-color: var(--teal); }
+.talk__opt:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+.talk__opt:disabled { cursor: not-allowed; opacity: .55; }
+.talk__reply { margin: 12px 0 0; padding: 10px 12px; border-radius: var(--radius-md); border-left: 3px solid var(--line-strong); background: var(--surface-sunken); font-size: 14px; }
+.talk__reply--good { border-left-color: var(--form-win); }
+.talk__reply--bad { border-left-color: var(--loss); }

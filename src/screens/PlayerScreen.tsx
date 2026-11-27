@@ -1,3 +1,4 @@
+import { PlayerTalk } from './Talks';
 import DevelopmentChart from './DevelopmentChart';
 import { useState } from 'react';
 import { FD } from '../ds';
@@ -81,6 +82,7 @@ export default function PlayerScreen({ g, id, go, act, update }: { g: GameState;
           </section>
         );
       })()}
+      {mine && !ours ? <PlayerTalk g={g} p={p} update={update} /> : null}
       {mine ? <DevelopmentChart p={p} /> : null}
       <section className="pg-card intl-line">
         <h2 className="pg-h" style={{ margin: 0 }}>Personality</h2>

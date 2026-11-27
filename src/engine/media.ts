@@ -116,4 +116,4 @@ export function answer(s: GameState, messageId: string, option: number): string 
   return outcome;
 }
 
-function currentLeagueWeek(s: GameState) { return s.calendar[Math.min(s.matchday, s.calendar.length) - 1]?.week ?? 0; }
+export function currentLeagueWeek(s: GameState) { return s.calendar[Math.min(s.matchday, s.calendar.length) - 1]?.week ?? 0; }

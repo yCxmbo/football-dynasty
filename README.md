@@ -73,7 +73,8 @@ The game saves automatically in the browser (IndexedDB), and you can keep severa
 - **Coaching style:** pick one when you start (changeable once a season on the Career screen): *Attacking* (more chances, a little more conceded), *Defensive* (the reverse), *Youth developer* (players 21 and under develop 15% faster, better intakes), *Motivator* (team talks count 50% more, unhappy players recover sooner) or *Balanced*. It applies to your national team too.
 - **Manager career:**
   - The board's confidence carries over between seasons. Miss your target badly (or get relegated) and you're sacked at season end; a collapse mid-season can cost you the job before then.
-  - Out of work, you choose your next club from offers (smaller clubs, any country) or apply for vacancies: clubs that changed manager after their own poor season. Your chance depends on your reputation against the club's.
+  - Out of work, you choose your next club from offers (smaller clubs, any country) or apply for vacancies: clubs without a manager. Your chance depends on your reputation against the club's and the best rival candidate's (shown with each vacancy), and clubs fill their jobs within a few weeks.
+  - **AI managers:** every other club has a named manager with a rating (a small edge in matches), a reputation (1–100), a record and trophies. Clubs far below target sack theirs, from a third of the way into the season and again in the summer; they appoint the best manager out of work, or poach one doing well at a clearly smaller club, which opens that job in turn. Old managers retire and new ones come through. The Career screen ranks the world's top managers with you among them, and the inbox reports sackings and appointments in your league and at the biggest clubs.
   - A good season brings offers from bigger clubs. You can also resign.
   - Moving abroad works too: the new club gets an academy, and your career record lists every club with its seasons, results and trophies (Career screen).
 - **Team talks, press and morale:**
@@ -151,6 +152,7 @@ src/
     awards.ts      end-of-season awards
     achievements.ts career milestones and when they unlock
     career.ts      board confidence, the sack, offers, vacancies, moving clubs
+    managers.ts    AI managers: hiring, sacking, poaching, retirement
     summer.ts      the live tournament summer: pausing at your matches, resuming after a reload
     nationaljob.ts managing a national team: reputation, offers, squad selection
     international.ts national squads, World Cup / Euro / Copa América: qualification, draw, groups, knockouts

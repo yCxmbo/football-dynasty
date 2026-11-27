@@ -1,4 +1,4 @@
-import { noteJoined } from './index';
+import { noteJoined, squadOf } from './index';
 import { scoutPerMatchday } from './staff';
 import { afterTransfer } from './achievements';
 import { recordTransfer } from './records';
@@ -57,8 +57,7 @@ export function seenRange(value: number, knowledge: number, floor = 1) {
 
 /** Rank by ability among the club's first team (1 = best). */
 function rankAt(s: GameState, p: Player, clubId: string) {
-  const ft = Object.values(s.players).filter((x) => x.clubId === clubId && x.squad === 'First team' && x.id !== p.id).map((x) => x.ability);
-  return 1 + ft.filter((a) => a > p.ability).length;
+  return 1 + squadOf(s, clubId).filter((x) => x.squad === 'First team' && x.id !== p.id && x.ability > p.ability).length;
 }
 
 /** The role the player expects at the user's club. */

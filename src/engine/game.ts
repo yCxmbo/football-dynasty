@@ -1,3 +1,4 @@
+import { managerBoost, managerOf, managers, managersAfterSeason, midSeasonSackings, weeklyAppointments } from './managers';
 import { awardPremium, awardsMessage, seasonAwards } from './awards';
 import { formatDate } from './fixtures';
 import { available, fitFor, pickLineup, slotsOf, type Formation, type MatchMods } from './match';
@@ -16,7 +17,7 @@ import { finishBuilding, trainingFacilityBoost, youthFacilityBonus } from './fac
 import { pressAfterMatch, weeklyMood } from './media';
 import { developmentBoost, initStaff, injuryLengthFactor, moraleRecoveryChance, recoveryBonus, refreshPool, youthPotentialBonus } from './staff';
 import { career, makeOffers, midSeasonVerdict, seasonVerdict, vacanciesAfterSeason } from './career';
-import { NATION, nationCode } from './nations';
+import { NATION, nationCode, nationName } from './nations';
 import { reserveNames } from './namepools';
 import { createRng } from './rng';
 import { makePlayer, valueFor, wageFor, SQUAD_TEMPLATE } from './world';
@@ -59,6 +60,7 @@ export function newGame(opts: NewGameOpts): GameState {
   state.lineup = pickLineup(squadOf(state, opts.userClubId));
   career(state);
   initStaff(state, rng);
+  managers(state);
   if (opts.style) state.managerStyle = opts.style;
   makeFriendlyOffers(state, rng);
   for (const p of Object.values(players)) p.caStart = p.ability;
@@ -171,6 +173,17 @@ function benchFor(state: GameState, clubId: string, xi: Player[]) {
   return firstTeam(state, clubId).filter((p) => !ids.has(p.id) && available(p)).sort((a, b) => b.ability - a.ability).slice(0, clubId === state.userClubId ? 12 : 9);
 }
 
+/** Inbox news of sackings and appointments, for clubs in your league and the biggest clubs. */
+function managerNews(state: GameState, sacked: string[], appointed: Array<{ clubId: string; from?: string; mgr: { name: string; nation: string; rep: number } }>) {
+  const us = state.clubs[state.userClubId];
+  const near = (id: string) => state.clubs[id] && (state.clubs[id].league === us.league || state.clubs[id].reputation >= 82);
+  for (const id of sacked.filter(near)) addMessage(state, { category: 'media', from: 'Football news', subject: `${state.clubs[id].name} sack their manager`, body: [
+    `${state.clubs[id].name} have parted company with their manager after a poor run. The job is open: apply on the Career screen if you want it.`] });
+  for (const { clubId, mgr, from } of appointed.filter((x) => near(x.clubId) || (x.from && near(x.from)))) addMessage(state, { category: 'media', from: 'Football news', subject: `${mgr.name} takes over at ${state.clubs[clubId].name}`, body: [
+    from ? `${state.clubs[clubId].name} have lured ${mgr.name} (${nationName(mgr.nation)}) away from ${state.clubs[from]?.name}, who are now looking for a manager.`
+      : `${state.clubs[clubId].name} have appointed ${mgr.name} (${nationName(mgr.nation)}) as their new manager.`] });
+}
+
 function setupFor(state: GameState, f: Fixture) {
   const te = effects(state.training);
   const uh = f.homeId === state.userClubId, ua = f.awayId === state.userClubId;
@@ -179,7 +192,7 @@ function setupFor(state: GameState, f: Fixture) {
   const tilt = { ...styleTilt(state), talk: talkMultiplier(state) };
   const sharp = sharpness(state, state.calendar[f.matchday - 1]?.week ?? 0);
   const derby = derbyName(state, f.homeId, f.awayId);
-  const mods: MatchMods = { derby, homeBoost: uh ? te.matchBoost * sharp : 1, awayBoost: ua ? te.matchBoost * sharp : 1, homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1, neutral: f.neutral, knockout: f.ko };
+  const mods: MatchMods = { derby, homeBoost: uh ? te.matchBoost * sharp : managerBoost(state, f.homeId), awayBoost: ua ? te.matchBoost * sharp : managerBoost(state, f.awayId), homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1, neutral: f.neutral, knockout: f.ko };
   return {
     home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: (uh ? state.formation : '4-3-3') as Formation, name: H.name, user: uh, ...(uh ? { tilt } : {}) },
     away: { xi: ax, bench: benchFor(state, f.awayId, ax), formation: (ua ? state.formation : '4-3-3') as Formation, name: A.name, user: ua, ...(ua ? { tilt } : {}) },
@@ -269,6 +282,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     }
     if (slot.week === state.leagueWeeks) setupPlayoffs(state);
     // a board that has lost all faith acts before the season is out
+    if (slot.week % 4 === 0) managerNews(state, midSeasonSackings(state, rng, slot.week, (id) => boardTarget(state, id)), []);
     if (slot.week % 4 === 0 && state.clubs[state.userClubId].league && midSeasonVerdict(state, boardTarget(state, state.userClubId), slot.week)) {
       const c = career(state);
       c.sacked = true;
@@ -284,6 +298,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     scoutingTick(state);
     payInstallments(state);
     aiBids(state, state.rngState ^ (state.matchday * 104729));
+    managerNews(state, [], weeklyAppointments(state, createRng((state.rngState ^ (state.matchday * 0x9e37)) >>> 0)));
     const week = currentWeek(state);
     const win = windows(state);
     if (week >= win.januaryFrom && slot.week < win.januaryFrom) januaryReminder(state);
@@ -430,13 +445,17 @@ function rollover(state: GameState) {
   {
     const c = career(state);
     const us = state.clubs[state.userClubId];
+    const vac = vacanciesAfterSeason(state, rng, (id) => boardTarget(state, id));
+    managersAfterSeason(state, rng, vac, honours, (id) => boardTarget(state, id));
+    // every club without a manager now: this summer's sackings, retirements and jobs still open
+    const open = Object.keys(state.clubs).filter((id) => id !== us.id && state.clubs[id].league && !managerOf(state, id));
     if (us.league) {
       const target = boardTarget(state, us.id);
       const t = leagueTableOf(state, us.league);
       const pos = t.findIndex((r) => r.clubId === us.id) + 1;
       const won = Object.values(state.comps).filter((x) => x.kind !== 'league' && x.kind !== 'playoff' && state.cups[x.id]?.winner === us.id).length;
       const sacked = seasonVerdict(state, target, { pos, champion: pos === 1, promoted: moves[us.id]?.dir === 'promoted', relegated: moves[us.id]?.dir === 'relegated', trophies: won });
-      c.vacancies = vacanciesAfterSeason(state, rng, (id) => boardTarget(state, id));
+      c.vacancies = open;
       c.offers = sacked ? makeOffers(state, rng, c.vacancies, 'sacked') : c.trust >= 60 ? makeOffers(state, rng, c.vacancies, 'good') : [];
       if (sacked) {
         c.sacked = true;
@@ -529,7 +548,13 @@ function rollover(state: GameState) {
   state.year++;
   aiTransfers(state, rng);
   pruneFreeAgents(state);
-  for (const c of Object.values(state.clubs)) refillSquad(state, rng, c);
+  {
+    // free agents by position, best first: built once (scanning every player per gap was slow)
+    const fas = new Map<string, Player[]>();
+    for (const p of Object.values(state.players)) if (p.clubId === FREE_AGENT && p.age <= 33) { const l = fas.get(p.pos); if (l) l.push(p); else fas.set(p.pos, [p]); }
+    for (const l of fas.values()) l.sort((a, b) => b.ability - a.ability);
+    for (const c of Object.values(state.clubs)) refillSquad(state, rng, c, fas);
+  }
   youthIntake(state, rng);
   refreshPool(state, rng);
   state.preseason = 0; state.friendlyFees = {};
@@ -590,7 +615,7 @@ export function develop(rng: ReturnType<typeof createRng>, p: Player, apps: numb
   if (p.ability > p.potential) p.potential = p.ability;
 }
 
-function refillSquad(state: GameState, rng: ReturnType<typeof createRng>, c: Club) {
+function refillSquad(state: GameState, rng: ReturnType<typeof createRng>, c: Club, fas: Map<string, Player[]>) {
   const ft = firstTeam(state, c.id);
   const need: Record<string, number> = {};
   for (const pos of SQUAD_TEMPLATE) need[pos] = (need[pos] ?? 0) + 1;
@@ -601,8 +626,10 @@ function refillSquad(state: GameState, rng: ReturnType<typeof createRng>, c: Clu
       const youth = squadOf(state, c.id).filter((p) => p.squad !== 'First team' && p.pos === pos).sort((a, b) => b.ability - a.ability)[0];
       if (youth && c.id !== state.userClubId && youth.age >= 18) { promote(state, youth.id, false); continue; }
       const level = 60 + c.reputation * 1.1;
-      const fa = Object.values(state.players).filter((p) => p.clubId === FREE_AGENT && p.pos === pos && p.ability >= level - 25 && p.age <= 33).sort((a, b) => b.ability - a.ability)[0];
-      if (fa && c.id !== state.userClubId) {
+      const list = fas.get(pos) ?? [];
+      const at = c.id !== state.userClubId ? list.findIndex((p) => p.clubId === FREE_AGENT && p.ability >= level - 25) : -1;
+      const fa = at >= 0 ? list.splice(at, 1)[0] : undefined;
+      if (fa) {
         Object.assign(fa, { clubId: c.id, number: freeNumber(state, c.id), wage: wageFor(fa.ability, c.reputation), contractEnd: state.year + 2, joined: state.year });
         continue;
       }
@@ -722,6 +749,7 @@ export function migrate(state: GameState): GameState {
   state.training ??= defaultTraining(); state.ledger ??= emptyLedger(); state.autoRotate ??= true;
   career(state);
   if (!state.staff) initStaff(state, createRng(state.rngState ^ 0x5eed));
+  managers(state);
   return state;
 }
 

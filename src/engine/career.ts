@@ -9,6 +9,7 @@ import { clamp, type Position } from './ratings';
 import type { GameState, Squad } from './types';
 import { makePlayer } from './world';
 import { initStaff } from './staff';
+import { favouriteFor, userTakesOver } from './managers';
 
 export interface ClubSpell { clubId: string; club: string; from: number; to?: number; w: number; d: number; l: number; trophies: number; left?: 'sacked' | 'resigned' | 'moved'; start: { w: number; d: number; l: number; trophies: number } }
 export interface CareerState {
@@ -97,8 +98,12 @@ export function makeOffers(s: GameState, rng: Rng, vacancies: string[], mode: 'g
   return picked.map((c) => ({ clubId: c.id, note: mode === 'sacked' ? `${c.name} would give you a fresh start.` : `${c.name} want you as their new manager.` }));
 }
 
-/** The chance a club appoints you when you apply: your reputation against theirs. */
-export const applyChance = (s: GameState, clubId: string) => clamp((managerReputation(s) - s.clubs[clubId].reputation + 14) / 28, 0.05, 0.95);
+/** The chance a club appoints you when you apply: your reputation against the club's and the best rival candidate's. */
+export const applyChance = (s: GameState, clubId: string) => {
+  const rival = favouriteFor(s, clubId);
+  const bar = Math.max(s.clubs[clubId].reputation, (rival?.rep ?? 0) - 4);
+  return clamp((managerReputation(s) - bar + 14) / 28, 0.05, 0.95);
+};
 
 /** Applies for a vacancy; the club answers at once. Returns true if appointed. */
 export function applyFor(s: GameState, rng: Rng, clubId: string) {
@@ -122,6 +127,7 @@ export function moveTo(s: GameState, rng: Rng, clubId: string, left: ClubSpell['
   c.trust = 65; c.sacked = false;
   c.offers = []; // offers lapse once you take a job
   c.vacancies = c.vacancies.filter((id) => id !== clubId);
+  userTakesOver(s, s.userClubId, clubId);
   s.userClubId = clubId;
   s.world.userCountry = club.country;
   // things that belonged to the old job

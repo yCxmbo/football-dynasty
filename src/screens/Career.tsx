@@ -5,6 +5,8 @@ import { boardTarget } from '../engine/game';
 import { ACHIEVEMENTS } from '../engine/achievements';
 import { STYLES, setStyle, styleOf } from '../engine/style';
 import { managerReputation } from '../engine/nationaljob';
+import { favouriteFor, topManagers } from '../engine/managers';
+import { nationName } from '../engine/nations';
 import { seasonLabel, type GameState } from '../engine/types';
 import { badgeUrl } from './badge';
 import type { Screen } from './shared';
@@ -98,7 +100,7 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
 
       <section className="pg-card">
         <h2 className="pg-h">Vacancies</h2>
-        <p className="hm-note" style={{ marginTop: 0 }}>Clubs that changed manager after last season. You can apply once to each; the club answers straight away.</p>
+        <p className="hm-note" style={{ marginTop: 0 }}>Clubs without a manager. You can apply once to each and the club answers straight away, weighing you against the best manager out of work. Clubs fill their jobs within a few weeks, so don't wait too long.</p>
         {note && <p className="fd-warn" role="status">{note}</p>}
         {vacancies.length ? (
           <table className="fd-mini"><tbody>
@@ -110,6 +112,7 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
                   <td><ClubCell g={g} id={id} /></td>
                   <td className="fd-muted">{line.league} · {line.country}</td>
                   <td><FD.StarRating value={stars(line.reputation)} size={13} /></td>
+                  <td className="fd-muted">{(() => { const f = favouriteFor(g, id); return f ? <>Rival: {f.name} <span title="Reputation">({f.rep})</span></> : 'No strong rival'; })()}</td>
                   <td className="fd-muted">{p >= 0.7 ? 'Good chance' : p >= 0.35 ? 'Possible' : 'Long shot'}</td>
                   <td style={{ textAlign: 'right' }}><FD.Button variant="secondary" onClick={() => apply(id)}>Apply</FD.Button></td>
                 </tr>
@@ -146,6 +149,8 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
           {g.manager.awards.map((x, i) => <span key={i} className="aw-chip aw-chip--gold">{x}</span>)}
         </section>
       ) : null}
+      <Managers g={g} rep={rep} />
+
       <section className="pg-card">
         <h2 className="pg-h">Clubs managed</h2>
         <table className="fd-mini"><thead><tr><th>Club</th><th>Seasons</th><th className="fd-num">W</th><th className="fd-num">D</th><th className="fd-num">L</th><th className="fd-num">Trophies</th><th>Left</th></tr></thead><tbody>
@@ -164,5 +169,41 @@ export default function Career({ g, go, update }: { g: GameState; go: (s: Screen
         </tbody></table>
       </section>
     </div>
+  );
+}
+
+/** The world's best managers by reputation, with you placed among them. */
+function Managers({ g, rep }: { g: GameState; rep: number }) {
+  const [all, setAll] = useState(false);
+  const list = topManagers(g, all ? 50 : 12);
+  const you = { you: true as const, rep };
+  const rows: Array<typeof you | ReturnType<typeof topManagers>[number]> = [...list];
+  const at = rows.findIndex((x) => x.rep < rep);
+  if (at >= 0) rows.splice(at, 0, you); else if (all) rows.push(you);
+  const free = Object.values(g.managers?.all ?? {}).filter((m) => !m.clubId).length;
+  return (
+    <section className="pg-card">
+      <h2 className="pg-h">The world's top managers</h2>
+      <p className="hm-note" style={{ marginTop: 0 }}>Ranked by reputation (1–100), which decides who gets the big jobs. {free} managers are out of work.</p>
+      <div className="mg-scroll">
+        <table className="fd-mini"><thead><tr><th className="fd-num">#</th><th>Manager</th><th>Club</th><th className="fd-num">Age</th><th className="fd-num">W-D-L</th><th className="fd-num">Trophies</th><th className="fd-num">Rep</th></tr></thead><tbody>
+          {rows.map((m, i) => 'you' in m ? (
+            <tr key="you"><td className="fd-num fd-muted">{i + 1}</td><td><strong className="fd-gold">{g.managerName} (you)</strong></td><td>{g.clubs[g.userClubId].name}</td><td className="fd-num">—</td>
+              <td className="fd-num">{g.manager.w}-{g.manager.d}-{g.manager.l}</td><td className="fd-num">{g.manager.trophies.length}</td><td className="fd-num"><strong>{m.rep}</strong></td></tr>
+          ) : (
+            <tr key={m.id} title={m.trophies.slice(0, 6).join(', ')}>
+              <td className="fd-num fd-muted">{i + 1}</td>
+              <td>{m.name} <span className="fd-muted">· {nationName(m.nation)}</span></td>
+              <td>{m.clubId ? g.clubs[m.clubId]?.name : <span className="fd-muted">Out of work</span>}</td>
+              <td className="fd-num">{m.age}</td>
+              <td className="fd-num">{m.w}-{m.d}-{m.l}</td>
+              <td className="fd-num">{m.trophies.length}</td>
+              <td className="fd-num">{m.rep}</td>
+            </tr>
+          ))}
+        </tbody></table>
+      </div>
+      <FD.Button size="sm" variant="secondary" onClick={() => setAll((v) => !v)}>{all ? 'Show fewer' : 'Show top 50'}</FD.Button>
+    </section>
   );
 }

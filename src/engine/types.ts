@@ -184,6 +184,8 @@ export interface GameState {
   derbyWins?: number;
   /** End-of-season awards: the latest season in full, and every Golden Ball and Golden Boy. */
   awards?: import('./awards').Awards;
+  /** AI managers: every other club's, and those out of work. */
+  managers?: import('./managers').ManagersState;
   /** All-time records across the world. */
   records?: import('./records').Records;
   /** Achievements unlocked, with the season. */

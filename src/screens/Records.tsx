@@ -76,7 +76,7 @@ function Awards({ g }: { g: GameState }) {
       </div>
       {a.boy ? <p className="hm-note" style={{ margin: 0 }}>Golden Boy {a.season}: {who(a.boy)}, aged {a.boy.age}, average rating {a.boy.rating.toFixed(2)}.</p> : null}
       <Table title={`League awards ${a.season}`} head={['League', 'Player of the Season', 'Young Player', 'Manager', 'Top scorer']} empty="No top flights."
-        rows={a.leagues.map((l) => [l.league, who(l.pots), who(l.young), l.manager ? (l.manager.you ? <strong className="fd-gold">{l.manager.name} · {l.manager.club}</strong> : <span>{l.manager.club} <span className="fd-muted">· {ordinal(l.manager.pos)}, expected {ordinal(l.manager.expected)}</span></span>) : '—', l.scorer ? <>{who(l.scorer)} <span className="fd-num">{l.scorer.goals}</span></> : '—'])} />
+        rows={a.leagues.map((l) => [l.league, who(l.pots), who(l.young), l.manager ? (l.manager.you ? <strong className="fd-gold">{l.manager.name} · {l.manager.club}</strong> : <span>{l.manager.name.endsWith(' manager') ? l.manager.club : <>{l.manager.name} <span className="fd-muted">· {l.manager.club}</span></>} <span className="fd-muted">· {ordinal(l.manager.pos)}, expected {ordinal(l.manager.expected)}</span></span>) : '—', l.scorer ? <>{who(l.scorer)} <span className="fd-num">{l.scorer.goals}</span></> : '—'])} />
       {league ? (
         <section className="pg-card">
           <div className="aw-head">

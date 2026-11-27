@@ -228,3 +228,4 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .aw-chip--gold { border-color: var(--gold); color: var(--gold-ink); }
 .aw-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-2); }
 .aw-select { max-width: 100%; width: auto; }
+.mg-scroll { overflow-x: auto; margin-bottom: var(--space-2); }

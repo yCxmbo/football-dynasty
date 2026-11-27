@@ -4,6 +4,7 @@
 import { leagueTableOf } from './competitions';
 import type { GameState, Player } from './types';
 import { unlock } from './achievements';
+import { managerOf } from './managers';
 
 export interface AwardWinner { id: string; name: string; club: string; clubId: string; nation: string; age: number; pos: string; apps: number; goals: number; rating: number }
 /** Manager of the Season: the club whose manager did most with what he had (you, if `you`). */
@@ -71,7 +72,7 @@ export function seasonAwards(s: GameState, season: string): SeasonAwards {
     const best = table.map((r, i) => ({ id: r.clubId, pos: i + 1, exp: expected.get(r.clubId)!, score: (expected.get(r.clubId)! - (i + 1)) * 0.6 + (cups[r.clubId] ?? 0) + (i === 0 ? 2.5 : 0) + (table.length - i) * 0.02 }))
       .sort((x, y) => y.score - x.score)[0];
     const you = best?.id === s.userClubId;
-    const manager = best && { clubId: best.id, club: s.clubs[best.id]?.name ?? '?', you, name: you ? s.managerName : `${s.clubs[best.id]?.name ?? '?'} manager`, pos: best.pos, expected: best.exp };
+    const manager = best && { clubId: best.id, club: s.clubs[best.id]?.name ?? '?', you, name: you ? s.managerName : managerOf(s, best.id)?.name ?? `${s.clubs[best.id]?.name ?? '?'} manager`, pos: best.pos, expected: best.exp };
     leagues.push({ leagueId: l.id, league: l.name, pots: regular[0] && winner(s, regular[0]), young: young && winner(s, young), scorer: scorer && winner(s, scorer), team, manager });
   }
   pool.sort((a, b) => b.score - a.score);
@@ -126,7 +127,7 @@ export function awardsMessage(s: GameState, a: SeasonAwards): string[] {
     if (mine.young) lines.push(`Young Player of the Season: ${who(mine.young)}.`);
     if (mine.scorer) lines.push(`Top scorer: ${who(mine.scorer)} with ${mine.scorer.goals} goals.`);
     if (mine.manager) lines.push(mine.manager.you ? `Manager of the Season: you! ${mine.manager.club} finished ${ord(mine.manager.pos)} with a squad expected to finish ${ord(mine.manager.expected)}. The board's trust in you grows.`
-      : `Manager of the Season: the ${mine.manager.club} manager (${ord(mine.manager.pos)}, expected ${ord(mine.manager.expected)}).`);
+      : `Manager of the Season: ${mine.manager.name} of ${mine.manager.club} (${ord(mine.manager.pos)}, expected ${ord(mine.manager.expected)}).`);
   }
   const ours = new Map<string, string[]>();
   const add = (w: AwardWinner | undefined, t: string) => { if (w?.clubId === us) ours.set(w.name, [...(ours.get(w.name) ?? []), t]); };

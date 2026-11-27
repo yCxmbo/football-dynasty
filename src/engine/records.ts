@@ -8,14 +8,21 @@ export interface Records {
   seasons: Array<{ name: string; club: string; goals: number; season: string }>;
   points: Array<{ club: string; league: string; pts: number; season: string }>;
   transfers: Array<{ name: string; from: string; to: string; fee: number; season: string }>;
+  /** Recent deals worldwide (from 1M), newest first, for the transfer news. */
+  deals?: DealLine[];
 }
+export interface DealLine { name: string; from: string; to: string; fee: number; season: string; playerId?: string; fromId?: string; toId?: string; rumoured?: boolean }
 
 const records = (s: GameState): Records => (s.records ??= { scorers: [], seasons: [], points: [], transfers: [] });
 const top = <T,>(list: T[], by: (x: T) => number, n: number) => list.sort((a, b) => by(b) - by(a)).slice(0, n);
 
-export function recordTransfer(s: GameState, name: string, from: string, to: string, fee: number, season: string) {
-  if (fee < 5_000_000) return;
+export function recordTransfer(s: GameState, name: string, from: string, to: string, fee: number, season: string, extra: Partial<DealLine> = {}) {
   const r = records(s);
+  if (fee >= 1_000_000) {
+    (r.deals ??= []).unshift({ name, from, to, fee, season, ...extra });
+    if (r.deals.length > 300) r.deals.length = 300;
+  }
+  if (fee < 5_000_000) return;
   r.transfers = top([...r.transfers, { name, from, to, fee, season }], (x) => x.fee, 15);
 }
 

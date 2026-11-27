@@ -234,3 +234,9 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .pg-link.club-cell, .pg-link.club-name { text-decoration: none; color: inherit; font: inherit; }
 .pg-link.club-cell:hover, .pg-link.club-name:hover { text-decoration: underline; }
 @media (max-width: 600px) { .cs-results td:last-child { display: none; } }
+.heat { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; border: 1px solid var(--line); }
+.heat--2 { border-color: var(--warn, #e0a030); }
+.heat--3 { border-color: var(--gold); color: var(--gold-ink); }
+.heat { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; border: 1px solid var(--line); white-space: nowrap; }
+.heat--2 { border-color: var(--warn, #e0a030); }
+.heat--3 { border-color: var(--gold); color: var(--gold-ink); }

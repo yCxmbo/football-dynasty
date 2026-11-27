@@ -1,3 +1,4 @@
+import { makeRumours, runMarket } from './market';
 import { managerBoost, managerOf, managers, managersAfterSeason, midSeasonSackings, weeklyAppointments } from './managers';
 import { awardPremium, awardsMessage, seasonAwards } from './awards';
 import { formatDate } from './fixtures';
@@ -184,6 +185,33 @@ function managerNews(state: GameState, sacked: string[], appointed: Array<{ club
       : `${state.clubs[clubId].name} have appointed ${mgr.name} (${nationName(mgr.nation)}) as their new manager.`] });
 }
 
+/** The rumour mill: the hottest links, those in your league, and any about your players. */
+function rumourNews(state: GameState, list: import('./market').Rumour[], window: 'Summer' | 'January') {
+  if (!list.length) return;
+  const us = state.clubs[state.userClubId];
+  const ours = list.filter((r) => r.fromId === us.id);
+  const near = list.filter((r) => r.fromId !== us.id && (state.clubs[r.toId]?.league === us.league || state.clubs[r.fromId]?.league === us.league));
+  const hot = list.filter((r) => !ours.includes(r) && !near.includes(r)).sort((a, b) => b.heat - a.heat).slice(0, 5);
+  const line = (r: import('./market').Rumour) => `${r.name} (${state.clubs[r.fromId]?.name}) to ${state.clubs[r.toId]?.name}${r.heat === 3 ? ': close to a deal' : r.heat === 2 ? ': talks under way' : ': early interest'}.`;
+  addMessage(state, { category: 'transfers', from: 'Transfer rumours', subject: ours.length ? `${state.clubs[ours[0].toId]?.name} want ${ours[0].name}` : `Rumour mill: ${list.length} names linked before the ${window === 'January' ? 'January' : 'summer'} window`, body: [
+    ...ours.map((r) => `${line(r)} Expect a bid when the window opens.`), ...near.map(line), ...hot.map(line),
+    'All the rumours are under Transfer news on the Transfers screen.'] });
+}
+
+/** After a window: the biggest deals, and those in your league. */
+function marketNews(state: GameState, window: 'Summer' | 'January', ids: string[]) {
+  const deals = (state.records?.deals ?? []).filter((d) => d.playerId && ids.includes(d.playerId));
+  if (!deals.length) return;
+  const us = state.clubs[state.userClubId];
+  const inLeague = deals.filter((d) => state.clubs[d.toId!]?.league === us.league || state.clubs[d.fromId!]?.league === us.league);
+  const top = deals.slice().sort((a, b) => b.fee - a.fee).slice(0, 5);
+  const m = (n: number) => `${Math.round(n / 1e5) / 10}M`;
+  const line = (d: (typeof deals)[number]) => `${d.name}: ${d.from} to ${d.to}, ${m(d.fee)}${d.rumoured ? ' (as rumoured)' : ''}.`;
+  addMessage(state, { category: 'transfers', from: 'Transfer news', subject: `${window} window: ${deals.length} deals, led by ${top[0].name} (${m(top[0].fee)})`, body: [
+    'Biggest deals:', ...top.map(line), ...(inLeague.length ? ['In our league:', ...inLeague.filter((d) => !top.includes(d)).slice(0, 8).map(line)] : []),
+    'See every deal under Transfer news on the Transfers screen.'] });
+}
+
 function setupFor(state: GameState, f: Fixture) {
   const te = effects(state.training);
   const uh = f.homeId === state.userClubId, ua = f.awayId === state.userClubId;
@@ -301,6 +329,9 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     managerNews(state, [], weeklyAppointments(state, createRng((state.rngState ^ (state.matchday * 0x9e37)) >>> 0)));
     const week = currentWeek(state);
     const win = windows(state);
+    if (slot.week === win.januaryFrom - 3) rumourNews(state, makeRumours(state, createRng((state.rngState ^ 0x72756d) >>> 0), 'January'), 'January');
+    if (slot.week === state.leagueWeeks - 4) rumourNews(state, makeRumours(state, createRng((state.rngState ^ 0x72756e) >>> 0), 'Summer'), 'Summer');
+    if (slot.week === win.januaryTo) marketNews(state, 'January', runMarket(state, createRng((state.rngState ^ 0x6a616e) >>> 0), 'January', seasonLabel(state.year)).map((p) => p.id));
     if (week >= win.januaryFrom && slot.week < win.januaryFrom) januaryReminder(state);
     if (slot.week === win.summerUntil || slot.week === win.januaryTo) state.negotiations = {};
   }
@@ -546,7 +577,9 @@ function rollover(state: GameState) {
   const userMove = moves[state.userClubId]?.dir;
 
   state.year++;
+  const summerDeals = runMarket(state, rng, 'Summer', seasonLabel(state.year));
   aiTransfers(state, rng);
+  marketNews(state, 'Summer', summerDeals.map((p) => p.id));
   pruneFreeAgents(state);
   {
     // free agents by position, best first: built once (scanning every player per gap was slow)
@@ -657,7 +690,7 @@ function aiTransfers(state: GameState, rng: ReturnType<typeof createRng>) {
       const buyer = rng.pick(abroad);
       c.balance += star.value; c.transferBudget += Math.round(star.value * 0.5);
       Object.assign(star, { clubId: buyer.id, number: freeNumber(state, buyer.id), captain: false, joined: state.year });
-      recordTransfer(state, star.name, c.name, buyer.name, star.value, seasonLabel(state.year));
+      recordTransfer(state, star.name, c.name, buyer.name, star.value, seasonLabel(state.year), { playerId: star.id, fromId: c.id, toId: buyer.id });
       continue;
     }
     let spend = (c.balance - reserve) * 0.5;

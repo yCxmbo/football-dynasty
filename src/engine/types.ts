@@ -186,6 +186,8 @@ export interface GameState {
   awards?: import('./awards').Awards;
   /** AI managers: every other club's, and those out of work. */
   managers?: import('./managers').ManagersState;
+  /** Transfer rumours before the next window. */
+  rumours?: import('./market').Rumour[];
   /** All-time records across the world. */
   records?: import('./records').Records;
   /** Achievements unlocked, with the season. */

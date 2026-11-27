@@ -1,3 +1,4 @@
+import { withSquadIndex } from '../engine/index';
 import { useMemo, useState } from 'react';
 import { FD } from '../ds';
 import { leagueScale } from '../engine/game';
@@ -52,22 +53,37 @@ export default function Transfers({ g, go, update }: { g: GameState; go: (s: Scr
   const [name, setName] = useState('');
   const results = useMemo(() => {
     const limit = fromCur(maxPrice, g.currency);
-    return Object.values(g.players)
+    // asking prices rank each player in his squad: the index keeps that fast across the whole world
+    return withSquadIndex(g, () => Object.values(g.players)
       .filter((p) => p.clubId !== g.userClubId && p.squad === 'First team')
       .filter((p) => (pos === 'All' || p.pos === pos) && p.age <= maxAge && (!freeOnly || p.clubId === FREE_AGENT))
       .filter((p) => !name || p.name.toLowerCase().includes(name.toLowerCase()))
       .filter((p) => askingPrice(g, p) <= limit)
       // sort by market value (public), not hidden ability, so unscouted players don't leak
       .sort((a, b) => b.value - a.value)
-      .slice(0, 40);
+      .slice(0, 40));
   }, [g, pos, maxAge, maxPrice, freeOnly, name]);
   const club = g.clubs[g.userClubId];
   const open = windowOpen(g);
+  const [view, setView] = useState<'market' | 'news'>('market');
+  const seg = (
+    <div className="fd-seg" role="tablist" aria-label="Transfers view">
+      {([['market', 'Market'], ['news', 'Transfer news']] as const).map(([k, l]) => (
+        <button key={k} type="button" role="tab" aria-selected={view === k} className={'fd-seg__opt' + (view === k ? ' is-on' : '')} onClick={() => setView(k)}>{l}</button>
+      ))}
+    </div>
+  );
+  if (view === 'news') return (
+    <div className="pg-stack">
+      <div className="pg-head" style={{ marginBottom: 0 }}><div><h1 className="pg-title">Transfers</h1><p className="pg-sub">Rumours before each window, and every deal from 1M.</p></div>{seg}</div>
+      <TransferNews g={g} go={go} />
+    </div>
+  );
   return (
     <div className="pg-stack">
       <div className="pg-head" style={{ marginBottom: 0 }}>
         <div><h1 className="pg-title">Transfers</h1><p className="pg-sub">Transfer budget <FD.Money amount={toCur(club.transferBudget, g.currency)} currency={g.currency} /> · Sorted by market value. Stars for other clubs' players are estimates until they're scouted.</p></div>
-        <FD.Button variant="secondary" icon="scouting" onClick={() => go('scouting')}>Shortlist and scouting</FD.Button>
+        <span className="pg-row">{seg}<FD.Button variant="secondary" icon="scouting" onClick={() => go('scouting')}>Shortlist and scouting</FD.Button></span>
       </div>
       <WindowBanner g={g} />
       <div className="tr-filters pg-card">
@@ -90,5 +106,52 @@ export default function Transfers({ g, go, update }: { g: GameState; go: (s: Scr
         </PlayerTable>
       ) : <div className="pg-card pg-empty">No players match these filters.</div>}
     </div>
+  );
+}
+
+const HEAT = ['', 'Early interest', 'Talks under way', 'Close to a deal'];
+
+/** Rumours for the next window and the latest deals worldwide (yours highlighted). */
+function TransferNews({ g, go }: { g: GameState; go: (s: Screen, id?: string) => void }) {
+  const rumours = (g.rumours ?? []).slice().sort((a, b) => b.heat - a.heat || (g.clubs[b.toId]?.reputation ?? 0) - (g.clubs[a.toId]?.reputation ?? 0));
+  const [local, setLocal] = useState(false);
+  const league = g.clubs[g.userClubId].league;
+  const inLeague = (id?: string) => !!id && g.clubs[id]?.league === league;
+  // newest season first, then the biggest fees
+  const deals = (g.records?.deals ?? []).filter((d) => !local || inLeague(d.fromId) || inLeague(d.toId))
+    .slice().sort((a, b) => b.season.localeCompare(a.season) || b.fee - a.fee);
+  const money = (n: number) => FD.formatMoney(toCur(n, g.currency), g.currency);
+  const clubLink = (id: string | undefined, name: string) => (id && g.clubs[id] ? <button type="button" className="pg-link club-name" onClick={() => go('club', id)}>{id === g.userClubId ? <strong className="fd-gold">{name}</strong> : name}</button> : name);
+  const playerLink = (id: string | undefined, name: string) => (id && g.players[id] ? <button type="button" className="pg-link club-name" onClick={() => go('player', id)}><strong>{name}</strong></button> : <strong>{name}</strong>);
+  return (
+    <>
+      <section className="pg-card">
+        <h2 className="pg-h">Rumours</h2>
+        {rumours.length ? (
+          <div className="mg-scroll"><table className="fd-mini"><thead><tr><th>Player</th><th>From</th><th>To</th><th>Window</th><th>Status</th></tr></thead><tbody>
+            {rumours.map((r) => (
+              <tr key={r.playerId + r.toId}>
+                <td>{playerLink(r.playerId, r.name)}</td><td>{clubLink(r.fromId, g.clubs[r.fromId]?.name ?? '?')}</td><td>{clubLink(r.toId, g.clubs[r.toId]?.name ?? '?')}</td>
+                <td className="fd-muted">{r.window}</td><td><span className={'heat heat--' + r.heat}>{HEAT[r.heat]}</span></td>
+              </tr>
+            ))}
+          </tbody></table></div>
+        ) : <p className="hm-note" style={{ margin: 0 }}>The rumour mill starts a few weeks before each window (before January, and late in the season for the summer).</p>}
+      </section>
+      <section className="pg-card">
+        <div className="aw-head"><h2 className="pg-h" style={{ margin: 0 }}>Latest deals</h2>
+          <label className="tr-check"><input type="checkbox" checked={local} onChange={(e) => setLocal(e.target.checked)} /> Your league only</label></div>
+        {deals.length ? (
+          <div className="mg-scroll"><table className="fd-mini"><thead><tr><th>Player</th><th>From</th><th>To</th><th>Season</th><th className="fd-num">Fee</th></tr></thead><tbody>
+            {deals.slice(0, 50).map((d, i) => (
+              <tr key={i}>
+                <td>{playerLink(d.playerId, d.name)}{d.rumoured ? <span className="fd-muted"> · as rumoured</span> : null}</td>
+                <td>{clubLink(d.fromId, d.from)}</td><td>{clubLink(d.toId, d.to)}</td><td className="fd-muted">{d.season}</td><td className="fd-num">{money(d.fee)}</td>
+              </tr>
+            ))}
+          </tbody></table></div>
+        ) : <p className="hm-note" style={{ margin: 0 }}>No deals yet. The big ones happen in the summer and in January.</p>}
+      </section>
+    </>
   );
 }

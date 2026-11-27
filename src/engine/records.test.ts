@@ -12,6 +12,8 @@ describe('world records', () => {
     expect(r.points[0].pts).toBeGreaterThanOrEqual(r.points[r.points.length - 1].pts);
     expect(r.seasons.length).toBeGreaterThan(0);
     expect(titleCounts(s, 'league').length).toBeGreaterThan(0);
+    expect(r.transfers.length).toBeGreaterThan(0); // the summer's market between AI clubs
+    r.transfers = [];
     for (let i = 0; i < 20; i++) recordTransfer(s, `P${i}`, 'A', 'B', (i + 5) * 1_000_000, '2026/27');
     expect(r.transfers.length).toBe(15);
     expect(s.records!.transfers[0].fee).toBe(24_000_000);

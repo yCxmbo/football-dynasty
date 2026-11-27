@@ -1,4 +1,5 @@
 import { noteJoined, squadOf } from './index';
+import { marketFee } from './market';
 import { scoutPerMatchday } from './staff';
 import { afterTransfer } from './achievements';
 import { recordTransfer } from './records';
@@ -174,7 +175,7 @@ export function completeTransfer(s: GameState, p: Player, o: OfferTerms) {
   const from = p.clubId;
   const upfront = Math.round((o.fee * o.upfront) / 100);
   afterTransfer(s, o.fee, false);
-  recordTransfer(s, p.name, s.clubs[p.clubId]?.name ?? 'Free agent', s.clubs[s.userClubId].name, o.fee, seasonLabel(s.year));
+  recordTransfer(s, p.name, s.clubs[p.clubId]?.name ?? 'Free agent', s.clubs[s.userClubId].name, o.fee, seasonLabel(s.year), { playerId: p.id, fromId: p.clubId, toId: s.userClubId });
   club.transferBudget -= upfront + o.signingBonus + o.agentFee;
   club.balance -= upfront + o.signingBonus + o.agentFee;
   if (s.ledger) s.ledger.expenses.transfers += upfront + o.signingBonus + o.agentFee;
@@ -204,9 +205,23 @@ export function toggleTransferList(s: GameState, playerId: string) {
 export function aiBids(s: GameState, seed: number) {
   if (!windowOpen(s)) {
     for (const b of s.bids) if (b.status === 'open') b.status = 'expired';
+    // rumours about your players whose window has passed go quiet
+    const w = currentWeek(s), win = windows(s);
+    if (s.rumours) s.rumours = s.rumours.filter((r) => r.fromId !== s.userClubId || (r.window === 'January' ? w < win.januaryFrom : w > win.januaryTo));
     return;
   }
   const rng = createRng(seed);
+  // a rumoured interest in one of your players becomes a bid
+  for (const r of (s.rumours ?? []).filter((x) => x.fromId === s.userClubId)) {
+    const p = s.players[r.playerId], c = s.clubs[r.toId];
+    if (!p || !c || p.clubId !== s.userClubId) { s.rumours = s.rumours!.filter((x) => x !== r); continue; }
+    if (!rng.chance(0.3 + r.heat * 0.15) || s.bids.some((b) => b.playerId === p.id && b.status === 'open')) continue;
+    const fee = Math.round((marketFee(s, p) * (0.95 + rng.next() * 0.3)) / 100000) * 100000;
+    const bid: Bid = { id: `b${s.nextId++}`, playerId: p.id, fromClubId: c.id, fee, status: 'open' };
+    s.bids.push(bid);
+    s.rumours = s.rumours!.filter((x) => x !== r);
+    inbox(s, { category: 'transfers', from: c.name, role: 'Sporting director', subject: `Bid for ${p.name}: ${Math.round(fee / 1e5) / 10}M`, body: [`The rumours were true: ${c.name} offer ${Math.round(fee / 1e5) / 10}M for ${p.name}. His value is about ${Math.round(p.value / 1e5) / 10}M.`, 'The offer stands until the transfer window closes.'], bidId: bid.id, playerId: p.id });
+  }
   triggerClauses(s, rng);
   if (currentWeek(s) >= windows(s).januaryFrom) preContracts(s, rng);
   const mine = userSquad(s).filter((p) => p.squad === 'First team' && !p.loan && !s.bids.some((b) => b.playerId === p.id && b.status === 'open'));
@@ -231,7 +246,7 @@ export function respondToBid(s: GameState, bidId: string, accept: boolean) {
   const buyer = s.clubs[b.fromClubId], club = s.clubs[s.userClubId];
   b.status = 'accepted';
   afterTransfer(s, b.fee, true);
-  recordTransfer(s, p.name, club.name, buyer.name, b.fee, seasonLabel(s.year));
+  recordTransfer(s, p.name, club.name, buyer.name, b.fee, seasonLabel(s.year), { playerId: p.id, fromId: club.id, toId: buyer.id });
   buyer.transferBudget -= b.fee; buyer.balance -= b.fee;
   club.balance += b.fee; club.transferBudget += Math.round(b.fee * 0.6);
   if (s.ledger) s.ledger.income.sales += b.fee;

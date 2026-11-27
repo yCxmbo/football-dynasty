@@ -16,12 +16,13 @@ describe('contracts', () => {
     const spanish = Object.values(s.players).filter((p) => s.clubs[p.clubId]?.country === 'esp' && p.squad === 'First team');
     expect(spanish.every((p) => p.releaseClause && p.releaseClause >= 10_000_000)).toBe(true);
     // a modest player at a small Spanish club: his clause is above the asking price, so the club would normally haggle
-    const target = spanish.filter((p) => s.clubs[p.clubId].reputation < 60).sort((a, b) => a.releaseClause! - b.releaseClause!)[0];
+    // (under 30, so the contract length on offer isn't the sticking point)
+    const target = spanish.filter((p) => s.clubs[p.clubId].reputation < 60 && p.age < 30).sort((a, b) => a.releaseClause! - b.releaseClause!)[0];
     const club = s.clubs['eng-everton'];
     club.transferBudget = 500_000_000; club.wageBudget = 50_000_000;
     expect(askingPrice(s, target)).toBeLessThan(target.releaseClause!);
     const res = makeOffer(s, target.id, terms(s, target, target.releaseClause!));
-    expect(res.status).toBe('accepted');
+    expect(res.status, `${res.message} (${target.name}, ${target.pos}, ${target.age})`).toBe('accepted');
     expect(s.players[target.id].clubId).toBe('eng-everton');
   });
 

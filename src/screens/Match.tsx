@@ -1,3 +1,4 @@
+import MatchAnalysis from './MatchAnalysis';
 import InstructionsPanel from './InstructionsPanel';
 import { DEFAULT_INSTRUCTIONS } from '../engine/instructions';
 import { useEffect, useMemo, useState } from 'react';
@@ -116,6 +117,12 @@ export default function Match({ g, id, live, setLive, go, onFinish }: {
         onSubstitute={() => setSubOpen(true)}
         onContinue={() => (isLive ? onFinish() : go('fixtures'))}
       />
+      {(() => {
+        const an = isLive && lm ? lm.analysis : f.result?.analysis;
+        if (!an || an.xg.length < 2) return null;
+        const us = f.homeId === g.userClubId ? 0 : 1;
+        return <MatchAnalysis a={an} names={[g.clubs[f.homeId].name, g.clubs[f.awayId].name]} shorts={[g.clubs[f.homeId].short, g.clubs[f.awayId].short]} us={us} instr={(isLive && lm ? lm[us ? 'away' : 'home'].instr : undefined) ?? g.instructions} live={!!(isLive && lm && !lm.done)} />;
+      })()}
       {talk && isLive && lm && (
         <div className="sub-backdrop" role="dialog" aria-modal="true" aria-label="Team talk">
           <div className="pg-card talk-panel">

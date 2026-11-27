@@ -96,6 +96,7 @@ The game saves automatically in the browser (IndexedDB), and you can keep severa
   - **Familiarity:** a shape the squad doesn't know, or several instructions changed at once, costs up to 2.5% until it's been played a few times; unused shapes fade slowly, and a new club starts from scratch.
   - Computer-run managers each have a favourite formation, pick roles that suit their players, set up by how they compare and react to the score (chasing the game from the hour, shutting up shop late). During a match you can switch tactic (the players on the pitch move into the new shape) or change any instruction.
 - **Captain and set pieces:** on the Tactics screen you choose the captain and your penalty, free-kick and corner takers. A captain with high Leadership lifts the side a little, and more when it's behind after half-time; giving the armband to a weak or very young leader upsets senior players, and stripping a respected one hurts him. Set pieces are played out in matches: penalties are awarded more to sides on top, and whether they, direct free kicks and corner headers go in depends on the taker's Penalties and Composure, Free Kicks or Corners (and the header's Heading). If a taker isn't playing, the best available steps up.
+- **Match analysis:** under every match you play (live, and afterwards from Fixtures): an xG timeline for both sides with goals marked (hover for the score and xG at any minute), shots by source (open play, counter-attacks, penalties, free kicks, corners), and the assistant's notes on what decided it: wasteful or clinical finishing, counters exposing a high line, set pieces, a change after half-time, who controlled it. The xG is also available as a table.
 - **Opposition report:** before each match (on Home, and in full on Tactics) your assistant reports on the opponent: form, the pundits' odds, where you have the edge unit by unit (your attack against their defence, midfield against midfield, your defence against their attack), danger men, absentees, their likely eleven and this season's meetings, with a suggested formation. Lining up in it gives a small edge on the day (+1.5%).
 - **Club pages:** click any club (league tables, cup ties, fixtures, records, the Career screen, or "View club" on a player) to see its manager, this season's results and position, first team (stars as far as your scouts know them), honours, recent seasons, money and rivals with head-to-head records.
 - **World records:** the Records screen keeps all-time records across the world since your career began: most top-flight and continental titles, all-time top scorers (retired players keep their place), most goals in a season, most points by a champion, and record transfers.
@@ -171,6 +172,7 @@ src/
     preview.ts     predicted tables, season previews, match odds
     opposition.ts  the assistant's opposition report and plan
     leadership.ts  captain and set-piece takers
+    analysis.ts    post-match analysis and notes
     instructions.ts team instructions in three phases and their effects
     roles.ts       player roles, duties and suitability
     tactics.ts     saved tactics, style presets, familiarity

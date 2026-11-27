@@ -131,7 +131,10 @@ export type EventType = 'goal' | 'penalty' | 'owngoal' | 'yellow' | 'red' | 'sub
 export interface MatchEvent { minute: number; order: number; type: EventType; side?: 'home' | 'away'; playerId?: string; player?: string; score?: [number, number]; text: string }
 export interface PlayerRating { playerId: string; rating: number; goals: number; assists: number; card?: 'yellow' | 'red'; subbedOff?: number; subbedOn?: number; injured?: boolean; minutes: number }
 export interface MatchStats { possession: [number, number]; shots: [number, number]; onTarget: [number, number]; xg: [number, number]; corners: [number, number]; fouls: [number, number]; yellow: [number, number]; red: [number, number]; passAcc: [number, number] }
-export interface MatchResult { score: [number, number]; pens?: [number, number]; winnerId?: string; events: MatchEvent[]; stats: MatchStats; ratings: { home: PlayerRating[]; away: PlayerRating[] } }
+export type ChanceSource = 'open' | 'counter' | 'penalty' | 'free kick' | 'corner';
+/** Kept for your matches: cumulative xG at each minute and every shot with where it came from. */
+export interface MatchAnalysis { xg: Array<[number, number]>; chances: Array<{ m: number; side: 0 | 1; src: ChanceSource; goal: boolean; player?: string }> }
+export interface MatchResult { score: [number, number]; pens?: [number, number]; winnerId?: string; events: MatchEvent[]; stats: MatchStats; ratings: { home: PlayerRating[]; away: PlayerRating[] }; analysis?: MatchAnalysis }
 
 export interface InboxMessage { id: string; category: 'board' | 'transfers' | 'scouting' | 'medical' | 'media' | 'training' | 'youth' | 'match' | 'finance'; from: string; role?: string; date: string; subject: string; body: string[]; unread: boolean; bidId?: string; playerId?: string; /** A question to answer (press conference, player request). */ choice?: import('./media').Choice }
 

@@ -292,3 +292,30 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .tb__pilabel { font-size: 12px; font-weight: 700; }
 .tb__pirow .fd-seg { flex-wrap: wrap; }
 .tb__pihint { grid-column: 2; font-size: 11px; }
+/* match analysis: team colours validated for colour-blind separation on each theme's card surface */
+:root, [data-theme="dark"] { --ma-us: #bf9640; --ma-them: #2aa596; }
+[data-theme="light"] { --ma-us: #9a7420; --ma-them: #008a7a; }
+.ma { margin-top: 16px; }
+.ma-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink); margin-bottom: 6px; }
+.ma-key { display: inline-flex; align-items: center; gap: 6px; }
+.ma-swatch { display: inline-block; width: 14px; height: 3px; border-radius: 2px; background: currentColor; }
+.ma-swatch.ma-us { background: var(--ma-us); } .ma-swatch.ma-them { background: var(--ma-them); }
+.ma-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--ink-muted, #8aa); }
+.ma-chart { position: relative; }
+.ma-chart svg { width: 100%; height: 220px; display: block; touch-action: pan-y; }
+.ma-grid { stroke: var(--line); stroke-width: 1; }
+.ma-ht { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 4; }
+.ma-cross { stroke: var(--ink-muted, #8aa); stroke-width: 1; }
+.ma-axis { fill: var(--ink-muted, #8aa); font-size: 11px; }
+.ma-end { fill: var(--ink); font-size: 12px; font-weight: 700; }
+.ma-line { fill: none; stroke-width: 2; stroke-linejoin: round; }
+.ma-line.ma-us { stroke: var(--ma-us); } .ma-line.ma-them { stroke: var(--ma-them); }
+.ma-goal { stroke: var(--surface-raised); stroke-width: 2; }
+.ma-goal.ma-us { fill: var(--ma-us); } .ma-goal.ma-them { fill: var(--ma-them); }
+.ma-tip { position: absolute; top: 4px; transform: translateX(-50%); background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-sm, 6px); padding: 6px 8px; font-size: 12px; color: var(--ink); display: flex; flex-direction: column; gap: 2px; pointer-events: none; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+.ma-tip .ma-swatch { margin-right: 6px; vertical-align: middle; }
+.ma-grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 12px; }
+@media (max-width: 760px) { .ma-grid2 { grid-template-columns: 1fr; } }
+.ma-sub { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 6px; color: var(--ink-muted, #8aa); }
+.ma-table { margin-top: 10px; }
+.ma-table summary { cursor: pointer; }

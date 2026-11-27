@@ -6,7 +6,7 @@ import { aiInstructions, instructionEffects, type Instructions } from './instruc
 import { fitFor, improveLineup, ROLE, slotsOf, type Formation, type MatchMods } from './match';
 import { POS_GROUP, clamp } from './ratings';
 import { createRng, type Rng } from './rng';
-import type { MatchEvent, MatchResult, Player, PlayerRating } from './types';
+import type { ChanceSource, MatchAnalysis, MatchEvent, MatchResult, Player, PlayerRating } from './types';
 
 const KEY_ATTRS = ['Finishing', 'Passing', 'Aggression', 'Composure', 'Penalties', 'One on Ones', 'Reflexes', 'Stamina', 'Natural Fitness', 'Free Kicks', 'Corners', 'Leadership', 'Heading'] as const;
 export interface Snap {
@@ -45,6 +45,8 @@ export interface LiveMatch {
   players: Record<string, Snap>; perf: Record<string, Perf>;
   /** Which side each squad member belongs to. */
   sideOf: Record<string, SideKey>;
+  /** Recorded for your matches: xG by minute and where each shot came from. */
+  analysis?: MatchAnalysis;
 }
 
 export const MAX_SUBS = 5;
@@ -70,6 +72,7 @@ export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; 
     score: [0, 0], events: [{ minute: 0, order: 0, type: 'whistle', text: mods.derby ? `Derby day: ${mods.derby}. Kick-off at ${venue}, and the noise is deafening.` : mods.neutral ? 'Kick-off at the national stadium.' : `Kick-off at ${venue}.` }], order: 1,
     stats: { shots: [0, 0], onTarget: [0, 0], xg: [0, 0], corners: [0, 0], fouls: [0, 0], possession: 0, passAcc: [0, 0] },
     players, perf, sideOf,
+    ...(home.user || away.user ? { analysis: { xg: [[0, 0]], chances: [] } as MatchAnalysis } : {}),
   };
 }
 
@@ -163,6 +166,20 @@ function effectsFor(lm: LiveMatch) {
   const v = { h: lm.home.instr, a: lm.away.instr, eH, eA };
   effCache.set(lm, v);
   return v;
+}
+
+/** Records a shot for the analysis (your matches only). Open-play chances count as counter-attacks in
+    proportion to how much the side counters and how exposed the opponent is; worked out from the minute, not the
+    random stream, so recording never changes a result. */
+function noteChance(lm: LiveMatch, si: 0 | 1, src: ChanceSource, goal: boolean, player?: string) {
+  if (!lm.analysis) return;
+  let s = src;
+  if (src === 'open') {
+    const me = si === 0 ? lm.home : lm.away, them = si === 0 ? lm.away : lm.home;
+    const share = 0.12 + (me.instr?.onWin === 'counter' ? 0.18 : 0) + (them.instr?.line === 'high' ? 0.12 : 0) + (them.instr?.mentality === 'attacking' || them.instr?.mentality === 'positive' ? 0.05 : 0);
+    if (((lm.minute * 31 + si * 17 + lm.stats.shots[si] * 7) % 100) / 100 < share) s = 'counter';
+  }
+  lm.analysis.chances.push({ m: lm.minute, side: si, src: s, goal, ...(player ? { player } : {}) });
 }
 
 /** The role a player has in his current slot. */
@@ -284,9 +301,11 @@ export function tick(lm: LiveMatch) {
       const lines = [`${sc.name} finishes clinically${as ? ` after ${surname(as.name)}'s pass` : ''}.`, `${sc.name} curls it into the top corner!${as ? ` ${surname(as.name)} with the assist.` : ''}`,
           `${sc.name} gets on the end of ${as ? surname(as.name) + "'s" : 'a'} cross and heads it in.`, `${sc.name} slots it under the keeper${as ? `; ${surname(as.name)} split the defence` : ''}.`];
       push(lm, { minute: m, type: 'goal', side: key, playerId: sc.id, player: surname(sc.name), score: [...lm.score] as [number, number], text: rng.pick(lines) });
+      noteChance(lm, si as 0 | 1, 'open', true, surname(sc.name));
     } else if (rng.chance((xg90[si] * 6.5) / 90)) {
       lm.stats.shots[si]++;
       const shooter = rng.weighted(pl, (p) => scorerWeight(s, p) + 0.2);
+      noteChance(lm, si as 0 | 1, 'open', false, surname(shooter.name));
       if (rng.chance(0.38)) {
         lm.stats.onTarget[si]++;
         const gk = other.xi[0] ? lm.players[other.xi[0]!] : undefined;
@@ -305,7 +324,9 @@ export function tick(lm: LiveMatch) {
       if (tk) {
         const p = penaltyChance(tk);
         lm.stats.xg[si] += 0.76;
-        if (rng.chance(p)) scoreSetPiece(tk, undefined, 'penalty', rng.pick([`Penalty! ${tk.name} sends the keeper the wrong way.`, `Penalty! ${tk.name} smashes it into the roof of the net.`]));
+        const scored = rng.chance(p);
+        noteChance(lm, si as 0 | 1, 'penalty', scored, surname(tk.name));
+        if (scored) scoreSetPiece(tk, undefined, 'penalty', rng.pick([`Penalty! ${tk.name} sends the keeper the wrong way.`, `Penalty! ${tk.name} smashes it into the roof of the net.`]));
         else {
           lm.stats.shots[si]++;
           const gk = other.xi[0] ? lm.players[other.xi[0]!] : undefined;
@@ -319,8 +340,8 @@ export function tick(lm: LiveMatch) {
       if (tk) {
         const p = freeKickChance(tk);
         lm.stats.xg[si] += p;
-        if (rng.chance(p)) scoreSetPiece(tk, undefined, 'goal', `Free kick, 25 yards out... ${tk.name} bends it over the wall and in!`);
-        else if (rng.chance(0.25)) { lm.stats.shots[si]++; push(lm, { minute: m, type: 'chance', side: key, text: `${tk.name}'s free kick clips the top of the wall.` }); }
+        if (rng.chance(p)) { noteChance(lm, si as 0 | 1, 'free kick', true, surname(tk.name)); scoreSetPiece(tk, undefined, 'goal', `Free kick, 25 yards out... ${tk.name} bends it over the wall and in!`); }
+        else if (rng.chance(0.25)) { noteChance(lm, si as 0 | 1, 'free kick', false, surname(tk.name)); lm.stats.shots[si]++; push(lm, { minute: m, type: 'chance', side: key, text: `${tk.name}'s free kick clips the top of the wall.` }); }
       }
     }
     if (rng.chance((5 * press[si] * ef.corners) / 90)) {
@@ -331,7 +352,7 @@ export function tick(lm: LiveMatch) {
         lm.stats.xg[si] += p;
         if (rng.chance(p)) {
           const header = rng.weighted(pl.filter((x) => x !== tk && POS_GROUP[x.pos] !== 'GK'), (x) => x.attrs.Heading * (POS_GROUP[x.pos] === 'CB' || POS_GROUP[x.pos] === 'ST' ? 2 : 1) * (roleAt(s, x.id) === 'tf' ? 2 : 1));
-          if (header) scoreSetPiece(header, tk, 'goal', `${tk.name} whips in the corner and ${header.name} heads it home!`);
+          if (header) { noteChance(lm, si as 0 | 1, 'corner', true, surname(header.name)); scoreSetPiece(header, tk, 'goal', `${tk.name} whips in the corner and ${header.name} heads it home!`); }
         }
       }
     }
@@ -378,6 +399,7 @@ export function tick(lm: LiveMatch) {
     }
   });
 
+  if (lm.analysis) lm.analysis.xg.push([Math.round(lm.stats.xg[0] * 100) / 100, Math.round(lm.stats.xg[1] * 100) / 100]);
   if (m === 45) push(lm, { minute: 45, type: 'whistle', text: `Half time: ${lm.home.name} ${lm.score[0]}–${lm.score[1]} ${lm.away.name}.` });
   if (m >= 90) finish(lm, rng);
   lm.rng = rng.state();
@@ -466,6 +488,7 @@ export function toResult(lm: LiveMatch, homeId: string, awayId: string): { resul
         passAcc: [Math.round(lm.stats.passAcc[0] / mins), Math.round(lm.stats.passAcc[1] / mins)],
       },
       ratings: { home: side('home'), away: side('away') },
+      ...(lm.analysis ? { analysis: lm.analysis } : {}),
     },
     conditions,
   };

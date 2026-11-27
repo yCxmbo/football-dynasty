@@ -218,9 +218,31 @@ export function userLineup(state: GameState): string[] {
   return ids;
 }
 
+/** Computer-run clubs' elevens and roles, remembered while nothing that decides them has changed: the shape, who
+    is available, their ability and (below 85%) their exact fitness (picking is deterministic, so this never changes a result). */
+const aiPicks = new WeakMap<GameState, Map<string, { key: string; ids: string[]; roles?: SlotRole[] }>>();
+function aiPickKey(state: GameState, clubId: string, formation: Formation) {
+  let k = formation;
+  for (const p of squadOf(state, clubId)) if (p.squad === 'First team' && available(p)) { const c = p.condition ?? 100; k += '|' + p.id + '/' + p.ability + (c >= 85 ? '' : ':' + c); }
+  return k;
+}
+function aiPick(state: GameState, clubId: string, formation: Formation) {
+  let m = aiPicks.get(state);
+  if (!m) { m = new Map(); aiPicks.set(state, m); }
+  const key = aiPickKey(state, clubId, formation);
+  let v = m.get(clubId);
+  if (!v || v.key !== key) { v = { key, ids: pickLineup(squadOf(state, clubId), formation) }; m.set(clubId, v); }
+  return v;
+}
 function xiFor(state: GameState, clubId: string, formation: Formation = '4-3-3'): Player[] {
   if (clubId === state.userClubId) return userLineup(state).map((id) => state.players[id]);
-  return pickLineup(squadOf(state, clubId), formation).map((id) => state.players[id]);
+  return aiPick(state, clubId, formation).ids.map((id) => state.players[id]);
+}
+/** Roles for the eleven xiFor just picked (its cache entry is fresh, so no need to check the key again). */
+function aiRoles(state: GameState, clubId: string, formation: Formation, xi: Player[]) {
+  const v = aiPicks.get(state)?.get(clubId);
+  if (!v || v.ids.length !== xi.length || v.ids.some((id, i) => id !== xi[i]?.id)) return bestRoles(formation, xi);
+  return (v.roles ??= bestRoles(formation, xi));
 }
 
 /** A side's shape for a match: yours from the Tactics screen, a computer-run club's from its manager. */
@@ -277,7 +299,7 @@ function setupFor(state: GameState, f: Fixture) {
   const uh = f.homeId === state.userClubId, ua = f.awayId === state.userClubId;
   const hs = sideShape(state, f.homeId), aw = sideShape(state, f.awayId);
   const hx = xiFor(state, f.homeId, hs.formation), ax = xiFor(state, f.awayId, aw.formation);
-  const hr = hs.roles ?? bestRoles(hs.formation, hx), ar = aw.roles ?? bestRoles(aw.formation, ax);
+  const hr = hs.roles ?? aiRoles(state, f.homeId, hs.formation, hx), ar = aw.roles ?? aiRoles(state, f.awayId, aw.formation, ax);
   const H = state.clubs[f.homeId], A = state.clubs[f.awayId];
   const tilt = { ...styleTilt(state), talk: talkMultiplier(state) * motivationFactor(state) };
   const sharp = sharpness(state, state.calendar[f.matchday - 1]?.week ?? 0);
@@ -348,7 +370,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     const uh = f.homeId === state.userClubId, ua = f.awayId === state.userClubId;
     let lm: LiveMatch;
     if (live && live.fixtureId === f.id) lm = structuredClone(live.lm);
-    else { const st = setupFor(state, f); lm = createLive(rng.int(0, 2 ** 31 - 1), st.home, st.away, st.venue, st.mods); }
+    else { const st = setupFor(state, f); lm = createLive(rng.int(0, 2 ** 31 - 1), st.home, st.away, st.venue, st.mods); if (!uh && !ua) lm.step = 2; }
     if (uh || ua) { state.lineup = repairLineup(state); learnFromMatch(state); if (state.matchPrep?.fixtureId === f.id) delete state.matchPrep; }
     runToEnd(lm);
     const { result, conditions } = toResult(lm, f.homeId, f.awayId);
@@ -371,10 +393,11 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     if (!uh && !ua) slim(f);
   }
   const days = state.calendar[md] ? Math.round((Date.parse(state.calendar[md].date) - Date.parse(slot.date)) / 86400000) : 30;
-  for (const p of Object.values(state.players)) {
+  for (const id in state.players) {
+    const p = state.players[id];
     if (p.injuredFor > 0) { p.injuredFor--; if (!p.injuredFor && p.injury && !p.injury.rushed) delete p.injury; }
     if (p.suspendedFor > 0) p.suspendedFor--;
-    if ((p.condition ?? 100) < 100) p.condition = Math.min(100, Math.round((p.condition ?? 100) + days * recoveryPerDay(state, p)));
+    if (p.condition !== undefined && p.condition < 100) p.condition = Math.min(100, Math.round(p.condition + days * recoveryPerDay(state, p)));
   }
   const cupNews = advanceCups(state, rng, slot);
   for (const e of slot.entries) if (isLeague(state, e.comp)) setupSplit(state, e.comp, Number(e.round.replace('Matchday ', '')));

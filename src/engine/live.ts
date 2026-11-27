@@ -16,9 +16,14 @@ export interface Snap {
   /** Suitability (0–5 stars) per role, worked out from his full attributes when first needed. */ rs?: Record<string, number>;
   /** Full attributes (for role suitability). */ fa?: Record<string, number>;
 }
+function keyAttrs(a: Record<string, number>) {
+  const o = {} as Snap['attrs'];
+  for (const k of KEY_ATTRS) o[k] = a[k] ?? 10;
+  return o;
+}
 export const snap = (p: Player): Snap => ({
   id: p.id, name: p.name, number: p.number, pos: p.pos, positions: p.positions, ability: p.ability, morale: p.morale,
-  attrs: Object.fromEntries(KEY_ATTRS.map((k) => [k, p.attributes[k] ?? 10])) as Snap['attrs'], injuryProneness: p.hidden.injuryProneness, condition: p.condition ?? 100,
+  attrs: keyAttrs(p.attributes), injuryProneness: p.hidden.injuryProneness, condition: p.condition ?? 100,
   bigMatches: p.hidden.bigMatches, leader: (p.attributes.Leadership ?? 0) >= 16 && p.age >= 23, hothead: (p.attributes.Aggression ?? 0) >= 15 && p.hidden.professionalism <= 9,
   rs: {}, fa: p.attributes,
 });
@@ -39,6 +44,8 @@ export interface LiveMatch {
   rng: number; minute: number; done: boolean; neutral: boolean; knockout: boolean; venue: string; derby?: string;
   home: LiveSide; away: LiveSide;
   score: [number, number]; pens?: [number, number]; events: MatchEvent[]; order: number;
+  /** Minutes per tick: 2 for computer-only matches, 1 (default) for yours. */
+  step?: number;
   /** Team talks given by the user (before kickoff, at half-time). */
   talks?: { pre?: TalkTone; ht?: TalkTone };
   stats: { shots: [number, number]; onTarget: [number, number]; xg: [number, number]; corners: [number, number]; fouls: [number, number]; possession: number; passAcc: [number, number] };
@@ -61,10 +68,13 @@ export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; 
   const players: Record<string, Snap> = {}, perf: Record<string, Perf> = {};
   const sideOf: Record<string, SideKey> = {};
   // this match's form: consistent players stay close to their level, inconsistent ones swing
-  const withForm = (p: Player) => ({ ...snap(p), form: 1 + rng.normal(0, (21 - p.hidden.consistency) * 0.0035) });
-  for (const p of [...home.xi, ...home.bench]) { players[p.id] = withForm(p); sideOf[p.id] = 'home'; }
-  for (const p of [...away.xi, ...away.bench]) { players[p.id] = withForm(p); sideOf[p.id] = 'away'; }
-  for (const p of [...home.xi, ...away.xi]) perf[p.id] = { base: 6.3 + rng.normal(0, 0.3), goals: 0, assists: 0, saves: 0, onAt: 0 };
+  const withForm = (p: Player) => { const s = snap(p); s.form = 1 + rng.normal(0, (21 - p.hidden.consistency) * 0.0035); return s; };
+  for (const p of home.xi) { players[p.id] = withForm(p); sideOf[p.id] = 'home'; }
+  for (const p of home.bench) { players[p.id] = withForm(p); sideOf[p.id] = 'home'; }
+  for (const p of away.xi) { players[p.id] = withForm(p); sideOf[p.id] = 'away'; }
+  for (const p of away.bench) { players[p.id] = withForm(p); sideOf[p.id] = 'away'; }
+  for (const p of home.xi) perf[p.id] = { base: 6.3 + rng.normal(0, 0.3), goals: 0, assists: 0, saves: 0, onAt: 0 };
+  for (const p of away.xi) perf[p.id] = { base: 6.3 + rng.normal(0, 0.3), goals: 0, assists: 0, saves: 0, onAt: 0 };
   const side = (s: typeof home, boost = 1, injury = 1): LiveSide => ({ formation: s.formation, xi: s.xi.map((p) => p.id), bench: s.bench.map((p) => p.id), subsUsed: 0, boost, injury, user: !!s.user, name: s.name, ...(s.tilt ? { atk: s.tilt.atk, def: s.tilt.def, talk: s.tilt.talk } : {}), ...(s.captain ? { captain: s.captain } : {}), ...(s.takers ? { takers: s.takers } : {}), ...(s.instr ? { instr: { ...s.instr } } : {}), roles: fixRoles(s.formation, s.roles), ...(s.defFormation && s.defFormation !== s.formation ? { defFormation: s.defFormation } : {}), ...(s.marked ? { marked: s.marked } : {}) });
   return {
     rng: rng.state(), minute: 0, done: false, neutral: !!mods.neutral, knockout: !!mods.knockout, venue, ...(mods.derby ? { derby: mods.derby } : {}),
@@ -276,17 +286,20 @@ export function substitute(lm: LiveMatch, key: SideKey, offId: string, onId: str
 export function tick(lm: LiveMatch) {
   if (lm.done) return;
   const rng = createRng(lm.rng);
-  const m = ++lm.minute;
+  // computer-only matches step two minutes at a time (each chance scaled to match); yours go minute by minute
+  const k = lm.step ?? 1, per = k / 90;
+  const m = (lm.minute = Math.min(90, lm.minute + k));
+  const crossed = (t: number) => m - k < t && m >= t;
   const H = strength(lm, lm.home), A = strength(lm, lm.away);
   // computer-run sides set up at kick-off and react to the score on the hour and at 75
-  if (m === 1 || m === 60 || m === 75) for (const key of ['home', 'away'] as const) {
+  if (crossed(1) || crossed(60) || crossed(75) || crossed(80) || crossed(85)) for (const key of ['home', 'away'] as const) {
     const s = lm[key];
     if (s.user) continue;
     const mine = key === 'home' ? H : A, theirs = key === 'home' ? A : H;
     const ratio = (mine.attack + mine.mid + mine.defence) / Math.max(1, theirs.attack + theirs.mid + theirs.defence);
     const diff = key === 'home' ? lm.score[0] - lm.score[1] : lm.score[1] - lm.score[0];
     const next = aiInstructions(m, diff, ratio);
-    if (m > 1 && s.instr && next.mentality !== s.instr.mentality) {
+    if (m > k && s.instr && next.mentality !== s.instr.mentality) {
       push(lm, { minute: m, type: 'chance', side: key, text: next.mentality === 'attacking' || next.mentality === 'very attacking' ? `${s.name} throw caution to the wind: more men forward, pressing high.` : next.mentality === 'defensive' || next.mentality === 'very defensive' ? `${s.name} shut up shop, dropping deep to protect the lead.` : `${s.name} settle into a steadier shape.` });
     }
     s.instr = next;
@@ -307,16 +320,16 @@ export function tick(lm: LiveMatch) {
   // open play (set pieces are added separately below)
   const xg90 = [clamp(1.085 * Math.pow(attH, 2.6) * (lm.neutral ? 1 : 1.12) * chaos, 0.12, 4), clamp(1.085 * Math.pow(attA, 2.6) * chaos, 0.12, 4)] as const;
   const press = [clamp(attH, 0.6, 1.6), clamp(attA, 0.6, 1.6)] as const;
-  lm.stats.possession += clamp(50 + (midH - midA) * 0.45 + rng.normal(2, 6), 25, 75);
-  lm.stats.passAcc[0] += clamp(72 + (H.mid - 100) * 0.25 + rng.normal(0, 3), 55, 95);
-  lm.stats.passAcc[1] += clamp(72 + (A.mid - 100) * 0.25 + rng.normal(0, 3), 55, 95);
+  lm.stats.possession += clamp(50 + (midH - midA) * 0.45 + rng.normal(2, 6), 25, 75) * k;
+  lm.stats.passAcc[0] += clamp(72 + (H.mid - 100) * 0.25 + rng.normal(0, 3), 55, 95) * k;
+  lm.stats.passAcc[1] += clamp(72 + (A.mid - 100) * 0.25 + rng.normal(0, 3), 55, 95) * k;
 
   (['home', 'away'] as const).forEach((key, si) => {
     const s = lm[key], other = lm[key === 'home' ? 'away' : 'home'];
     const ef = si === 0 ? eH : eA;
     const ids = onPitch(s);
     if (!ids.length) return;
-    const xg = xg90[si] / 90;
+    const xg = xg90[si] * per;
     lm.stats.xg[si] += xg;
     const pl = ids.map((id) => lm.players[id]);
     // goal
@@ -330,7 +343,7 @@ export function tick(lm: LiveMatch) {
           `${sc.name} gets on the end of ${as ? surname(as.name) + "'s" : 'a'} cross and heads it in.`, `${sc.name} slots it under the keeper${as ? `; ${surname(as.name)} split the defence` : ''}.`];
       push(lm, { minute: m, type: 'goal', side: key, playerId: sc.id, player: surname(sc.name), score: [...lm.score] as [number, number], text: rng.pick(lines) });
       noteChance(lm, si as 0 | 1, 'open', true, surname(sc.name));
-    } else if (rng.chance((xg90[si] * 6.5) / 90)) {
+    } else if (rng.chance(xg90[si] * 6.5 * per)) {
       lm.stats.shots[si]++;
       const shooter = rng.weighted(pl, (p) => scorerWeight(s, p) + 0.2);
       noteChance(lm, si as 0 | 1, 'open', false, surname(shooter.name));
@@ -347,7 +360,7 @@ export function tick(lm: LiveMatch) {
       lm.score[si]++; lm.stats.shots[si]++; lm.stats.onTarget[si]++;
       push(lm, { minute: m, type, side: key, playerId: sc.id, player: surname(sc.name), score: [...lm.score] as [number, number], text });
     };
-    if (rng.chance((0.15 * press[si]) / 90)) {
+    if (rng.chance(0.15 * press[si] * per)) {
       const tk = setPieceTaker(lm, s, 'pen');
       if (tk) {
         const p = penaltyChance(tk);
@@ -363,7 +376,7 @@ export function tick(lm: LiveMatch) {
         }
       }
     }
-    if (rng.chance((0.6 * press[si]) / 90)) {
+    if (rng.chance(0.6 * press[si] * per)) {
       const tk = setPieceTaker(lm, s, 'fk');
       if (tk) {
         const p = freeKickChance(tk);
@@ -372,7 +385,7 @@ export function tick(lm: LiveMatch) {
         else if (rng.chance(0.25)) { noteChance(lm, si as 0 | 1, 'free kick', false, surname(tk.name)); lm.stats.shots[si]++; push(lm, { minute: m, type: 'chance', side: key, text: `${tk.name}'s free kick clips the top of the wall.` }); }
       }
     }
-    if (rng.chance((5 * press[si] * ef.corners) / 90)) {
+    if (rng.chance(5 * press[si] * ef.corners * per)) {
       lm.stats.corners[si]++;
       const tk = setPieceTaker(lm, s, 'corner');
       if (tk) {
@@ -385,22 +398,22 @@ export function tick(lm: LiveMatch) {
       }
     }
     const hard = 1 + 0.06 * ((si === 0 ? H : A).sp.tacklers);
-    if (rng.chance(((lm.derby ? 15 : 11) * ef.fouls * hard) / 90)) lm.stats.fouls[si]++;
+    if (rng.chance((lm.derby ? 15 : 11) * ef.fouls * hard * per)) lm.stats.fouls[si]++;
     // cards (derbies are hotter)
-    if (rng.chance(((lm.derby ? 2.4 : 1.7) * ef.fouls * hard) / 90)) {
+    if (rng.chance((lm.derby ? 2.4 : 1.7) * ef.fouls * hard * per)) {
       const p = rng.weighted(pl, (x) => (x.attrs.Aggression + (POS_GROUP[x.pos] === 'GK' ? -15 : 0)) * (x.hothead ? 1.8 : 1));
       const perf = lm.perf[p.id];
       const victim = onPitch(other)[0] ? lm.players[rng.pick(onPitch(other))] : undefined;
       if (perf.card === 'yellow' && rng.chance(0.3)) sendOff(lm, key, p.id, m, `${p.name} is sent off for a second yellow card!`);
       else if (!perf.card) { perf.card = 'yellow'; push(lm, { minute: m, type: 'yellow', side: key, playerId: p.id, player: surname(p.name), text: `${p.name} is booked for a late challenge${victim ? ` on ${surname(victim.name)}` : ''}.` }); }
-    } else if (rng.chance(0.025 / 90)) {
+    } else if (rng.chance(0.025 * per)) {
       const p = rng.pick(pl.filter((x) => POS_GROUP[x.pos] !== 'GK'));
       if (p && !lm.perf[p.id].card) sendOff(lm, key, p.id, m, `Straight red! ${p.name} is off for a dangerous tackle.`);
     }
     // injuries (tired players more often): one draw against the side's total risk, then who it was
     let riskSum = 0;
     for (const p of pl) riskSum += (p.condition < 70 ? 1.8 : 1) * (0.6 + p.injuryProneness / 25);
-    if (rng.chance((0.08 / 90 / 11) * s.injury * riskSum)) {
+    if (rng.chance((0.08 / 11) * per * s.injury * riskSum)) {
       const p = rng.weighted(pl, (x) => (x.condition < 70 ? 1.8 : 1) * (0.6 + x.injuryProneness / 25));
       {
         lm.perf[p.id].injured = true;
@@ -417,10 +430,10 @@ export function tick(lm: LiveMatch) {
       if (!id) continue;
       const p = lm.players[id];
       const pp = s.roles?.[i]?.pi?.press;
-      p.condition = Math.max(20, p.condition - (0.26 + (20 - p.attrs.Stamina) * 0.012) * ef.fatigue * (pp === 'more' ? 1.2 : pp === 'less' ? 0.9 : 1));
+      p.condition = Math.max(20, p.condition - (0.26 + (20 - p.attrs.Stamina) * 0.012) * ef.fatigue * (pp === 'more' ? 1.2 : pp === 'less' ? 0.9 : 1) * k);
     }
     // computer-run sides make changes on the hour, at 70 and 80
-    if (!s.user && (m === 60 || m === 70 || m === 80) && s.subsUsed < 3) {
+    if (!s.user && (crossed(60) || crossed(70) || crossed(80)) && s.subsUsed < 3) {
       const slots = slotsOf(s.formation);
       const tired = onPitch(s).map((id) => lm.players[id]).filter((p) => p.condition < 68 && POS_GROUP[p.pos] !== 'GK').sort((a, b) => a.condition - b.condition)[0];
       if (tired) { const rep = bestReplacement(lm, s, slots[s.xi.indexOf(tired.id)]); if (rep) substitute(lm, key, tired.id, rep.id); }
@@ -428,7 +441,7 @@ export function tick(lm: LiveMatch) {
   });
 
   if (lm.analysis) lm.analysis.xg.push([Math.round(lm.stats.xg[0] * 100) / 100, Math.round(lm.stats.xg[1] * 100) / 100]);
-  if (m === 45) push(lm, { minute: 45, type: 'whistle', text: `Half time: ${lm.home.name} ${lm.score[0]}–${lm.score[1]} ${lm.away.name}.` });
+  if (crossed(45)) push(lm, { minute: 45, type: 'whistle', text: `Half time: ${lm.home.name} ${lm.score[0]}–${lm.score[1]} ${lm.away.name}.` });
   if (m >= 90) finish(lm, rng);
   lm.rng = rng.state();
 }

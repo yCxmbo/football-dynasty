@@ -1,5 +1,6 @@
 /* Training: the user's weekly plan changes development speed, injury risk, morale and match sharpness. */
-import { POS_GROUP, POSITION_WEIGHTS, abilityFromAttributes, clamp } from './ratings';
+import { ROLE_BY_ID } from './roles';
+import { ATTRIBUTE_GROUPS, POS_GROUP, POSITION_WEIGHTS, abilityFromAttributes, clamp } from './ratings';
 import type { Rng } from './rng';
 import { trainingInjuryFactor } from './staff';
 import type { Day, GameState, Intensity, Player, SessionType, Training } from './types';
@@ -70,7 +71,9 @@ export function developStep(rng: Rng, p: Player, share: number, factor: number, 
   const pool = [...g.key, ...g.key, ...g.imp, 'Decisions', 'Composure', 'Anticipation'];
   let guard = 0;
   while (abilityFromAttributes(p.attributes, p.pos) < target && guard++ < 60) {
-    const a = focus && p.attributes[focus] < 20 && rng.chance(0.45) ? focus : rng.pick(pool);
+    // a role focus works on that role's key attributes; an attribute focus on just that one
+    const fa = focus?.startsWith('role:') ? rng.pick(ROLE_BY_ID[focus.slice(5)]?.keys ?? pool) : focus;
+    const a = fa && p.attributes[fa] < 20 && rng.chance(0.45) ? fa : rng.pick(pool);
     if (p.attributes[a] >= 20) continue;
     p.attributes[a]++;
     (p.progress ??= {})[a] = (p.progress[a] ?? 0) + 1;
@@ -96,4 +99,41 @@ export function trainingWeek(rng: Rng, s: GameState, squad: Player[]): string[] 
     if (p.morale === 'low') p.morale = 'ok';
   }
   return out;
+}
+
+/* ---------- learning a new position ---------- */
+const LEVELS = ['awkward', 'unconvincing', 'competent', 'accomplished', 'natural'] as const;
+export const LEARNABLE = ['GK', 'CB', 'LB', 'RB', 'LWB', 'RWB', 'DM', 'CM', 'AM', 'LM', 'RM', 'LW', 'RW', 'ST'];
+/** How well he plays a position now (natural for his own). */
+export const positionLevel = (p: Player, pos: string) => (p.pos === pos ? 'natural' : (p.positions[pos] as string | undefined) ?? 'awkward');
+
+/** Each league week: players learning a position get closer to the next level (young and versatile players
+    faster, more so with good Decisions and Anticipation); accomplished is as far as training goes. */
+export function positionTrainingWeek(s: GameState): string[] {
+  const out: string[] = [];
+  const learn = s.training.learn ?? {};
+  for (const [id, l] of Object.entries(learn)) {
+    const p = s.players[id];
+    if (!p || p.clubId !== s.userClubId) { delete learn[id]; continue; }
+    const level = positionLevel(p, l.pos);
+    const i = LEVELS.indexOf(level as (typeof LEVELS)[number]);
+    if (i >= 3) { delete learn[id]; continue; }
+    const brain = ((p.attributes.Decisions ?? 10) + (p.attributes.Anticipation ?? 10)) / 2;
+    l.progress += (p.age <= 23 ? 1.5 : p.age <= 28 ? 1 : 0.6) * (0.8 + brain / 50);
+    if (l.progress >= 8) {
+      l.progress = 0;
+      const next = LEVELS[i + 1];
+      p.positions = { ...p.positions, [l.pos]: next as Player['positions'][string] };
+      out.push(`${p.name} is now ${next} at ${l.pos}.`);
+      if (i + 1 >= 3) { delete learn[id]; out.push(`${p.name} has learned the ${l.pos} role as far as training can take him.`); }
+    }
+  }
+  s.training.learn = learn;
+  return out;
+}
+
+/** Averages of his visible attributes by group (1–20); for a goalkeeper the first is his goalkeeping. */
+export function groupAverages(p: Player) {
+  const avg = (ks: readonly string[]) => Math.round((ks.reduce((a, k) => a + (p.attributes[k] ?? 10), 0) / ks.length) * 10) / 10;
+  return { t: avg(p.pos === 'GK' ? ATTRIBUTE_GROUPS.Goalkeeping : ATTRIBUTE_GROUPS.Technical), m: avg(ATTRIBUTE_GROUPS.Mental), p: avg(ATTRIBUTE_GROUPS.Physical) };
 }

@@ -51,6 +51,8 @@ export interface Player {
   filler?: boolean;
   /** Season awards won, newest first, e.g. "Golden Ball 2025/26". */
   awards?: string[];
+  /** Visible attribute averages at the start of each season at your club (oldest first). */
+  history?: Array<{ season: string; t: number; m: number; p: number }>;
   /** Agreed to join this club on a free when his contract ends. */
   preContract?: string;
   /** On loan: the owning club, the season it ends, and the squad he returns to. */
@@ -62,7 +64,7 @@ export interface Player {
 export type SessionType = 'fitness' | 'technical' | 'tactical' | 'setpieces' | 'matchprep' | 'recovery' | 'rest' | 'match';
 export type Day = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
 export type Intensity = 'low' | 'normal' | 'high';
-export interface Training { week: Record<Day, SessionType[]>; intensity: Intensity; focus: Record<string, string> }
+export interface Training { week: Record<Day, SessionType[]>; intensity: Intensity; /** Per player: an attribute, or 'role:<id>' to work on a role's key attributes. */ focus: Record<string, string>; /** Per player: a position he is learning, and his progress towards the next level. */ learn?: Record<string, { pos: string; progress: number }> }
 
 export interface Ledger {
   income: { gate: number; tv: number; sponsorship: number; merchandise: number; prize: number; sales: number };

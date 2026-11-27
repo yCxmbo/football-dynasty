@@ -32,7 +32,7 @@ import { makePlayer, valueFor, wageFor, SQUAD_TEMPLATE } from './world';
 import type { Club, CompId, Currency, Fixture, GameState, InboxMessage, Player, SeasonRecord, Trophy } from './types';
 import { FREE_AGENT, seasonLabel } from './types';
 import { aiBids, expireContracts, payInstallments, scoutingTick, windows } from './transfers';
-import { defaultTraining, developStep, effects, trainingWeek } from './training';
+import { defaultTraining, developStep, effects, trainingWeek, groupAverages, positionTrainingWeek } from './training';
 import { cupGate, emptyLedger, financeWeek, seasonFinances } from './finance';
 import {
   advanceCups, buildComps, clubsInLeague, compInfo, cupResult, currentSlot, currentWeek, leagueDef, leagueTableOf, makeCalendar,
@@ -330,6 +330,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     for (const p of squadOf(state, state.userClubId)) if (p.morale === 'low' && rng.chance(moraleRecoveryChance(state) + moraleBonus(state))) p.morale = 'ok';
     weeklyMood(state, rng, slot.week);
     { const news = weeklyDynamics(state, slot.week); if (news.length) addMessage(state, { category: 'media', from: 'Assistant manager', role: 'Dressing room', subject: news.length > 1 ? 'Dressing-room news' : news[0].split(':')[0].slice(0, 60), body: [...news, 'See the Dynamics tab on the Squad screen.'] }); }
+    { const learned = positionTrainingWeek(state); if (learned.length) addMessage(state, { category: 'training', from: 'Head coach', role: 'Training ground', subject: learned[0].replace(/\.$/, ''), body: learned }); }
     for (const msg of trainingWeek(rng, state, squadOf(state, state.userClubId))) addMessage(state, { category: 'training', from: 'Head coach', role: 'Training ground', subject: 'Training update', body: [msg] });
     // about five development steps a season, whatever the league length (small steps would round away)
     const every = Math.max(4, Math.round(state.leagueWeeks / 5.5));
@@ -610,6 +611,8 @@ function rollover(state: GameState) {
   for (const p of Object.values(state.players)) {
     develop(rng, p, p.career[0]?.apps ?? 0);
     p.age++;
+    // your players' development history, season by season (visible attributes only)
+    if (p.clubId === state.userClubId) { (p.history ??= []).push({ season: seasonLabel(state.year + 1), ...groupAverages(p) }); if (p.history.length > 15) p.history.shift(); }
     p.value = Math.round(valueFor(p.ability, p.potential, p.age) * awardPremium(p, label));
   }
   for (const b of state.bids) if (b.status === 'open') b.status = 'expired';

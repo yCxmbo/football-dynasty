@@ -323,3 +323,11 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .tb__view { flex-wrap: wrap; align-self: flex-start; }
 .tb__slot { transition: left .25s ease, top .25s ease; }
 @media (prefers-reduced-motion: reduce) { .tb__slot { transition: none; } }
+/* development chart: three series, validated for colour-blind separation on each theme's card surface */
+:root, [data-theme="dark"] { --dv-1: #338ced; --dv-2: #e76624; --dv-3: #00a888; }
+[data-theme="light"] { --dv-1: #257de0; --dv-2: #f47230; --dv-3: #00b894; }
+.ma-swatch.dv-1, .dv-dot.dv-1 { background: var(--dv-1); fill: var(--dv-1); }
+.ma-swatch.dv-2, .dv-dot.dv-2 { background: var(--dv-2); fill: var(--dv-2); }
+.ma-swatch.dv-3, .dv-dot.dv-3 { background: var(--dv-3); fill: var(--dv-3); }
+.ma-line.dv-1 { stroke: var(--dv-1); } .ma-line.dv-2 { stroke: var(--dv-2); } .ma-line.dv-3 { stroke: var(--dv-3); }
+.dv-dot { stroke: var(--surface-raised); stroke-width: 2; }

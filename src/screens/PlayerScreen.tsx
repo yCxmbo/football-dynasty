@@ -1,3 +1,4 @@
+import DevelopmentChart from './DevelopmentChart';
 import { useState } from 'react';
 import { FD } from '../ds';
 import { wantsOut } from '../engine/contracts';
@@ -80,6 +81,7 @@ export default function PlayerScreen({ g, id, go, act, update }: { g: GameState;
           </section>
         );
       })()}
+      {mine ? <DevelopmentChart p={p} /> : null}
       <section className="pg-card intl-line">
         <h2 className="pg-h" style={{ margin: 0 }}>Personality</h2>
         {mine || ours || knowledgeOf(g, p) >= 50 ? (

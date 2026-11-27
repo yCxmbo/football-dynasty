@@ -107,6 +107,9 @@ describe('worlds', () => {
     expect(new Set(w.players!.map((p) => p.name)).size).toBe(w.players!.length);
     const s = newGame({ seed: 5, userClubId: 'eng-liverpool', managerName: 'T', currency: 'GBP', world: w, source: 'real' });
     expect(squadOf(s, 'eng-liverpool').some((p) => p.name === 'Mohamed Salah')).toBe(true);
+    // the bigger Championship clubs have named players too
+    for (const [club, name] of [['eng-leicester', 'Stephy Mavididi'], ['eng-southampton', 'Adam Armstrong'], ['eng-wrexham', 'Kieffer Moore'], ['eng-birmingham', 'Jay Stansfield']])
+      expect(squadOf(s, club).some((p) => p.name === name), `${name} at ${club}`).toBe(true);
     const yamal = Object.values(s.players).find((p) => p.name === 'Lamine Yamal')!;
     expect(yamal.potential).toBeGreaterThan(yamal.ability + 10); // potential given as overall is converted
     expect(s.comps.ucl.size).toBe(36);

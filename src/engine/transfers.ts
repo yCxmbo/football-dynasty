@@ -6,7 +6,7 @@ import { recordTransfer } from './records';
 import { honourPreContract, preContracts, triggerClauses, wantsOut } from './contracts';
 /* Transfers, scouting and contracts. Pure functions over GameState (mutating the draft). */
 import { clamp } from './ratings';
-import { currentWeek } from './competitions';
+import { dateOf, nextWindow, openWindow, windowsFor } from './windows';
 import { createRng } from './rng';
 import { FREE_AGENT, type Bid, type GameState, type OfferResponse, type Player } from './types';
 import { seasonLabel } from './types';
@@ -19,24 +19,17 @@ export const SQUAD_ROLES = ['Star player', 'Important player', 'Regular starter'
 export type SquadRole = (typeof SQUAD_ROLES)[number];
 
 /* ---------- windows ---------- */
-/** Summer window: pre-season to league week 4. January window: the middle of the league season (three weeks). */
-export function windows(s: GameState) {
-  const januaryFrom = Math.round((s.leagueWeeks || 38) / 2);
-  return { summerUntil: 4, januaryFrom, januaryTo: januaryFrom + 2 };
-}
-
-/** Windows follow league weeks (the calendar also has cup midweeks). */
+/** Your transfer window follows your club's country, on real dates (see windows.ts). */
 export function windowOpen(s: GameState) {
-  const w = currentWeek(s), win = windows(s);
-  return w === 99 || w <= win.summerUntil || (w >= win.januaryFrom && w <= win.januaryTo);
+  return !!openWindow(s, s.clubs[s.userClubId]?.country);
 }
+const day = (iso: string) => new Date(iso + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
 export function windowLabel(s: GameState) {
-  const w = currentWeek(s), win = windows(s);
-  if (windowOpen(s)) {
-    const closes = w <= win.summerUntil ? win.summerUntil : w >= win.januaryFrom && w <= win.januaryTo ? win.januaryTo : null;
-    return closes ? `Transfer window open until league week ${closes}` : 'Transfer window open (pre-season)';
-  }
-  return w < win.januaryFrom ? `Window closed. The January window opens at league week ${win.januaryFrom}.` : 'Window closed. The summer window opens after the season.';
+  const c = s.clubs[s.userClubId]?.country;
+  const w = openWindow(s, c);
+  if (w) return w.to === dateOf(s) ? `Deadline day: the ${w.label} closes tonight` : `The ${w.label} is open until ${day(w.to)}`;
+  const n = nextWindow(s, c);
+  return n ? `Window closed. The ${n.label} opens on ${day(n.from)}.` : 'Window closed. The summer window opens after the season.';
 }
 
 /* ---------- helpers ---------- */
@@ -205,9 +198,10 @@ export function toggleTransferList(s: GameState, playerId: string) {
 export function aiBids(s: GameState, seed: number) {
   if (!windowOpen(s)) {
     for (const b of s.bids) if (b.status === 'open') b.status = 'expired';
-    // rumours about your players whose window has passed go quiet
-    const w = currentWeek(s), win = windows(s);
-    if (s.rumours) s.rumours = s.rumours.filter((r) => r.fromId !== s.userClubId || (r.window === 'January' ? w < win.januaryFrom : w > win.januaryTo));
+    // rumours about your players go quiet once their window has been and gone
+    const ws = windowsFor(s.clubs[s.userClubId]?.country, s.year), d = dateOf(s);
+    const closed = (name: 'Summer' | 'January') => { const w = ws.find((x) => x.name === (name === 'January' ? 'Winter' : 'Summer')); return !!w && d > w.to; };
+    if (s.rumours) s.rumours = s.rumours.filter((r) => r.fromId !== s.userClubId || !(r.window === 'January' ? closed('January') : closed('Summer') && d < (ws.find((x) => x.name === 'Winter')?.from ?? '')));
     return;
   }
   const rng = createRng(seed);
@@ -223,7 +217,7 @@ export function aiBids(s: GameState, seed: number) {
     inbox(s, { category: 'transfers', from: c.name, role: 'Sporting director', subject: `Bid for ${p.name}: ${Math.round(fee / 1e5) / 10}M`, body: [`The rumours were true: ${c.name} offer ${Math.round(fee / 1e5) / 10}M for ${p.name}. His value is about ${Math.round(p.value / 1e5) / 10}M.`, 'The offer stands until the transfer window closes.'], bidId: bid.id, playerId: p.id });
   }
   triggerClauses(s, rng);
-  if (currentWeek(s) >= windows(s).januaryFrom) preContracts(s, rng);
+  if (openWindow(s, s.clubs[s.userClubId]?.country)?.name === 'Winter') preContracts(s, rng);
   const mine = userSquad(s).filter((p) => p.squad === 'First team' && !p.loan && !s.bids.some((b) => b.playerId === p.id && b.status === 'open'));
   for (const p of mine) {
     const listed = s.transferListed.includes(p.id);

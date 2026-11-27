@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { currentWeek } from './competitions';
-import { newGame, playMatchday, squadOf, startNewSeason, totalMatchdays } from './game';
-import { windows, askingPrice, expectedRole, makeOffer, renewContract, respondToBid, startScouting, toggleTransferList, wageDemand, windowOpen, type OfferTerms } from './transfers';
+import { advanceDay, newGame, playMatchday, squadOf, startNewSeason, today, totalMatchdays } from './game';
+import { askingPrice, expectedRole, makeOffer, renewContract, respondToBid, startScouting, toggleTransferList, wageDemand, windowOpen, type OfferTerms } from './transfers';
 import { FREE_AGENT, type GameState, type Player } from './types';
 
 const game = () => newGame({ seed: 21, userClubId: 'ash', managerName: 'Test', currency: 'EUR' });
@@ -13,15 +13,20 @@ function terms(s: GameState, p: Player, over: Partial<OfferTerms> = {}): OfferTe
 const playTo = (s: GameState, week: number) => { while (currentWeek(s) < week) playMatchday(s); };
 
 describe('transfer windows', () => {
-  it('summer window open at the start, closed mid-autumn, open in January', () => {
+  // the builtin world uses the common European dates: summer to 1 September, winter 1 January to 2 February
+  const dayTo = (s: GameState, iso: string) => { while (today(s) < iso) advanceDay(s); };
+  it('summer window open at the start, closed after 1 September, open in January, closed after 2 February', () => {
     const s = game();
     expect(windowOpen(s)).toBe(true);
-    playTo(s, 6); expect(windowOpen(s)).toBe(false);
-    playTo(s, windows(s).januaryFrom); expect(windowOpen(s)).toBe(true);
-    playTo(s, windows(s).januaryTo + 1); expect(windowOpen(s)).toBe(false);
-  });
+    dayTo(s, `${s.year}-09-01`); expect(windowOpen(s)).toBe(true);
+    dayTo(s, `${s.year}-09-02`); expect(windowOpen(s)).toBe(false);
+    dayTo(s, `${s.year + 1}-01-01`); expect(windowOpen(s)).toBe(true);
+    dayTo(s, `${s.year + 1}-02-03`); expect(windowOpen(s)).toBe(false);
+    expect(s.inbox.some((m) => m.subject.startsWith('Deadline day'))).toBe(true);
+    expect(s.inbox.some((m) => m.subject === 'The winter window is open')).toBe(true);
+  }, 60_000);
   it('offers are refused while the window is closed', () => {
-    const s = game(); playTo(s, 6);
+    const s = game(); dayTo(s, `${s.year}-09-10`);
     const p = target(s);
     expect(makeOffer(s, p.id, terms(s, p)).status).toBe('rejected');
     expect(s.players[p.id].clubId).toBe('bla');

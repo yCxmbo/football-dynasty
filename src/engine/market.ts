@@ -80,10 +80,11 @@ export const spendable = (s: GameState, clubId: string) => {
 };
 
 /** A window's business: biggest clubs first, rumoured deals tried first. Returns the deals done. */
-export function runMarket(s: GameState, rng: Rng, window: 'Summer' | 'January', season: string) {
+/** A window's business (`country`: only that country's clubs buy, when its own window closes). */
+export function runMarket(s: GameState, rng: Rng, window: 'Summer' | 'January', season: string, country?: string) {
   const pool = marketPool(s);
   const done: Player[] = [];
-  const buyers = Object.values(s.clubs).filter((c) => c.id !== s.userClubId && c.league && c.reputation >= 45).sort((a, b) => b.reputation - a.reputation);
+  const buyers = Object.values(s.clubs).filter((c) => c.id !== s.userClubId && c.league && c.reputation >= 45 && (!country || c.country === country)).sort((a, b) => b.reputation - a.reputation);
   const perClub = window === 'Summer' ? 2 : 1;
   for (const c of buyers) {
     if (window === 'January' && !rng.chance(0.25)) continue;
@@ -103,7 +104,7 @@ export function runMarket(s: GameState, rng: Rng, window: 'Summer' | 'January', 
     }
   }
   // rumours about your players stay: they turn into bids once the window is open (see aiBids)
-  s.rumours = (s.rumours ?? []).filter((x) => x.window !== window || x.fromId === s.userClubId);
+  s.rumours = (s.rumours ?? []).filter((x) => x.window !== window || x.fromId === s.userClubId || (country && s.clubs[x.toId]?.country !== country));
   return done;
 }
 

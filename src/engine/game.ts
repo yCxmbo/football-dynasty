@@ -1,4 +1,5 @@
 import { makeRumours, runMarket } from './market';
+import { windowsFor } from './windows';
 import { planBoost } from './opposition';
 import { captainOf, takersOf } from './leadership';
 import { withDefaults, type Instructions } from './instructions';
@@ -32,11 +33,11 @@ import { createRng } from './rng';
 import { makePlayer, valueFor, wageFor, SQUAD_TEMPLATE } from './world';
 import type { Club, CompId, Currency, Fixture, GameState, InboxMessage, Player, SeasonRecord, Trophy } from './types';
 import { FREE_AGENT, seasonLabel } from './types';
-import { aiBids, expireContracts, payInstallments, scoutingTick, windows } from './transfers';
+import { aiBids, expireContracts, payInstallments, scoutingTick } from './transfers';
 import { defaultTraining, developStep, effects, trainingWeek, groupAverages, positionTrainingWeek } from './training';
 import { cupGate, emptyLedger, financeWeek, seasonFinances } from './finance';
 import {
-  advanceCups, buildComps, clubsInLeague, compInfo, cupResult, currentSlot, currentWeek, leagueDef, leagueTableOf, makeCalendar,
+  advanceCups, buildComps, clubsInLeague, compInfo, cupResult, currentSlot, leagueDef, leagueTableOf, makeCalendar,
   promotionsAndRelegations, qualifiers, resetLeagueCache, setupSplit, isLeague, setupPlayoffs, setupSeason, winnerOf, type TableRow, withThe } from './competitions';
 import { buildWorld, type WorldDef } from './worlddef';
 import { noteJoined, squadOf, withSquadIndex } from './index';
@@ -146,7 +147,7 @@ export function todaysFixture(state: GameState) { return fixturesToday(state) ? 
 export function advanceDay(state: GameState) {
   if (seasonOver(state) || state.career?.sacked) return;
   if (fixturesToday(state)) playMatchday(state);
-  else state.today = addDays(today(state), 1);
+  else { state.today = addDays(today(state), 1); withSquadIndex(state, () => newDay(state)); }
 }
 /** Days until your next fixture (0 if it's today). */
 export function daysToNextMatch(state: GameState) {
@@ -310,9 +311,12 @@ function slim(f: Fixture) {
 export function playMatchday(state: GameState, live?: { fixtureId: string; lm: LiveMatch }): Fixture | undefined {
   if (seasonOver(state) || state.career?.sacked) return undefined;
   const date = state.calendar[state.matchday - 1]?.date;
-  const f = withSquadIndex(state, () => playSlot(state, live));
-  // the day is over: tomorrow is next
-  if (date) state.today = addDays(date, 1);
+  const f = withSquadIndex(state, () => {
+    const r = playSlot(state, live);
+    // the day is over: tomorrow is next
+    if (date) { state.today = addDays(date, 1); newDay(state); }
+    return r;
+  });
   return f;
 }
 
@@ -393,13 +397,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     { const cc = state.career; if (cc?.contract && !cc.sacked) cc.earnings = (cc.earnings ?? 0) + cc.contract.wage; }
     weeklyFamiliarity(state);
     managerNews(state, [], weeklyAppointments(state, createRng((state.rngState ^ (state.matchday * 0x9e37)) >>> 0)));
-    const week = currentWeek(state);
-    const win = windows(state);
-    if (slot.week === win.januaryFrom - 3) rumourNews(state, makeRumours(state, createRng((state.rngState ^ 0x72756d) >>> 0), 'January'), 'January');
     if (slot.week === state.leagueWeeks - 4) rumourNews(state, makeRumours(state, createRng((state.rngState ^ 0x72756e) >>> 0), 'Summer'), 'Summer');
-    if (slot.week === win.januaryTo) marketNews(state, 'January', runMarket(state, createRng((state.rngState ^ 0x6a616e) >>> 0), 'January', seasonLabel(state.year)).map((p) => p.id));
-    if (week >= win.januaryFrom && slot.week < win.januaryFrom) januaryReminder(state);
-    if (slot.week === win.summerUntil || slot.week === win.januaryTo) state.negotiations = {};
   }
   const uf = state.fixtures.find((f) => f.matchday === md && involves(f, state.userClubId));
   if (uf && uf.comp === 'friendly') {
@@ -465,12 +463,39 @@ function postMatchMessages(state: GameState, f: Fixture) {
   }
 }
 
-function januaryReminder(state: GameState) {
-  const expiring = squadOf(state, state.userClubId).filter((p) => p.squad === 'First team' && p.contractEnd <= state.year);
-  addMessage(state, { category: 'transfers', from: 'Director of football', subject: 'The January transfer window is open', body: [
-    `The window is open until league week ${windows(state).januaryTo}.`,
-    expiring.length ? `${expiring.length} ${expiring.length === 1 ? 'player\'s contract ends' : 'players\' contracts end'} this summer: ${expiring.map((p) => p.name).join(', ')}. Renew them from their profiles or they will leave for free.` : 'No contracts run out this summer.',
-  ] });
+/** Each new day: transfer windows open and close on their real dates. Every country's clubs do their winter
+    business when their own window closes; your window brings news on opening, deadline day and closing; rumours
+    start three weeks before your winter window. Logged so each happens once, even when days are skipped. */
+function newDay(state: GameState) {
+  if (seasonOver(state)) return;
+  const d = today(state), year = state.year;
+  const us = state.clubs[state.userClubId];
+  const log = (state.windowLog ??= {});
+  const once = (key: string) => { const k = `${year}:${key}`; if (log[k]) return false; log[k] = true; return true; };
+  const countries = new Set(Object.values(state.clubs).filter((c) => c.league).map((c) => c.country));
+  for (const country of countries) {
+    const w = windowsFor(country, year).find((x) => x.name === 'Winter');
+    if (!w || d <= w.to || !once(`market-${country}`)) continue;
+    let h = 0; for (const ch of country) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const deals = runMarket(state, createRng((state.rngState ^ h ^ 0x6a616e) >>> 0), 'January', seasonLabel(year), country);
+    if (country === us.country) marketNews(state, 'January', deals.map((p) => p.id));
+  }
+  const fmt = (iso: string) => new Date(iso + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+  for (const w of windowsFor(us.country, year)) {
+    if (w.name === 'Winter' && d >= addDays(w.from, -21) && d <= w.to && once('rumours-winter')) rumourNews(state, makeRumours(state, createRng((state.rngState ^ 0x72756d) >>> 0), 'January'), 'January');
+    if (d >= w.from && d <= w.to && once(`open-${w.name}`)) {
+      const expiring = squadOf(state, state.userClubId).filter((p) => p.squad === 'First team' && p.contractEnd <= year);
+      addMessage(state, { category: 'transfers', from: 'Director of football', subject: `The ${w.label} is open`, body: [
+        `It closes on ${fmt(w.to)}. Bids, loans and signings can be made until then.`,
+        ...(w.name === 'Winter' ? [expiring.length ? `${expiring.length} ${expiring.length === 1 ? 'player\'s contract ends' : 'players\' contracts end'} this summer: ${expiring.map((p) => p.name).join(', ')}. Renew them from their profiles or they will leave for free.` : 'No contracts run out this summer.'] : []),
+      ] });
+    }
+    if (d === w.to && once(`deadline-${w.name}`)) addMessage(state, { category: 'transfers', from: 'Director of football', subject: `Deadline day: the ${w.label} closes tonight`, body: ['Any deal still to be done has to be done today.'] });
+    if (d > w.to && once(`closed-${w.name}`)) {
+      state.negotiations = {};
+      addMessage(state, { category: 'transfers', from: 'Director of football', subject: `The ${w.label} has closed`, body: ['No more signings until the next window. Bids still open have lapsed.'] });
+    }
+  }
 }
 
 function seasonEndMessage(state: GameState) {
@@ -513,6 +538,7 @@ export function startNewSeason(state: GameState) {
   if (!seasonOver(state)) throw new Error('Season not finished');
   withSquadIndex(state, () => rollover(state));
   delete state.today; // the new season starts on its first fixture date
+  if (state.windowLog) for (const k of Object.keys(state.windowLog)) if (!k.startsWith(`${state.year}:`)) delete state.windowLog[k];
 }
 
 function rollover(state: GameState) {

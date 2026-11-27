@@ -27,6 +27,7 @@ import Staff from './screens/Staff';
 import ClubScreen from './screens/ClubScreen';
 import StatsHub from './screens/StatsHub';
 import Calendar from './screens/Calendar';
+import { windowsFor } from './engine/windows';
 import Records from './screens/Records';
 import Tip, { TIPS } from './screens/Tip';
 import { simulate } from './sim/client';
@@ -196,7 +197,7 @@ export default function App() {
     case 'nationalMatch': body = <NationalMatch key={`${g.summer?.results.length}`} g={g} go={go} update={update} />; break;
     case 'records': body = <Records g={g} go={go} />; break;
     case 'stats': body = <StatsHub g={g} go={go} />; break;
-    case 'calendar': body = <Calendar g={g} go={go} />; break;
+    case 'calendar': body = <Calendar g={g} go={go} notes={windowsFor(g.clubs[g.userClubId].country, g.year).flatMap((w) => [{ date: w.from, text: `${w.label.replace(/^./, (c) => c.toUpperCase())} opens`, tone: 'teal' as const }, { date: w.to, text: 'Deadline day', tone: 'gold' as const }])} />; break;
     case 'club': body = <ClubScreen key={param} g={g} id={param} go={go} />; break;
     case 'facilities': body = <FacilitiesScreen g={g} update={update} />; break;
     case 'staff': body = <Staff g={g} update={update} />; break;

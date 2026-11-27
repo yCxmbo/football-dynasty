@@ -193,6 +193,8 @@ export interface GameState {
   awards?: import('./awards').Awards;
   /** AI managers: every other club's, and those out of work. */
   managers?: import('./managers').ManagersState;
+  /** Window events already handled this season (opening news, AI winter business per country...). */
+  windowLog?: Record<string, boolean>;
   /** Transfer rumours before the next window. */
   rumours?: import('./market').Rumour[];
   /** The pundits' predicted tables for this season. */

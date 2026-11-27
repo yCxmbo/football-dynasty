@@ -22,6 +22,7 @@ import { recordSeason, recordTransfer } from './records';
 import { afterMatch, afterSeason, afterTournament } from './achievements';
 import { finishBuilding, trainingFacilityBoost, youthFacilityBonus } from './facilities';
 import { pressAfterMatch, weeklyMood } from './media';
+import { atmosphere, atmosphereFactor, weeklyDynamics } from './dynamics';
 import { developmentBoost, initStaff, injuryLengthFactor, moraleRecoveryChance, recoveryBonus, refreshPool, youthPotentialBonus } from './staff';
 import { career, compensation, makeOffers, managerWage, midSeasonVerdict, seasonVerdict, vacanciesAfterSeason } from './career';
 import { NATION, nationCode, nationName } from './nations';
@@ -248,7 +249,7 @@ function setupFor(state: GameState, f: Fixture) {
   // following the assistant's suggested formation gives a small edge
   const plan = (uh || ua) && f.comp !== 'friendly' ? planBoost(state, f) : 1;
   // how well the squad knows the tactic (computer-run sides play theirs every week)
-  const fam = uh || ua ? familiarityFactor(familiarity(state)) : 1, aiFam = familiarityFactor(90);
+  const fam = uh || ua ? familiarityFactor(familiarity(state)) * atmosphereFactor(atmosphere(state)) : 1, aiFam = familiarityFactor(90);
   const mods: MatchMods = { derby, homeBoost: uh ? te.matchBoost * sharp * plan * fam : managerBoost(state, f.homeId) * aiFam, awayBoost: ua ? te.matchBoost * sharp * plan * fam : managerBoost(state, f.awayId) * aiFam, homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1, neutral: f.neutral, knockout: f.ko };
   return {
     home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: hs.formation, roles: hr, name: H.name, user: uh, captain: captainOf(state, f.homeId)?.id, ...(uh ? { tilt, takers: takersOf(state), instr: withDefaults(state.instructions), defFormation: state.defFormation } : {}) },
@@ -328,6 +329,7 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
     financeWeek(state, leagueIds, homeIds, positions, derbyHomes);
     for (const p of squadOf(state, state.userClubId)) if (p.morale === 'low' && rng.chance(moraleRecoveryChance(state) + moraleBonus(state))) p.morale = 'ok';
     weeklyMood(state, rng, slot.week);
+    { const news = weeklyDynamics(state, slot.week); if (news.length) addMessage(state, { category: 'media', from: 'Assistant manager', role: 'Dressing room', subject: news.length > 1 ? 'Dressing-room news' : news[0].split(':')[0].slice(0, 60), body: [...news, 'See the Dynamics tab on the Squad screen.'] }); }
     for (const msg of trainingWeek(rng, state, squadOf(state, state.userClubId))) addMessage(state, { category: 'training', from: 'Head coach', role: 'Training ground', subject: 'Training update', body: [msg] });
     // about five development steps a season, whatever the league length (small steps would round away)
     const every = Math.max(4, Math.round(state.leagueWeeks / 5.5));

@@ -153,7 +153,7 @@ export default function App() {
   let body: JSX.Element;
   switch (screen) {
     case 'home': body = <Home g={g} go={go} onPlay={play} update={update} />; break;
-    case 'squad': body = <Squad g={g} go={go} />; break;
+    case 'squad': body = <Squad g={g} go={go} update={update} />; break;
     case 'player': body = <PlayerScreen g={g} id={param} go={go} act={{
       promote: (id) => update((d) => promote(d, id)), scout: (id) => update((d) => { startScouting(d, id); }),
       shortlist: (id) => update((d) => toggleShortlist(d, id)), transferList: (id) => update((d) => toggleTransferList(d, id)) }} update={update} />; break;

@@ -78,6 +78,7 @@ The game saves automatically in the browser (IndexedDB), and you can keep severa
   - A good season brings offers from bigger clubs. You can also resign.
   - **Contract and interviews:** you're paid a weekly wage that rises steeply with the club's size (and a little with your reputation), on a three-season contract (two after an interview). An expiring contract is renewed with a raise if the board still trusts you; otherwise you leave in the summer. With high confidence and two seasons or fewer left you can ask for a new deal (once a season). Sacked, you get half the wages still owed; resigning gets nothing. Career earnings are on the Career screen. Applying for a vacancy means an interview: three questions on your ambitions, style of play and transfer plans, where what the board wants to hear depends on the club's size. Promise a higher finish than they expect and it becomes your target for that first season.
   - Moving abroad works too: the new club gets an academy, and your career record lists every club with its seasons, results and trophies (Career screen).
+- **Squad dynamics** (Squad screen, Dynamics tab): a dressing-room hierarchy (team leaders, highly influential, influential) from Leadership, age, years at the club, quality and the armband; every player's mood with the reasons (playing time against his standing, morale, contract, transfer list, captaincy, results, mentoring); the overall atmosphere, which nudges performances (+1% when excellent, −2% when toxic); groups by nationality and age, where an unsettled group or an unhappy team leader spreads the mood; and up to three mentoring pairs, where a youngster develops faster and picks up his mentor's professionalism, determination and leadership.
 - **Team talks, press and morale:**
   - Before kickoff and at half-time the match waits for your team talk: encourage, demand more, keep calm, or say nothing. What works depends on the moment (calm when on top, demands when behind, encouragement when even); the players' reaction appears in the commentary and nudges their performance a few percent.
   - After heavy wins and defeats (and some other games) the press want a word: answer in the inbox. Taking responsibility pleases the board; blaming the players hurts morale; praising a player lifts him.
@@ -174,6 +175,7 @@ src/
     opposition.ts  the assistant's opposition report and plan
     leadership.ts  captain and set-piece takers
     analysis.ts    post-match analysis and notes
+    dynamics.ts    hierarchy, moods, atmosphere, groups, mentoring
     instructions.ts team instructions in three phases and their effects
     roles.ts       player roles, duties and suitability
     tactics.ts     saved tactics, style presets, familiarity

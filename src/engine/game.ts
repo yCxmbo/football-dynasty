@@ -297,7 +297,8 @@ function playSlot(state: GameState, live?: { fixtureId: string; lm: LiveMatch })
   const homeIds = new Set<string>();
   const derbyHomes = new Set<string>();
   const positions: Record<string, number> = {};
-  for (const l of state.world.leagues) leagueTableOf(state, l.id).forEach((r, i) => { positions[r.clubId] = i + 1; });
+  // league positions before kick-off (for gate money): only needed in a league week, for the leagues playing
+  if (leagueWeek) for (const l of state.world.leagues) if (leagueIds.has(l.id)) leagueTableOf(state, l.id).forEach((r, i) => { positions[r.clubId] = i + 1; });
   for (const f of state.fixtures.filter((x) => x.matchday === md && !x.result)) {
     const uh = f.homeId === state.userClubId, ua = f.awayId === state.userClubId;
     let lm: LiveMatch;

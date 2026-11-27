@@ -33,29 +33,25 @@ export function fitFor(p: Player, slot: string) {
 
 export function available(p: Player) { return p.injuredFor === 0 && p.suspendedFor === 0; }
 
-/** Greedy best XI for a formation from available first-team players; tired players drop down the order. */
+/** Best XI for a formation from available first-team players (tired players drop down the order): a greedy
+    pick by unit (keeper, defence, midfield, attack), then swaps that fix anyone stranded out of position. */
 export function pickLineup(squad: Player[], formation: Formation = '4-3-3'): string[] {
   const slots = slotsOf(formation);
   const pool = squad.filter((p) => p.squad === 'First team' && available(p));
-  const used = new Set<string>();
+  // each candidate's value in each slot, worked out once
+  const V = pool.map((p) => slots.map((s) => slotValue(p, s)));
+  const used = new Set<number>();
   const order = slots.map((s, i) => ({ s, i })).sort((a, b) => ['gk', 'def', 'mid', 'att'].indexOf(ROLE[a.s]) - ['gk', 'def', 'mid', 'att'].indexOf(ROLE[b.s])).map((x) => x.i);
-  const result: string[] = new Array(slots.length).fill('');
+  const pick: number[] = new Array(slots.length).fill(-1);
   for (const i of order) {
-    const slot = slots[i];
-    let best: Player | undefined, bestScore = -1;
-    for (const p of pool) {
-      if (used.has(p.id)) continue;
-      const c = p.condition ?? 100;
-      const s = p.ability * fitFor(p, slot) * (c >= 85 ? 1 : 0.7 + c * 0.0035) * (c < 60 ? 0.85 : 1);
-      if (s > bestScore) { bestScore = s; best = p; }
-    }
-    if (best) { used.add(best.id); result[i] = best.id; }
+    let best = -1, bestScore = -1;
+    for (let k = 0; k < pool.length; k++) if (!used.has(k) && V[k][i] > bestScore) { bestScore = V[k][i]; best = k; }
+    if (best >= 0) { used.add(best); pick[i] = best; }
   }
-  const filled = result.filter(Boolean).length === 11 ? result : result.map((id) => id || pool.find((p) => !used.has(p.id))?.id || '');
   // usually everyone is already in a natural position: nothing to improve
-  const byId = new Map(pool.map((p) => [p.id, p]));
-  if (filled.every((id, i) => { const p = byId.get(id); return p && fitFor(p, slots[i]) === 1 && (p.condition ?? 100) >= 85; })) return filled;
-  return improveLineup(filled, slots, pool);
+  const natural = pick.every((k, i) => k >= 0 && fitFor(pool[k], slots[i]) === 1 && (pool[k].condition ?? 100) >= 85);
+  const xi = natural ? pick : improveIndices(pick, V, pool.length);
+  return xi.map((k) => (k >= 0 ? pool[k].id : ''));
 }
 
 /** Selection value of a player in a slot: ability, position fit and (for tired players) condition. */
@@ -64,13 +60,10 @@ function slotValue(p: Player, slot: string) {
   return p.ability * fitFor(p, slot) * (c >= 85 ? 1 : 0.7 + c * 0.0035) * (c < 60 ? 0.85 : 1);
 }
 
-/** Greedy filling can strand a player out of position (a striker on the wing because he can play there, the winger
-    then up front). Swap pairs in the eleven, and starters with unused players, while the total value rises. */
-export function improveLineup(ids: string[], slots: readonly string[], pool: Player[]): string[] {
-  // each candidate's value in each slot, worked out once
-  const idx = new Map(pool.map((p, k) => [p.id, k]));
-  const V = pool.map((p) => slots.map((s) => slotValue(p, s)));
-  const xi = ids.map((id) => idx.get(id) ?? -1);
+/** Swaps pairs in the eleven, and starters with unused candidates, while the total value rises. `xi` holds
+    candidate indices (-1 for an empty slot, which stays empty). */
+function improveIndices(start: number[], V: number[][], n: number): number[] {
+  const xi = [...start];
   const val = (k: number, i: number) => (k < 0 ? 0 : V[k][i]);
   for (let pass = 0; pass < 6; pass++) {
     let changed = false;
@@ -81,14 +74,23 @@ export function improveLineup(ids: string[], slots: readonly string[], pool: Pla
     }
     const inXi = new Set(xi);
     for (let i = 0; i < xi.length; i++) {
-      if (xi[i] < 0 && ids[i] === '') continue; // a deliberately empty slot (sent off) stays empty
-      for (let k = 0; k < pool.length; k++) {
+      if (xi[i] < 0) continue;
+      for (let k = 0; k < n; k++) {
         if (inXi.has(k)) continue;
         if (V[k][i] > val(xi[i], i) + 0.01) { inXi.delete(xi[i]); xi[i] = k; inXi.add(k); changed = true; }
       }
     }
     if (!changed) break;
   }
+  return xi;
+}
+
+/** Greedy filling can strand a player out of position (a striker on the wing because he can play there, the winger
+    then up front). Improves a given eleven by swaps; an empty slot (a player sent off) stays empty. */
+export function improveLineup(ids: string[], slots: readonly string[], pool: Player[]): string[] {
+  const idx = new Map(pool.map((p, k) => [p.id, k]));
+  const V = pool.map((p) => slots.map((s) => slotValue(p, s)));
+  const xi = improveIndices(ids.map((id) => idx.get(id) ?? -1), V, pool.length);
   return xi.map((k, i) => (k < 0 ? ids[i] : pool[k].id));
 }
 

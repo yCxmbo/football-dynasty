@@ -93,37 +93,63 @@ function strength(lm: LiveMatch, s: LiveSide) {
   return val;
 }
 
-function computeStrength(lm: LiveMatch, s: LiveSide) {
+/** The parts of a side's strength that only change with its eleven, roles or formation: each slot's value before
+    fatigue, its share of each unit, role bonuses, specials and the captain. */
+interface StaticStrength { base: number[]; cw: [number[], number[], number[]]; wsum: [number, number, number]; bonus: [number, number, number]; gkBase: number; leaderOn: boolean; L: number; defIdx: number[]; sp: ReturnType<typeof roleSpecials> }
+const staticCache = new WeakMap<LiveSide, { xi: Array<string | null>; roles?: SlotRole[]; formation: Formation; val: StaticStrength }>();
+function staticStrength(lm: LiveMatch, s: LiveSide): StaticStrength {
+  const c = staticCache.get(s);
+  if (c && c.roles === s.roles && c.formation === s.formation && sameXi(c.xi, s.xi)) return c.val;
   const slots = slotsOf(s.formation);
-  const eff = (id: string | null, i: number) => {
+  const pre = (id: string | null, i: number) => {
     if (!id) return 0;
     const p = lm.players[id];
     const big = lm.knockout || lm.derby ? 1 + ((p.bigMatches ?? 10) - 10) * 0.006 : 1;
-    return p.ability * fitFor(p as unknown as Player, slots[i]) * (p.morale === 'high' ? 1.03 : p.morale === 'low' ? 0.96 : 1) * conditionFactor(p.condition) * (p.form ?? 1) * big;
+    return p.ability * fitFor(p as unknown as Player, slots[i]) * (p.morale === 'high' ? 1.03 : p.morale === 'low' ? 0.96 : 1) * (p.form ?? 1) * big;
   };
-  const idx = (r: string) => roleIdx(s.formation, r);
   // each outfield slot adds to defence, midfield and attack by its role and duty, weighted by how well he suits it
   const roles = s.roles ?? fixRoles(s.formation);
-  const tot = [0, 0, 0], wsum = [0, 0, 0], bonus = [1, 1, 1];
+  const base: number[] = new Array(slots.length).fill(0);
+  const cw: [number[], number[], number[]] = [new Array(slots.length).fill(0), new Array(slots.length).fill(0), new Array(slots.length).fill(0)];
+  const wsum: [number, number, number] = [0, 0, 0], bonus: [number, number, number] = [1, 1, 1];
   for (let i = 1; i < slots.length; i++) {
     const sr = roles[i], shape = slotShape(sr), id = s.xi[i];
     const stars = id ? starsFor(lm.players[id], sr.role) : 0;
-    const e = eff(id, i) * (id ? roleFactor(stars) : 1);
+    base[i] = pre(id, i) * (id ? roleFactor(stars) : 1);
     const pe = id && sr.pi ? instrEffect(sr.pi, lm.players[id].fa ?? {}) : null;
-    const per = pe ? [pe.def, pe.mid, pe.att] : null;
-    for (let u = 0; u < 3; u++) { tot[u] += shape.w[u] * e * (per ? per[u] : 1); wsum[u] += shape.w[u]; }
+    const per = pe ? [pe.def, pe.mid, pe.att] : [1, 1, 1];
+    for (let u = 0; u < 3; u++) { cw[u][i] = shape.w[u] * per[u]; wsum[u] += shape.w[u]; }
     const b = ROLE_BY_ID[sr.role]?.bonus;
     if (b && id) { const q = Math.min(1, stars / 3.5); bonus[0] *= 1 + (b.def ?? 0) * q; bonus[1] *= 1 + (b.mid ?? 0) * q; bonus[2] *= 1 + (b.att ?? 0) * q; }
   }
-  const unit = (u: number) => (wsum[u] > 0 ? (tot[u] / wsum[u]) * bonus[u] : 60);
   const gkStars = s.xi[0] ? starsFor(lm.players[s.xi[0]], roles[0].role) : 2.5;
-  // a leader on the pitch lifts everyone a little; so does a good captain, more so when chasing the game
   const cap = captainOnPitch(lm, s);
-  const L = cap ? cap.attrs.Leadership : 10;
+  const val: StaticStrength = {
+    base, cw, wsum, bonus, gkBase: pre(s.xi[0], 0) * roleFactor(gkStars),
+    leaderOn: s.xi.some((id) => id && lm.players[id].leader), L: cap ? cap.attrs.Leadership : 10,
+    defIdx: [0, ...roleIdx(s.formation, 'def')], sp: roleSpecials(s),
+  };
+  staticCache.set(s, { xi: [...s.xi], roles: s.roles, formation: s.formation, val });
+  return val;
+}
+
+function computeStrength(lm: LiveMatch, s: LiveSide) {
+  const st = staticStrength(lm, s);
+  // fatigue is what moves during a match
+  const cond = s.xi.map((id) => (id ? conditionFactor(lm.players[id].condition) : 0));
+  const unit = (u: 0 | 1 | 2) => {
+    if (st.wsum[u] <= 0) return 60;
+    let tot = 0;
+    const w = st.cw[u];
+    for (let i = 1; i < w.length; i++) if (w[i]) tot += w[i] * st.base[i] * cond[i];
+    return (tot / st.wsum[u]) * st.bonus[u];
+  };
+  // a leader on the pitch lifts everyone a little; so does a good captain, more so when chasing the game
   const si = s === lm.home ? 0 : 1;
   const behind = lm.minute >= 45 && lm.score[si] < lm.score[1 - si];
-  const k = s.boost * (s.xi.some((id) => id && lm.players[id].leader) ? 1.015 : 1) * (1 + (L - 10) * 0.0015) * (behind ? 1 + (L - 10) * 0.002 : 1);
-  return { gk: eff(s.xi[0], 0) * roleFactor(gkStars) * k, defence: unit(0) * k, mid: unit(1) * k, attack: unit(2) * k, defIdx: [0, ...idx('def')], sp: roleSpecials(s) };
+  const L = st.L;
+  const k = s.boost * (st.leaderOn ? 1.015 : 1) * (1 + (L - 10) * 0.0015) * (behind ? 1 + (L - 10) * 0.002 : 1);
+  return { gk: st.gkBase * cond[0] * k, defence: unit(0) * k, mid: unit(1) * k, attack: unit(2) * k, defIdx: st.defIdx, sp: st.sp };
 }
 
 const onPitch = (s: LiveSide) => s.xi.filter((x): x is string => !!x);
@@ -322,23 +348,26 @@ export function tick(lm: LiveMatch) {
       const p = rng.pick(pl.filter((x) => POS_GROUP[x.pos] !== 'GK'));
       if (p && !lm.perf[p.id].card) sendOff(lm, key, p.id, m, `Straight red! ${p.name} is off for a dangerous tackle.`);
     }
-    // injuries (tired players more often)
-    for (const p of pl) {
-      const risk = (0.08 / 90 / 11) * s.injury * (p.condition < 70 ? 1.8 : 1) * (0.6 + p.injuryProneness / 25);
-      if (rng.chance(risk)) {
+    // injuries (tired players more often): one draw against the side's total risk, then who it was
+    let riskSum = 0;
+    for (const p of pl) riskSum += (p.condition < 70 ? 1.8 : 1) * (0.6 + p.injuryProneness / 25);
+    if (rng.chance((0.08 / 90 / 11) * s.injury * riskSum)) {
+      const p = rng.weighted(pl, (x) => (x.condition < 70 ? 1.8 : 1) * (0.6 + x.injuryProneness / 25));
+      {
         lm.perf[p.id].injured = true;
         push(lm, { minute: m, type: 'injury', side: key, playerId: p.id, player: surname(p.name), text: `${p.name} pulls up and has to be replaced.` });
         const slot = slotsOf(s.formation)[s.xi.indexOf(p.id)];
         const rep = s.subsUsed < MAX_SUBS ? bestReplacement(lm, s, slot) : undefined;
         if (rep) substitute(lm, key, p.id, rep.id, true);
         else { s.xi[s.xi.indexOf(p.id)] = null; lm.perf[p.id].offAt = m; }
-        break;
       }
     }
     // fatigue
-    for (const id of onPitch(s)) {
+    for (let i = 0; i < s.xi.length; i++) {
+      const id = s.xi[i];
+      if (!id) continue;
       const p = lm.players[id];
-      const pp = s.roles?.[s.xi.indexOf(id)]?.pi?.press;
+      const pp = s.roles?.[i]?.pi?.press;
       p.condition = Math.max(20, p.condition - (0.26 + (20 - p.attrs.Stamina) * 0.012) * ef.fatigue * (pp === 'more' ? 1.2 : pp === 'less' ? 0.9 : 1));
     }
     // computer-run sides make changes on the hour, at 70 and 80

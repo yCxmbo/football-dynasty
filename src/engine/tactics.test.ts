@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyPreset, bestLineup, newGame, playMatchday, setInstructions, setRole, setTactics, squadOf, startUserMatch, useTactic } from './game';
 import { FORMATIONS, slotsOf, type Formation } from './match';
-import { bestRoles, fixRoles, ROLES, roleStars, slotShape } from './roles';
+import { bestRoles, fixRoles, instrEffect, ROLES, roleStars, slotShape } from './roles';
 import { familiarity, formationFamiliarity, STYLE_PRESETS, presetTactic, tacticsOf } from './tactics';
 import { instructionEffects, DEFAULT_INSTRUCTIONS } from './instructions';
 import { changeTactic, createLive, runToEnd } from './live';
@@ -106,5 +106,29 @@ describe('tactics, presets and familiarity', () => {
     expect(lm.home.xi.filter(Boolean).length).toBe(10);
     expect(lm.home.xi[0]).toBe(xi[0].id);
     expect(['LM', 'RM', 'ST']).toContain(slotsOf('4-4-2')[lm.home.xi.indexOf(null)]);
+  });
+});
+
+describe('player instructions', () => {
+  it('movement and shooting change his share of the play; effects depend on his attributes', () => {
+    const base = slotShape({ role: 'cm', duty: 'S' });
+    const fwd = slotShape({ role: 'cm', duty: 'S', pi: { move: 'forward', shoot: 'more' } });
+    expect(fwd.w[2]).toBeGreaterThan(base.w[2]);
+    expect(fwd.scorer).toBeGreaterThan(base.scorer);
+    const good = instrEffect({ shoot: 'more', pass: 'riskier' }, { 'Long Shots': 18, Finishing: 17, Vision: 18, Passing: 17 });
+    const poor = instrEffect({ shoot: 'more', pass: 'riskier' }, { 'Long Shots': 6, Finishing: 7, Vision: 6, Passing: 8 });
+    expect(good.att).toBeGreaterThan(1);
+    expect(poor.att).toBeLessThan(1);
+    expect(instrEffect({ pass: 'safer' }, {}).mid).toBeGreaterThan(1);
+  });
+  it('instructions survive role fixes and reach the match', () => {
+    const s = game();
+    setRole(s, 9, { role: 'af', duty: 'A', pi: { shoot: 'more', press: 'more' } });
+    expect(fixRoles(s.formation, s.roles)[9].pi).toEqual({ shoot: 'more', press: 'more' });
+    const lm = startUserMatch(s)!;
+    const mine = lm.home.user ? lm.home : lm.away;
+    expect(mine.roles![9].pi).toEqual({ shoot: 'more', press: 'more' });
+    runToEnd(lm);
+    expect(lm.done).toBe(true);
   });
 });

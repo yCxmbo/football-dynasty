@@ -1,4 +1,4 @@
-import { fixRoles, ROLE_BY_ID, roleFactor, roleStars, slotShape, type SlotRole } from './roles';
+import { fixRoles, instrEffect, ROLE_BY_ID, roleFactor, roleStars, slotShape, type SlotRole } from './roles';
 import { aiInstructions, instructionEffects, type Instructions } from './instructions';
 /* Minute-by-minute match engine. Every match runs through it: the user's match is ticked live
    (so substitutions change the outcome), every other match is ticked straight to full time.
@@ -109,7 +109,9 @@ function computeStrength(lm: LiveMatch, s: LiveSide) {
     const sr = roles[i], shape = slotShape(sr), id = s.xi[i];
     const stars = id ? starsFor(lm.players[id], sr.role) : 0;
     const e = eff(id, i) * (id ? roleFactor(stars) : 1);
-    for (let u = 0; u < 3; u++) { tot[u] += shape.w[u] * e; wsum[u] += shape.w[u]; }
+    const pe = id && sr.pi ? instrEffect(sr.pi, lm.players[id].fa ?? {}) : null;
+    const per = pe ? [pe.def, pe.mid, pe.att] : null;
+    for (let u = 0; u < 3; u++) { tot[u] += shape.w[u] * e * (per ? per[u] : 1); wsum[u] += shape.w[u]; }
     const b = ROLE_BY_ID[sr.role]?.bonus;
     if (b && id) { const q = Math.min(1, stars / 3.5); bonus[0] *= 1 + (b.def ?? 0) * q; bonus[1] *= 1 + (b.mid ?? 0) * q; bonus[2] *= 1 + (b.att ?? 0) * q; }
   }
@@ -149,7 +151,10 @@ function scorerWeight(s: LiveSide, p: Snap) {
     a target forward feeds on wide play. */
 export function roleSpecials(s: LiveSide) {
   const has = (sp: string) => (s.roles ?? []).some((r, i) => s.xi[i] && ROLE_BY_ID[r.role]?.special === sp);
-  return { sweeper: has('sweeper'), target: has('target'), presser: (s.roles ?? []).filter((r, i) => s.xi[i] && ROLE_BY_ID[r.role]?.special === 'presser').length };
+  const on = (s.roles ?? []).filter((_, i) => s.xi[i]);
+  // pressing forwards count fully; players told to press more count half, those told to press less take half off
+  const presser = on.filter((r) => ROLE_BY_ID[r.role]?.special === 'presser').length + on.filter((r) => r.pi?.press === 'more').length * 0.5 - on.filter((r) => r.pi?.press === 'less').length * 0.5;
+  return { sweeper: has('sweeper'), target: has('target'), presser: Math.max(-2, presser), tacklers: on.filter((r) => r.pi?.tackle === 'harder').length };
 }
 
 /** The captain if he's on the pitch, else whoever leads best among those playing. */
@@ -304,9 +309,10 @@ export function tick(lm: LiveMatch) {
         }
       }
     }
-    if (rng.chance(((lm.derby ? 15 : 11) * ef.fouls) / 90)) lm.stats.fouls[si]++;
+    const hard = 1 + 0.06 * ((si === 0 ? H : A).sp.tacklers);
+    if (rng.chance(((lm.derby ? 15 : 11) * ef.fouls * hard) / 90)) lm.stats.fouls[si]++;
     // cards (derbies are hotter)
-    if (rng.chance(((lm.derby ? 2.4 : 1.7) * ef.fouls) / 90)) {
+    if (rng.chance(((lm.derby ? 2.4 : 1.7) * ef.fouls * hard) / 90)) {
       const p = rng.weighted(pl, (x) => (x.attrs.Aggression + (POS_GROUP[x.pos] === 'GK' ? -15 : 0)) * (x.hothead ? 1.8 : 1));
       const perf = lm.perf[p.id];
       const victim = onPitch(other)[0] ? lm.players[rng.pick(onPitch(other))] : undefined;
@@ -332,7 +338,8 @@ export function tick(lm: LiveMatch) {
     // fatigue
     for (const id of onPitch(s)) {
       const p = lm.players[id];
-      p.condition = Math.max(20, p.condition - (0.26 + (20 - p.attrs.Stamina) * 0.012) * ef.fatigue);
+      const pp = s.roles?.[s.xi.indexOf(id)]?.pi?.press;
+      p.condition = Math.max(20, p.condition - (0.26 + (20 - p.attrs.Stamina) * 0.012) * ef.fatigue * (pp === 'more' ? 1.2 : pp === 'less' ? 0.9 : 1));
     }
     // computer-run sides make changes on the hour, at 70 and 80
     if (!s.user && (m === 60 || m === 70 || m === 80) && s.subsUsed < 3) {

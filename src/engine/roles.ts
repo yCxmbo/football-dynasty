@@ -69,7 +69,18 @@ export const ROLES: RoleDef[] = [
 ];
 export const ROLE_BY_ID: Record<string, RoleDef> = Object.fromEntries(ROLES.map((r) => [r.id, r]));
 
-export interface SlotRole { role: string; duty: Duty }
+/** Individual instructions on top of a role. Whether they help depends on the player's attributes. */
+export interface PlayerInstr { shoot?: 'less' | 'more'; dribble?: 'less' | 'more'; pass?: 'safer' | 'riskier'; move?: 'hold' | 'forward'; press?: 'less' | 'more'; tackle?: 'harder' }
+export interface SlotRole { role: string; duty: Duty; pi?: PlayerInstr }
+
+export const PLAYER_INSTR: Array<{ key: keyof PlayerInstr; label: string; options: Array<{ value: string; label: string }>; attr: string[]; desc: string }> = [
+  { key: 'shoot', label: 'Shooting', options: [{ value: 'less', label: 'Less often' }, { value: 'more', label: 'More often' }], attr: ['Long Shots', 'Finishing'], desc: 'More shots from him: worth it with good Long Shots and Finishing, wasteful without.' },
+  { key: 'dribble', label: 'Dribbling', options: [{ value: 'less', label: 'Less' }, { value: 'more', label: 'More' }], attr: ['Dribbling', 'Flair'], desc: 'Run at defenders: dangerous with good Dribbling, gives the ball away without. Less keeps possession.' },
+  { key: 'pass', label: 'Passing', options: [{ value: 'safer', label: 'Safer' }, { value: 'riskier', label: 'Riskier' }], attr: ['Vision', 'Passing'], desc: 'Riskier passes create more with good Vision and Passing; safer passes keep the ball.' },
+  { key: 'move', label: 'Movement', options: [{ value: 'hold', label: 'Hold position' }, { value: 'forward', label: 'Get forward' }], attr: ['Off the Ball', 'Stamina'], desc: 'Shifts him towards defence or attack beyond his duty.' },
+  { key: 'press', label: 'Pressing', options: [{ value: 'less', label: 'Less' }, { value: 'more', label: 'More' }], attr: ['Work Rate', 'Stamina'], desc: 'More pressing unsettles their midfield but tires him faster (Work Rate and Stamina help).' },
+  { key: 'tackle', label: 'Tackling', options: [{ value: 'harder', label: 'Tackle harder' }], attr: ['Tackling', 'Aggression'], desc: 'Wins more ball with good Tackling; more fouls and cards.' },
+];
 
 const DEFAULT_ROLE: Record<string, SlotRole> = {
   GK: { role: 'gk', duty: 'D' }, CB: { role: 'cd', duty: 'D' }, LB: { role: 'fb', duty: 'S' }, RB: { role: 'fb', duty: 'S' },
@@ -85,7 +96,7 @@ export function fixRoles(f: Formation, roles?: SlotRole[]): SlotRole[] {
     const r = roles?.[i];
     const def = ROLE_BY_ID[r?.role ?? ''];
     if (!r || !def || !def.slots.includes(s)) return { ...DEFAULT_ROLE[s] };
-    return def.duties.includes(r.duty) ? r : { role: r.role, duty: def.duties[0] };
+    return def.duties.includes(r.duty) ? r : { role: r.role, duty: def.duties[0], ...(r.pi ? { pi: r.pi } : {}) };
   });
 }
 
@@ -102,7 +113,7 @@ export const roleFactor = (stars: number) => 0.96 + stars * 0.016;
 /** What a slot's role and duty add to each unit (shares sum to 1), and the player's share of the goals. */
 const shapeMemo = new Map<string, { w: [number, number, number]; scorer: number }>();
 export function slotShape(sr: SlotRole): { w: [number, number, number]; scorer: number } {
-  const key = sr.role + sr.duty;
+  const key = sr.role + sr.duty + (sr.pi?.move ?? '') + (sr.pi?.shoot ?? '');
   let v = shapeMemo.get(key);
   if (!v) { v = computeShape(sr); shapeMemo.set(key, v); }
   return v;
@@ -117,7 +128,11 @@ function computeShape(sr: SlotRole): { w: [number, number, number]; scorer: numb
   } else if (sr.duty === 'A' && r.id !== 'gk' && r.id !== 'sk') {
     const fromD = Math.min(d, shift); d -= fromD; const fromM = Math.min(m, shift - fromD); m -= fromM; a += fromD + fromM;
   }
-  const scorer = r.scorer * (sr.duty === 'A' ? 1.25 : sr.duty === 'D' ? 0.7 : 1);
+  // individual movement: a further, smaller shift
+  const step = 0.1;
+  if (sr.pi?.move === 'hold' && r.id !== 'gk') { const fromA = Math.min(a, step); a -= fromA; const fromM = Math.min(m, step - fromA); m -= fromM; d += fromA + fromM; }
+  else if (sr.pi?.move === 'forward' && r.id !== 'gk' && r.id !== 'sk') { const fromD = Math.min(d, step); d -= fromD; const fromM = Math.min(m, step - fromD); m -= fromM; a += fromD + fromM; }
+  const scorer = r.scorer * (sr.duty === 'A' ? 1.25 : sr.duty === 'D' ? 0.7 : 1) * (sr.pi?.shoot === 'more' ? 1.3 : sr.pi?.shoot === 'less' ? 0.7 : 1);
   return { w: [d, m, a], scorer };
 }
 
@@ -143,4 +158,20 @@ export function bestRoles(f: Formation, xi: Array<Pick<Player, 'attributes'> | u
     for (const o of opts) { const st = roleStars(p, o[0]); if (st > bs + 0.25) { best = o; bs = st; } }
     return { role: best[0], duty: best[1] };
   });
+}
+
+/** What a player's individual instructions do to each unit (multipliers), given his attributes: good at it,
+    a small gain; poor at it, a small cost. */
+export function instrEffect(pi: PlayerInstr | undefined, attrs: Record<string, number>): { def: number; mid: number; att: number } {
+  const e = { def: 1, mid: 1, att: 1 };
+  if (!pi) return e;
+  const a = (k: string) => attrs[k] ?? 10;
+  const skill = (...ks: string[]) => ks.reduce((x, k) => x + a(k), 0) / ks.length - 12; // above 12 helps
+  if (pi.shoot === 'more') e.att *= 1 + skill('Long Shots', 'Finishing') * 0.0025;
+  if (pi.dribble === 'more') e.att *= 1 + skill('Dribbling', 'Flair') * 0.0025;
+  else if (pi.dribble === 'less') e.mid *= 1.003;
+  if (pi.pass === 'riskier') { e.att *= 1 + skill('Vision', 'Passing') * 0.0025; e.mid *= 0.997; }
+  else if (pi.pass === 'safer') { e.mid *= 1.004; e.att *= 0.996; }
+  if (pi.tackle === 'harder') e.def *= 1 + skill('Tackling', 'Aggression') * 0.002;
+  return e;
 }

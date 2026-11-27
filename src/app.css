@@ -286,3 +286,9 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .instr-phases .fd-seg { flex-wrap: wrap; }
 @media (max-width: 1100px) { .instr-phases { grid-template-columns: 1fr; } }
 .match-tac { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.tb__pi { margin-top: 10px; }
+.tb__pi summary { cursor: pointer; margin-bottom: 6px; }
+.tb__pirow { display: grid; grid-template-columns: 80px 1fr; gap: 2px 8px; align-items: center; margin-bottom: 6px; }
+.tb__pilabel { font-size: 12px; font-weight: 700; }
+.tb__pirow .fd-seg { flex-wrap: wrap; }
+.tb__pihint { grid-column: 2; font-size: 11px; }

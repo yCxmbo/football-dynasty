@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FD } from '../ds';
 import { available, fitFor, slotsOf, type Formation } from '../engine/match';
-import { DUTY_NAME, fixRoles, ROLE_BY_ID, roleStars, rolesFor, type Duty, type SlotRole } from '../engine/roles';
+import { DUTY_NAME, fixRoles, PLAYER_INSTR, ROLE_BY_ID, roleStars, rolesFor, type Duty, type PlayerInstr, type SlotRole } from '../engine/roles';
 import type { Player } from '../engine/types';
 
 /** Where each slot sits on the pitch (x, y in %), in slot order. */
@@ -68,7 +68,7 @@ export default function TacticsBoard({ formation, roles, xi, bench, onSwap, onRo
               aria-pressed={sel === i} aria-label={`${s}: ${p ? p.name : 'empty'}, ${ROLE_BY_ID[r.role]?.name} (${DUTY_NAME[r.duty]})`} onClick={() => pickSlot(i)}>
               <span className="fd-slot__disc">{p ? p.number : '+'}</span>
               <span className="fd-slot__name">{p ? surname(p.name) : s}</span>
-              <span className="fd-slot__pos">{ROLE_BY_ID[r.role]?.short}-{r.duty}{p && !available(p) ? ' · out' : ''}</span>
+              <span className="fd-slot__pos">{ROLE_BY_ID[r.role]?.short}-{r.duty}{r.pi && Object.keys(r.pi).length ? ` +${Object.keys(r.pi).length}` : ''}{p && !available(p) ? ' · out' : ''}</span>
               {p ? <span className={'tb__stars tb__stars--' + (st >= 3.5 ? 'good' : st >= 2 ? 'ok' : 'poor')} aria-hidden="true">{'★'.repeat(Math.round(st))}</span> : null}
             </button>
           );
@@ -95,6 +95,28 @@ export default function TacticsBoard({ formation, roles, xi, bench, onSwap, onRo
                 <p className="hm-note tb__keys">{def.keys.map((k) => <span key={k}>{k} <strong>{cur.p!.attributes[k] ?? '–'}</strong></span>)}</p>
               </>
             ) : null}
+            <details className="tb__pi" open={!!cur.r.pi && Object.keys(cur.r.pi).length > 0}>
+              <summary className="fd-label">Player instructions{cur.r.pi && Object.keys(cur.r.pi).length ? ` (${Object.keys(cur.r.pi).length})` : ''}</summary>
+              {PLAYER_INSTR.map((o) => {
+                const val = cur.r.pi?.[o.key];
+                const skill = cur.p ? o.attr.reduce((x, k) => x + (cur.p!.attributes[k] ?? 10), 0) / o.attr.length : 10;
+                const set = (v?: string) => {
+                  const pi: PlayerInstr = { ...(cur.r.pi ?? {}) };
+                  if (v) (pi as Record<string, string>)[o.key] = v; else delete pi[o.key];
+                  onRole(sel!, { role: cur.r.role, duty: cur.r.duty, ...(Object.keys(pi).length ? { pi } : {}) });
+                };
+                return (
+                  <div key={o.key} className="tb__pirow" title={o.desc}>
+                    <span className="tb__pilabel">{o.label}</span>
+                    <div className="fd-seg" role="radiogroup" aria-label={o.label}>
+                      <button type="button" role="radio" aria-checked={!val} className={'fd-seg__opt' + (!val ? ' is-on' : '')} onClick={() => set()}>Normal</button>
+                      {o.options.map((x) => <button key={x.value} type="button" role="radio" aria-checked={val === x.value} className={'fd-seg__opt' + (val === x.value ? ' is-on' : '')} onClick={() => set(x.value)}>{x.label}</button>)}
+                    </div>
+                    {cur.p ? <span className={'tb__pihint ' + (skill >= 13 ? 'pred-up' : skill < 12 ? 'pred-down' : 'fd-muted')}>{o.attr.map((k) => `${k} ${cur.p!.attributes[k] ?? '–'}`).join(', ')}{skill >= 13 ? ' · suits him' : skill < 12 ? ' · not his strength' : ''}</span> : null}
+                  </div>
+                );
+              })}
+            </details>
             <p className="hm-note" style={{ margin: '6px 0 0' }}>Pick another slot or a substitute to swap him.</p>
           </section>
         ) : <p className="hm-note" style={{ margin: '0 0 8px' }}>Pick a player on the pitch to set his role and duty, or to swap him.</p>}

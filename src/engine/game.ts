@@ -400,6 +400,14 @@ function applyResult(state: GameState, f: Fixture, rng: ReturnType<typeof create
     if (pr.injured) p.injuredFor = Math.max(1, Math.round((1 + rng.int(1, 4) + Math.round(p.hidden.injuryProneness / 8)) * (p.clubId === state.userClubId ? injuryLengthFactor(state) : 1)));
     if (pr.rating >= 7.5) p.morale = 'high'; else if (pr.rating < 6) p.morale = p.morale === 'high' ? 'ok' : 'low';
   }
+  if (friendly) return;
+  // clean sheets (goalkeepers who played an hour or more) and the player of the match
+  for (const [list, conceded] of [[r.ratings.home, r.score[1]], [r.ratings.away, r.score[0]]] as const) {
+    if (conceded) continue;
+    for (const pr of list) { const p = state.players[pr.playerId]; if (p && p.pos === 'GK' && pr.minutes >= 60) p.current.cleanSheets = (p.current.cleanSheets ?? 0) + 1; }
+  }
+  const best = [...r.ratings.home, ...r.ratings.away].filter((x) => x.minutes >= 30).sort((a, b) => b.rating - a.rating)[0];
+  if (best && state.players[best.playerId]) { const p = state.players[best.playerId]; p.current.potm = (p.current.potm ?? 0) + 1; }
 }
 
 function postMatchMessages(state: GameState, f: Fixture) {

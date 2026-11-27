@@ -39,7 +39,7 @@ export interface Player {
   yellowCards: number;
   captain?: boolean;
   career: SeasonLine[];
-  current: { apps: number; goals: number; assists: number; ratingSum: number };
+  current: { apps: number; goals: number; assists: number; ratingSum: number; /** Goalkeepers playing an hour or more without conceding. */ cleanSheets?: number; /** Player of the match awards. */ potm?: number };
   releaseClause?: number;
   /** Attribute changes this season (shown on development cards). */
   progress?: Record<string, number>;

@@ -331,3 +331,8 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .ma-swatch.dv-3, .dv-dot.dv-3 { background: var(--dv-3); fill: var(--dv-3); }
 .ma-line.dv-1 { stroke: var(--dv-1); } .ma-line.dv-2 { stroke: var(--dv-2); } .ma-line.dv-3 { stroke: var(--dv-3); }
 .dv-dot { stroke: var(--surface-raised); stroke-width: 2; }
+.st-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 16px; }
+.st-results { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius-sm, 6px); max-height: 260px; overflow-y: auto; margin-top: 4px; }
+.st-result { text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 6px 10px; color: var(--ink); font: inherit; cursor: pointer; }
+.st-result:hover, .st-result:focus-visible { background: var(--surface-sunken); }
+.st-compare td:nth-child(2), .st-compare td:nth-child(3) { font-variant-numeric: tabular-nums; }

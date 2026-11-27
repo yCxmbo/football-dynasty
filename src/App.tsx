@@ -25,6 +25,7 @@ import International from './screens/International';
 import Career from './screens/Career';
 import Staff from './screens/Staff';
 import ClubScreen from './screens/ClubScreen';
+import StatsHub from './screens/StatsHub';
 import Records from './screens/Records';
 import Tip, { TIPS } from './screens/Tip';
 import { simulate } from './sim/client';
@@ -168,6 +169,7 @@ export default function App() {
     case 'table': body = <Table g={g} go={go} />; break;
     case 'nationalMatch': body = <NationalMatch key={`${g.summer?.results.length}`} g={g} go={go} update={update} />; break;
     case 'records': body = <Records g={g} go={go} />; break;
+    case 'stats': body = <StatsHub g={g} go={go} />; break;
     case 'club': body = <ClubScreen key={param} g={g} id={param} go={go} />; break;
     case 'facilities': body = <FacilitiesScreen g={g} update={update} />; break;
     case 'staff': body = <Staff g={g} update={update} />; break;

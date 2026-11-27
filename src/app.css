@@ -247,3 +247,6 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .hm-odds { margin: 6px 0 0; font-size: 13px; }
 .pred-up { color: var(--teal); font-weight: 700; }
 .pred-down { color: var(--warn, #e0a030); font-weight: 700; }
+.opp__advice { margin: 4px 0 0; padding-left: 18px; font-size: 14px; display: flex; flex-direction: column; gap: 2px; }
+.opp { margin-top: 10px; }
+.opp__form { display: inline-flex; gap: 2px; vertical-align: middle; }

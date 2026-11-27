@@ -1,3 +1,6 @@
+import OppReport from './OppReport';
+import type { Screen } from './shared';
+import { nextUserFixture } from '../engine/game';
 import { FD } from '../ds';
 import { available, slotsOf, type Formation } from '../engine/match';
 import { bestLineup, recoveryPerDay, squadOf, userLineup } from '../engine/game';
@@ -25,7 +28,8 @@ function FitnessRow({ g, p, slot, rotated }: { g: GameState; p: Player; slot?: s
   );
 }
 
-export default function Tactics({ g, onChange, onAutoRotate, liveNote }: { g: GameState; onChange: (formation: Formation, lineup: string[]) => void; onAutoRotate: (on: boolean) => void; liveNote?: boolean }) {
+export default function Tactics({ g, go, onChange, onAutoRotate, liveNote }: { g: GameState; go: (s: Screen, id?: string) => void; onChange: (formation: Formation, lineup: string[]) => void; onAutoRotate: (on: boolean) => void; liveNote?: boolean }) {
+  const nextFx = nextUserFixture(g);
   const ft = squadOf(g, g.userClubId).filter((p) => p.squad === 'First team');
   const xi = g.lineup.map((id) => g.players[id]).filter(Boolean);
   const bench = ft.filter((p) => !g.lineup.includes(p.id)).sort((a, b) => Number(available(b)) - Number(available(a)) || b.ability - a.ability);
@@ -42,6 +46,7 @@ export default function Tactics({ g, onChange, onAutoRotate, liveNote }: { g: Ga
       </div>
       {liveNote && <p className="tr-window" role="status">A match is in progress. Changes here apply from the next match; make substitutions from the match screen.</p>}
       {unavailable.length > 0 && <p className="fd-money--neg" role="alert">{unavailable.map((p) => p.name).join(', ')} {unavailable.length === 1 ? 'is' : 'are'} unavailable and will be replaced automatically. Pick a replacement or use Pick best XI.</p>}
+      {nextFx && nextFx.comp !== 'friendly' ? <OppReport g={g} f={nextFx} go={go} /> : null}
       <FD.FormationBoard
         formation={g.formation}
         onFormationChange={(f: Formation) => onChange(f, bestLineup(g, f))}

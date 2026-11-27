@@ -163,7 +163,7 @@ export default function App() {
     case 'training': body = <Training g={g} update={update} />; break;
     case 'finances': body = <Finances g={g} />; break;
     case 'contract': body = <Contract key={param} g={g} id={param} go={go} update={update} />; break;
-    case 'tactics': body = <Tactics g={g} liveNote={!!live} onAutoRotate={(on) => update((d) => setAutoRotate(d, on))} onChange={(f: Formation, l: string[]) => update((d) => setTactics(d, f, l))} />; break;
+    case 'tactics': body = <Tactics g={g} go={go} liveNote={!!live} onAutoRotate={(on) => update((d) => setAutoRotate(d, on))} onChange={(f: Formation, l: string[]) => update((d) => setTactics(d, f, l))} />; break;
     case 'fixtures': body = <Fixtures g={g} go={go} />; break;
     case 'table': body = <Table g={g} go={go} />; break;
     case 'nationalMatch': body = <NationalMatch key={`${g.summer?.results.length}`} g={g} go={go} update={update} />; break;

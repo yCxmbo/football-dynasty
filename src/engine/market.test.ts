@@ -19,7 +19,7 @@ describe('transfer market', () => {
     const before = Object.fromEntries(Object.values(s.players).map((p) => [p.id, p.clubId]));
     const logged = s.records?.deals?.length ?? 0;
     startNewSeason(s);
-    const deals = (s.records!.deals ?? []).slice(0, (s.records!.deals ?? []).length - logged).filter((d) => d.season === '2026/27' && d.fromId && d.toId && d.playerId && before[d.playerId] === d.fromId);
+    const deals = (s.records!.deals ?? []).slice(0, (s.records!.deals ?? []).length - logged).filter((d) => d.season === '2026/27' && d.fromId && d.toId && d.playerId && !d.distress && before[d.playerId] === d.fromId);
     expect(deals.length).toBeGreaterThan(15);
     for (const d of deals) {
       expect(d.toId).not.toBe('eng-everton');

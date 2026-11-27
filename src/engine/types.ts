@@ -190,6 +190,8 @@ export interface GameState {
   rumours?: import('./market').Rumour[];
   /** The pundits' predicted tables for this season. */
   predictions?: import('./preview').Predictions;
+  /** Your chosen set-piece takers. */
+  setPieces?: import('./live').SetPieceTakers;
   /** All-time records across the world. */
   records?: import('./records').Records;
   /** Achievements unlocked, with the season. */

@@ -1,5 +1,6 @@
 import { makeRumours, runMarket } from './market';
 import { planBoost } from './opposition';
+import { captainOf, takersOf } from './leadership';
 import { makePredictions, predictedPos, previewMessage } from './preview';
 import { managerBoost, managerOf, managers, managersAfterSeason, midSeasonSackings, weeklyAppointments } from './managers';
 import { awardPremium, awardsMessage, seasonAwards } from './awards';
@@ -236,8 +237,8 @@ function setupFor(state: GameState, f: Fixture) {
   const plan = (uh || ua) && f.comp !== 'friendly' ? planBoost(state, f) : 1;
   const mods: MatchMods = { derby, homeBoost: uh ? te.matchBoost * sharp * plan : managerBoost(state, f.homeId), awayBoost: ua ? te.matchBoost * sharp * plan : managerBoost(state, f.awayId), homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1, neutral: f.neutral, knockout: f.ko };
   return {
-    home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: (uh ? state.formation : '4-3-3') as Formation, name: H.name, user: uh, ...(uh ? { tilt } : {}) },
-    away: { xi: ax, bench: benchFor(state, f.awayId, ax), formation: (ua ? state.formation : '4-3-3') as Formation, name: A.name, user: ua, ...(ua ? { tilt } : {}) },
+    home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: (uh ? state.formation : '4-3-3') as Formation, name: H.name, user: uh, captain: captainOf(state, f.homeId)?.id, ...(uh ? { tilt, takers: takersOf(state) } : {}) },
+    away: { xi: ax, bench: benchFor(state, f.awayId, ax), formation: (ua ? state.formation : '4-3-3') as Formation, name: A.name, user: ua, captain: captainOf(state, f.awayId)?.id, ...(ua ? { tilt, takers: takersOf(state) } : {}) },
     venue: H.stadium, mods,
   };
 }
@@ -726,7 +727,7 @@ function aiTransfers(state: GameState, rng: ReturnType<typeof createRng>) {
       const buyer = rng.pick(abroad);
       c.balance += star.value; c.transferBudget += Math.round(star.value * 0.5);
       Object.assign(star, { clubId: buyer.id, number: freeNumber(state, buyer.id), captain: false, joined: state.year });
-      recordTransfer(state, star.name, c.name, buyer.name, star.value, seasonLabel(state.year), { playerId: star.id, fromId: c.id, toId: buyer.id });
+      recordTransfer(state, star.name, c.name, buyer.name, star.value, seasonLabel(state.year), { playerId: star.id, fromId: c.id, toId: buyer.id, distress: true });
       continue;
     }
     let spend = (c.balance - reserve) * 0.5;

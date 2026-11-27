@@ -11,7 +11,7 @@ export interface Records {
   /** Recent deals worldwide (from 1M), newest first, for the transfer news. */
   deals?: DealLine[];
 }
-export interface DealLine { name: string; from: string; to: string; fee: number; season: string; playerId?: string; fromId?: string; toId?: string; rumoured?: boolean }
+export interface DealLine { name: string; from: string; to: string; fee: number; season: string; playerId?: string; fromId?: string; toId?: string; rumoured?: boolean; /** A club in debt forced to sell. */ distress?: boolean }
 
 const records = (s: GameState): Records => (s.records ??= { scorers: [], seasons: [], points: [], transfers: [] });
 const top = <T,>(list: T[], by: (x: T) => number, n: number) => list.sort((a, b) => by(b) - by(a)).slice(0, n);

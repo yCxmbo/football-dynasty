@@ -250,3 +250,6 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .opp__advice { margin: 4px 0 0; padding-left: 18px; font-size: 14px; display: flex; flex-direction: column; gap: 2px; }
 .opp { margin-top: 10px; }
 .opp__form { display: inline-flex; gap: 2px; vertical-align: middle; }
+.sp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3, 12px); }
+.sp-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sp-field select { width: 100%; max-width: 100%; }

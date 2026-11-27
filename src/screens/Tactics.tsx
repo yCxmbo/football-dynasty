@@ -1,3 +1,4 @@
+import SetPieces from './SetPieces';
 import OppReport from './OppReport';
 import type { Screen } from './shared';
 import { nextUserFixture } from '../engine/game';
@@ -28,7 +29,7 @@ function FitnessRow({ g, p, slot, rotated }: { g: GameState; p: Player; slot?: s
   );
 }
 
-export default function Tactics({ g, go, onChange, onAutoRotate, liveNote }: { g: GameState; go: (s: Screen, id?: string) => void; onChange: (formation: Formation, lineup: string[]) => void; onAutoRotate: (on: boolean) => void; liveNote?: boolean }) {
+export default function Tactics({ g, go, update, onChange, onAutoRotate, liveNote }: { g: GameState; go: (s: Screen, id?: string) => void; update: (fn: (d: GameState) => void) => void; onChange: (formation: Formation, lineup: string[]) => void; onAutoRotate: (on: boolean) => void; liveNote?: boolean }) {
   const nextFx = nextUserFixture(g);
   const ft = squadOf(g, g.userClubId).filter((p) => p.squad === 'First team');
   const xi = g.lineup.map((id) => g.players[id]).filter(Boolean);
@@ -54,6 +55,7 @@ export default function Tactics({ g, go, onChange, onAutoRotate, liveNote }: { g
         bench={bench.map((p) => ({ ...lite(p), name: !available(p) ? `${p.name} (${p.injuredFor ? 'injured' : 'suspended'})` : `${p.name} · ${cond(p)}%` }))}
         onChange={(l: Array<{ id: string }>) => onChange(g.formation, l.slice(0, slots.length).map((x) => x.id))}
       />
+      <SetPieces g={g} update={update} />
       <section className="pg-card">
         <div className="pg-row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
           <div>

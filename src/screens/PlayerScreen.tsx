@@ -1,3 +1,4 @@
+import { compareIds, toggleCompare } from './compareStore';
 import { buyBackFor, clauseLines } from '../engine/deals';
 import { PlayerTalk } from './Talks';
 import DevelopmentChart from './DevelopmentChart';
@@ -26,6 +27,7 @@ export default function PlayerScreen({ g, id, go, act, update }: { g: GameState;
   const mine = p.clubId === g.userClubId;
   const youth = p.squad !== 'First team';
   const actions: JSX.Element[] = [];
+  const comparing = compareIds().includes(p.id);
   if (mine) {
     if (youth) actions.push(<FD.Button key="p" size="sm" icon="youth" onClick={() => act.promote(p.id)}>Promote to first team</FD.Button>);
     else if (!borrowed) {
@@ -54,6 +56,7 @@ export default function PlayerScreen({ g, id, go, act, update }: { g: GameState;
       if (window.confirm(`Take ${p.name} on loan from ${g.clubs[p.clubId].name} until the end of the season? You pay his wages.`)) update((d) => { loanIn(d, p.id); });
     }}>Ask to loan</FD.Button>);
   }
+  actions.push(<FD.Button key="cmp" size="sm" variant="ghost" onClick={() => { if (!comparing) toggleCompare(p.id); go('stats', 'compare'); }}>{comparing ? 'In comparison · open' : 'Compare'}</FD.Button>);
   const intl = p.intl;
   return (
     <div className="pg-stack" style={{ gap: 16 }}>

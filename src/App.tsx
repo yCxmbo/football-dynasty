@@ -203,7 +203,7 @@ export default function App() {
     case 'table': body = <Table g={g} go={go} />; break;
     case 'nationalMatch': body = <NationalMatch key={`${g.summer?.results.length}`} g={g} go={go} update={update} />; break;
     case 'records': body = <Records g={g} go={go} />; break;
-    case 'stats': body = <StatsHub g={g} go={go} />; break;
+    case 'stats': body = <StatsHub key={param ?? ''} g={g} go={go} initialView={param === 'compare' ? 'compare' : undefined} />; break;
     case 'calendar': body = <Calendar g={g} go={go} notes={windowsFor(g.clubs[g.userClubId].country, g.year).flatMap((w) => [{ date: w.from, text: `${w.label.replace(/^./, (c) => c.toUpperCase())} opens`, tone: 'teal' as const }, { date: w.to, text: 'Deadline day', tone: 'gold' as const }])} />; break;
     case 'club': body = <ClubScreen key={param} g={g} id={param} go={go} />; break;
     case 'facilities': body = <FacilitiesScreen g={g} update={update} />; break;

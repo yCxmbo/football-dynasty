@@ -200,3 +200,11 @@ export function instrEffect(pi: PlayerInstr | undefined, attrs: Record<string, n
   if (pi.tackle === 'harder') e.def *= 1 + skill('Tackling', 'Aggression') * 0.002;
   return e;
 }
+
+/** The role (of any that fit his natural position) a player suits best. */
+export function bestRoleOf(p: Pick<Player, 'pos' | 'attributes'>) {
+  const slot = p.pos === 'LW' || p.pos === 'RW' ? 'LW' : p.pos === 'LB' || p.pos === 'RB' ? 'LB' : p.pos;
+  let best = ROLES[0], bs = -1;
+  for (const r of ROLES) if (r.slots.includes(slot)) { const s = roleStars(p, r.id); if (s > bs) { best = r; bs = s; } }
+  return { name: best.name, stars: bs };
+}

@@ -589,3 +589,8 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .net-grade--A { color: var(--form-win); }
 .net-grade--B { color: var(--teal); }
 .net-grade--C { color: var(--ink-muted); }
+
+/* Compare */
+.cmp-best { font-weight: 700; color: var(--ink); }
+.cmp-mark { color: var(--form-win); font-size: 10px; }
+.st-compare th { white-space: nowrap; }

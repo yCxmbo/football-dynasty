@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { FD } from '../ds';
 import { available } from '../engine/match';
 import { ATTRIBUTE_GROUPS } from '../engine/ratings';
-import { ROLES, roleStars } from '../engine/roles';
+import { bestRoleOf } from '../engine/roles';
 import type { GameState, Player } from '../engine/types';
 import { toCur } from '../store';
 import { seasonLabel } from '../engine/types';
@@ -25,13 +25,7 @@ const GROUPS: Array<[string, string, (p: Player) => boolean]> = [
 
 const avgOf = (p: Player, keys: readonly string[]) => keys.reduce((a, k) => a + (p.attributes[k] ?? 0), 0) / keys.length;
 const rating = (p: Player) => (p.current.apps ? p.current.ratingSum / p.current.apps : 0);
-/** The role (of any that fit his natural position) he suits best. */
-function bestRole(p: Player) {
-  const slot = p.pos === 'LW' || p.pos === 'RW' ? 'LW' : p.pos === 'LB' || p.pos === 'RB' ? 'LB' : p.pos;
-  let best = ROLES[0], bs = -1;
-  for (const r of ROLES) if (r.slots.includes(slot)) { const s = roleStars(p, r.id); if (s > bs) { best = r; bs = s; } }
-  return { name: best.name, stars: bs };
-}
+const bestRole = (p: Player) => bestRoleOf(p);
 
 interface Col { key: string; label: string; num?: boolean; title?: string; sort?: (p: Player) => number | string; cell: (p: Player) => React.ReactNode }
 

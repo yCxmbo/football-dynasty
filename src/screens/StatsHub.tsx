@@ -1,4 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { FD } from '../ds';
+import { toCur } from '../store';
+import { bestRoleOf } from '../engine/roles';
+import { compareIds, onCompareChange, setCompare } from './compareStore';
 import { attrRange, avgRating, leaders, METRICS, value, type Metric } from '../engine/stats';
 import { knowledgeOf } from '../engine/transfers';
 import { ATTRIBUTE_GROUPS } from '../engine/ratings';
@@ -8,11 +12,11 @@ import type { Screen } from './shared';
 
 const fmt = (p: Player, m: Metric) => (m === 'rating' ? avgRating(p).toFixed(2) : String(value(p, m)));
 
-/** League leaders this season, and a side-by-side comparison of any two players. */
-export default function StatsHub({ g, go }: { g: GameState; go: (s: Screen, id?: string) => void }) {
+/** League leaders this season, and a side-by-side comparison of up to three players. */
+export default function StatsHub({ g, go, initialView }: { g: GameState; go: (s: Screen, id?: string) => void; initialView?: 'compare' }) {
   const home = g.clubs[g.userClubId].league ?? 'all';
   const [scope, setScope] = useState(home);
-  const [view, setView] = useState<'leaders' | 'compare'>('leaders');
+  const [view, setView] = useState<'leaders' | 'compare'>(initialView ?? 'leaders');
   const leagues = g.world.leagues.slice().sort((a, b) => (a.country === g.clubs[g.userClubId].country ? -1 : 0) - (b.country === g.clubs[g.userClubId].country ? -1 : 0) || a.tier - b.tier);
   const link = (p: Player) => <button type="button" className="pg-link club-name" onClick={() => go('player', p.id)}>{p.clubId === g.userClubId ? <strong className="fd-gold">{p.name}</strong> : p.name}</button>;
   return (
@@ -76,43 +80,56 @@ function PlayerPick({ g, value: id, onPick, label }: { g: GameState; value: stri
 function Compare({ g, link }: { g: GameState; link: (p: Player) => JSX.Element }) {
   const mine = Object.values(g.players).filter((p) => p.clubId === g.userClubId && p.squad === 'First team').sort((a, b) => b.value - a.value);
   const lead = leaders(g, g.clubs[g.userClubId].league ?? 'all', 'goals', 1)[0];
-  const [a, setA] = useState(mine[0]?.id ?? '');
-  const [b, setB] = useState(lead && lead.id !== mine[0]?.id ? lead.id : mine[1]?.id ?? '');
-  const A = g.players[a], B = g.players[b];
-  const groups = A?.pos === 'GK' || B?.pos === 'GK' ? (['Goalkeeping', 'Mental', 'Physical'] as const) : (['Technical', 'Mental', 'Physical'] as const);
-  const shown = (p: Player | undefined, attr: string) => {
-    if (!p) return { text: '–', v: undefined as number | undefined };
+  const [ids, setIds] = useState<string[]>(() => compareIds().length ? compareIds() : [mine[0]?.id, lead && lead.id !== mine[0]?.id ? lead.id : mine[1]?.id].filter(Boolean) as string[]);
+  useEffect(() => onCompareChange(() => setIds(compareIds())), []);
+  const set = (k: number, id: string) => { const n = [...ids]; n[k] = id; setCompare(n.filter(Boolean)); setIds(n.filter(Boolean)); };
+  const ps = ids.map((id) => g.players[id]).filter(Boolean);
+  const gk = ps.some((p) => p.pos === 'GK');
+  const groups = gk ? (['Goalkeeping', 'Mental', 'Physical'] as const) : (['Technical', 'Mental', 'Physical'] as const);
+  const known = (p: Player) => p.clubId === g.userClubId || knowledgeOf(g, p) >= 100;
+  const shown = (p: Player, attr: string) => {
     const v = p.attributes[attr] ?? 10, k = knowledgeOf(g, p);
-    if (k >= 100) return { text: String(v), v };
+    if (known(p)) return { text: String(v), v };
     const [lo, hi] = attrRange(v, k);
     return { text: lo === hi ? String(lo) : `${lo}–${hi}`, v: undefined };
   };
-  const rows: Array<[string, (p: Player) => string]> = [
+  const money = (v: number) => FD.formatMoney(toCur(v, g.currency), g.currency);
+  // [label, text, number to compare (higher is better unless `low`), low]
+  type Row = [string, (p: Player) => string, ((p: Player) => number | undefined)?, boolean?];
+  const rows: Row[] = [
     ['Club', (p) => g.clubs[p.clubId]?.name ?? 'Free agent'], ['Position', (p) => p.pos], ['Age', (p) => String(p.age)], ['Nation', (p) => nationName(p.nationality)],
-    ['Apps', (p) => String(p.current.apps)], ['Goals', (p) => String(p.current.goals)], ['Assists', (p) => String(p.current.assists)],
-    ['Average rating', (p) => (p.current.apps ? avgRating(p).toFixed(2) : '–')], ['Player of the match', (p) => String(p.current.potm ?? 0)],
-    ...(A?.pos === 'GK' || B?.pos === 'GK' ? [['Clean sheets', (p: Player) => String(p.current.cleanSheets ?? 0)] as [string, (p: Player) => string]] : []),
+    ['Best role', (p) => (known(p) ? `${bestRoleOf(p).name} (${bestRoleOf(p).stars}★)` : 'Scout him to know')],
+    ['Value', (p) => money(p.value), (p) => p.value], ['Wage', (p) => `${money(p.wage)}/wk`, (p) => p.wage, true], ['Contract until', (p) => `June ${p.contractEnd + 1}`],
+    ['Apps', (p) => String(p.current.apps), (p) => p.current.apps], ['Goals', (p) => String(p.current.goals), (p) => p.current.goals], ['Assists', (p) => String(p.current.assists), (p) => p.current.assists],
+    ['Average rating', (p) => (p.current.apps ? avgRating(p).toFixed(2) : '–'), (p) => (p.current.apps ? avgRating(p) : undefined)], ['Player of the match', (p) => String(p.current.potm ?? 0), (p) => p.current.potm ?? 0],
+    ...(gk ? [['Clean sheets', (p: Player) => String(p.current.cleanSheets ?? 0), (p: Player) => p.current.cleanSheets ?? 0] as Row] : []),
   ];
+  const best = (vals: Array<number | undefined>, low?: boolean) => {
+    if (vals.length < 2 || vals.some((v) => v === undefined)) return -1;
+    const n = vals as number[], b = low ? Math.min(...n) : Math.max(...n);
+    return n.filter((v) => v === b).length === 1 ? n.indexOf(b) : -1;
+  };
+  const cell = (text: string, on: boolean, k: number) => <td key={k} className={on ? 'cmp-best' : undefined}>{text}{on ? <span className="cmp-mark" aria-label="best"> ▲</span> : null}</td>;
   return (
     <section className="pg-card">
       <div className="sp-grid" style={{ marginBottom: 12 }}>
-        <PlayerPick g={g} value={a} onPick={setA} label="Player A" />
-        <PlayerPick g={g} value={b} onPick={setB} label="Player B" />
+        {[0, 1, 2].map((k) => <PlayerPick key={k} g={g} value={ids[k] ?? ''} onPick={(id) => set(k, id)} label={`Player ${'ABC'[k]}`} />)}
       </div>
-      <div className="mg-scroll">
-        <table className="fd-mini st-compare"><thead><tr><th />{[A, B].map((p, i) => <th key={i}>{p ? link(p) : '—'}</th>)}</tr></thead><tbody>
-          {rows.map(([label, f]) => <tr key={label}><td className="fd-muted">{label}</td><td>{A ? f(A) : '–'}</td><td>{B ? f(B) : '–'}</td></tr>)}
-          {groups.map((grp) => [
-            <tr key={grp}><td colSpan={3} className="pg-h" style={{ paddingTop: 12 }}>{grp}</td></tr>,
-            ...(ATTRIBUTE_GROUPS[grp] as readonly string[]).map((attr) => {
-              const x = shown(A, attr), y = shown(B, attr);
-              const better = x.v !== undefined && y.v !== undefined ? (x.v > y.v ? 0 : y.v > x.v ? 1 : -1) : -1;
-              return <tr key={attr}><td className="fd-muted">{attr}</td><td className={better === 0 ? 'pred-up' : undefined}>{x.text}</td><td className={better === 1 ? 'pred-up' : undefined}>{y.text}</td></tr>;
-            }),
-          ])}
-        </tbody></table>
-      </div>
-      <p className="hm-note" style={{ marginBottom: 0 }}>Attributes are exact for your players and fully scouted ones; otherwise your scouts give a range. The better value is highlighted when both are known.</p>
+      {ps.length ? (
+        <div className="mg-scroll">
+          <table className="fd-mini st-compare"><thead><tr><th />{ps.map((p) => <th key={p.id}>{link(p)} <button type="button" className="tr-saved__x" aria-label={`Remove ${p.name}`} onClick={() => { const n = ids.filter((x) => x !== p.id); setCompare(n); setIds(n); }}>×</button></th>)}</tr></thead><tbody>
+            {rows.map(([label, f, num, low]) => { const b = num ? best(ps.map(num), low) : -1; return <tr key={label}><td className="fd-muted">{label}</td>{ps.map((p, k) => cell(f(p), b === k, k))}</tr>; })}
+            {groups.map((grp) => [
+              <tr key={grp}><td colSpan={ps.length + 1} className="pg-h" style={{ paddingTop: 12 }}>{grp}</td></tr>,
+              ...(ATTRIBUTE_GROUPS[grp] as readonly string[]).map((attr) => {
+                const xs = ps.map((p) => shown(p, attr)), b = best(xs.map((x) => x.v));
+                return <tr key={attr}><td className="fd-muted">{attr}</td>{xs.map((x, k) => cell(x.text, b === k, k))}</tr>;
+              }),
+            ])}
+          </tbody></table>
+        </div>
+      ) : <p className="hm-note">Pick players above, or use “Compare” on any player's page.</p>}
+      <p className="hm-note" style={{ marginBottom: 0 }}>Up to three players. Attributes are exact for your players and fully scouted ones; otherwise your scouts give a range. The best value in a row is marked ▲ when all are known.</p>
     </section>
   );
 }

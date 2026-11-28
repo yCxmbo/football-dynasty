@@ -648,3 +648,8 @@ kbd { display: inline-block; padding: 1px 6px; border: 1px solid var(--line-stro
 .dh-rating__bar { display: inline-block; height: 8px; width: 0; max-width: 80px; border-radius: 0 4px 4px 0; background: var(--series-for); }
 .dh-tip { white-space: nowrap; }
 @media (max-width: 520px) { .dh-src { grid-template-columns: 1fr; gap: 4px; } }
+
+/* Youth recruitment */
+.yi-regions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 12px; }
+.yi-regions .fd-input { width: auto; min-width: 160px; }
+.yi-comments { margin: 0 0 12px; padding-left: 18px; font-size: 14px; color: var(--ink); display: grid; gap: 4px; }

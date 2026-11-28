@@ -244,7 +244,7 @@ export default function App() {
     case 'career': body = <Career g={g} go={go} update={update} />; break;
     case 'international': body = <International g={g} go={go} update={update} />; break;
     case 'match': body = <Match key={live?.fixtureId ?? param} g={g} id={live?.fixtureId ?? param} live={live} setLive={setLive} go={go} onFinish={finishLive} />; break;
-    case 'youth': body = <Youth g={g} go={go} onPromote={(id) => update((d) => promote(d, id))} />; break;
+    case 'youth': body = <Youth g={g} go={go} update={update} onPromote={(id) => update((d) => promote(d, id))} />; break;
     case 'history': body = <History g={g} />; break;
     case 'inbox': body = <InboxScreen g={g} selectedId={param} go={go} onOpen={(id) => { setParam(id); update((d) => markRead(d, id)); }} onBid={(bid, ok) => update((d) => respondToBid(d, bid, ok))} onAnswer={(mid, i) => update((d) => { answer(d, mid, i); })} />; break;
     case 'settings': body = <Settings g={g} theme={theme} setTheme={setTheme} setCurrency={(c) => update((d) => { d.currency = c; })} onNewCareer={() => { leave(); setScreen('home'); }} careers={careers} activeId={activeId} onLoad={(id) => { void loadCareer(id); setScreen('home'); }} onDelete={(id) => void deleteCareer(id)} onImport={async (t) => { const e = await importSave(t); if (!e) go('home'); return e; }} onRestore={(s) => { restore(s); setLive(null); }} />; break;

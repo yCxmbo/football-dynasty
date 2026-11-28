@@ -4,6 +4,7 @@ import { prepFor } from './opposition';
 import { fansAfterMatch, fansNewSeason, homeLift } from './fans';
 import { recordInjury, relapses } from './medical';
 import { payAddOns } from './deals';
+import { AUTO_SIGN, makeCandidates, MAX_SIGN, regionFee, signIntake } from './youth';
 import { affiliateSummer, feederDevelopment } from './affiliates';
 import { checkContractPromises, summerWages } from './negotiation';
 import { scoutingNetworkDay } from './network';
@@ -529,6 +530,13 @@ function standingOf(state: GameState) {
 
 function newDay(state: GameState) {
   if (seasonOver(state)) return;
+  { // about six weeks before the end: the head of youth presents next season's candidates
+    const cue = state.calendar[Math.max(0, state.calendar.length - 7)]?.date;
+    if (cue && today(state) >= cue && state.youth?.year !== state.year && state.clubs[state.userClubId]?.league) {
+      state.youth = makeCandidates(state, youthPotentialBonus(state) + youthFacilityBonus(state) + youthIntakeBonus(state));
+      addMessage(state, { category: 'youth', from: 'Head of youth development', subject: 'Next season\'s youth intake: choose who to sign', body: [...state.youth.comments, `There are ${state.youth.candidates.length} candidates. Pick up to ${MAX_SIGN} in the Academy; if you don't, I'll sign the best ${AUTO_SIGN} when the season turns.`], link: { screen: 'youth', label: 'See the candidates' } });
+    }
+  }
   for (const { p, kept } of checkContractPromises(state)) addMessage(state, { category: 'media', from: p.name, role: 'Player', playerId: p.id, subject: kept ? `${p.name}: “You kept your word”` : `${p.name}: “You promised me a signing”`,
     body: [kept ? `${p.name} is pleased: you promised a quality signing when he signed his contract, and one has arrived.` : `When ${p.name} signed his contract you promised a quality signing this window. None arrived. He is unhappy and will remember it the next time you talk contracts.`] });
   { const found = scoutingNetworkDay(state); if (found.length) addMessage(state, { category: 'scouting', from: 'Chief scout', subject: `Scouting reports: ${found.length === 1 ? 'new recommendations' : `${found.length} assignments report`}`, body: [...found, 'They are on the Scouting screen, graded against our squad.'], link: { screen: 'scouting', label: 'See recommendations' } }); }
@@ -945,6 +953,14 @@ function youthIntake(state: GameState, rng: ReturnType<typeof createRng>) {
     for (const p of squadOf(state, c.id)) {
       if (p.squad === 'U18' && p.age >= 18) p.squad = 'U21';
       else if (p.squad === 'U21' && p.age >= 22) delete state.players[p.id];
+    }
+    if (c.id === state.userClubId && state.youth) {
+      // your chosen candidates join (the best four if you didn't choose)
+      const joined = signIntake(state, (p) => { const id = `p${state.nextId++}`; Object.assign(p, { id, clubId: c.id, number: freeNumber(state, c.id) }); state.players[id] = p; noteJoined(state, p); });
+      const fee = regionFee(state) * (state.youthRegions?.length ?? 0);
+      if (fee) { c.balance -= fee; state.ledger.expenses.staff += fee; }
+      addMessage(state, { category: 'youth', from: 'Head of youth development', subject: 'Youth intake has arrived', body: [`${joined.length} new players join the U18s: ${joined.map((p) => `${p.name} (${p.pos})`).join(', ')}.`, ...(fee ? [`Our youth scouting abroad cost ${Math.round(fee / 1e5) / 10}M this year.`] : []), 'Keep an eye on their development in the Academy.'] });
+      continue;
     }
     const n = rng.int(3, 5);
     const names: string[] = [];

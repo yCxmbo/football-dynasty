@@ -28,6 +28,7 @@ import Medical from './screens/Medical';
 import SeasonReview from './screens/SeasonReview';
 import PressRoom from './screens/PressRoom';
 import Affiliates from './screens/Affiliates';
+import DataHub from './screens/DataHub';
 import ClubScreen from './screens/ClubScreen';
 import StatsHub from './screens/StatsHub';
 import Calendar from './screens/Calendar';
@@ -239,6 +240,7 @@ export default function App() {
     case 'review': body = <SeasonReview g={g} go={go} />; break;
     case 'press': body = <PressRoom g={g} go={go} update={update} />; break;
     case 'affiliates': body = <Affiliates g={g} go={go} update={update} />; break;
+    case 'data': body = <DataHub g={g} go={go} />; break;
     case 'career': body = <Career g={g} go={go} update={update} />; break;
     case 'international': body = <International g={g} go={go} update={update} />; break;
     case 'match': body = <Match key={live?.fixtureId ?? param} g={g} id={live?.fixtureId ?? param} live={live} setLive={setLive} go={go} onFinish={finishLive} />; break;

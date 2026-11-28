@@ -51,6 +51,17 @@ The sidebar is grouped into sections: Team (squad, tactics, training, academy, s
   - The **International** screen has the world ranking, your internationals, every tournament's groups and knockout rounds, and a roll of honour.
   - **National team job:** manage a nation alongside your club. Federations hire on your reputation (club reputation plus trophies): the top five nations want 88, the top twelve 78, the top 25 66. Pick your 26 and a formation on International → National team; the tournament uses them. Your record, results and trophies count toward your career, and a top-16 nation that fails to qualify or goes out in the group stage dismisses you. Each new season your inbox lists the nations that would appoint you.
   - **Live tournaments:** when the season ends and your nation has a tournament, *Go to the World Cup* (or Euro, Copa América…) opens it. Your matches are played live with team talks and substitutions (*Play match*), or *Sim my matches*; every other game is simulated around them. Your results are saved as you go, so a reload carries on where you left off. Start the new season once your nation is out or the final is played.
+- **Touchline** during your live matches:
+  - **Shouts**, one every ten minutes, each lasting ten:
+    - Demand more: works when behind or level; irritates a side cruising two goals up.
+    - Encourage: a safe lift.
+    - Fire up: a real lift, with more fouls and cards.
+    - Calm down: protects a late lead; flat when chasing.
+    - Focus: best in the closing stages.
+  - **Opposition instructions** on up to two of their players:
+    - tight-mark: far fewer chances for him, at a small cost to your side;
+    - close down: fewer chances for him, more fouls from you;
+    - show onto his weaker foot: a smaller cut, at no cost.
 - **Pitch view** for live matches: a top-down pitch above the commentary.
   - Both teams' shapes come from their formations (and their shape without the ball), and slide up and down with possession; the ball moves between players.
   - Goals, chances, saves, cards, substitutions and injuries get a short moment of their own, and a ticker shows the latest event.

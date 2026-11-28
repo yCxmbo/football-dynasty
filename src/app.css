@@ -609,3 +609,10 @@ kbd { display: inline-block; padding: 1px 6px; border: 1px solid var(--line-stro
 .sv-list__main { display: grid; gap: 2px; font-size: 13px; min-width: 0; }
 .sv-list__main .fd-muted { font-size: 12px; }
 .sv-list__act { display: flex; gap: 4px; flex-wrap: wrap; }
+
+/* Touchline */
+.touch { display: grid; gap: 10px; margin-bottom: 12px; }
+.touch__row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.touch__btns { display: flex; flex-wrap: wrap; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-sunken); }
+.touch__btn:disabled { opacity: .45; cursor: not-allowed; }
+.touch__pick { width: auto; max-width: 280px; }

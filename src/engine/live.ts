@@ -39,7 +39,7 @@ export function starsFor(p: Snap, role: string) {
 interface Perf { base: number; goals: number; assists: number; saves: number; card?: 'yellow' | 'red'; onAt: number; offAt?: number; injured?: boolean }
 type SideKey = 'home' | 'away';
 export interface SetPieceTakers { pen?: string; fk?: string; corner?: string }
-export interface LiveSide { formation: Formation; xi: Array<string | null>; bench: string[]; subsUsed: number; boost: number; injury: number; user: boolean; name: string; /** Style tilt: attack and defence multipliers. */ atk?: number; def?: number; /** Team talks count this much more. */ talk?: number; /** The captain (else the best leader on the pitch) and chosen set-piece takers. */ captain?: string; takers?: SetPieceTakers; /** Team instructions (computer-run sides change theirs with the score). */ instr?: Instructions; /** Role and duty per slot. */ roles?: SlotRole[]; /** Shape without the ball, if different. */ defFormation?: Formation; /** Man-marked by the opponent: gets fewer chances. */ marked?: string }
+export interface LiveSide { formation: Formation; xi: Array<string | null>; bench: string[]; subsUsed: number; boost: number; injury: number; user: boolean; name: string; /** Style tilt: attack and defence multipliers. */ atk?: number; def?: number; /** Team talks count this much more. */ talk?: number; /** The captain (else the best leader on the pitch) and chosen set-piece takers. */ captain?: string; takers?: SetPieceTakers; /** Team instructions (computer-run sides change theirs with the score). */ instr?: Instructions; /** Role and duty per slot. */ roles?: SlotRole[]; /** Shape without the ball, if different. */ defFormation?: Formation; /** Man-marked by the opponent: gets fewer chances. */ marked?: string; /** A touchline shout in effect, and the minute of the last one. */ shout?: { kind: ShoutKind; until: number; factor: number; fouls: number }; lastShout?: number; /** Opposition instructions the other side has put on this side's players. */ instrOn?: Record<string, OppInstr> }
 export interface LiveMatch {
   rng: number; minute: number; done: boolean; neutral: boolean; knockout: boolean; venue: string; derby?: string;
   home: LiveSide; away: LiveSide;
@@ -226,7 +226,8 @@ function scorerWeight(s: LiveSide, p: Snap) {
   const i = s.xi.indexOf(p.id);
   const sr = s.roles?.[i];
   const w = sr ? slotShape(sr).scorer : SCORER_WEIGHT[POS_GROUP[p.pos]] ?? 1;
-  return s.marked === p.id ? w * 0.55 : w;
+  const oi = s.instrOn?.[p.id];
+  return s.marked === p.id || oi === 'tight' ? w * 0.55 : oi === 'close' ? w * 0.75 : oi === 'foot' ? w * 0.88 : w;
 }
 /** Specials from roles: a sweeper keeper covers a high line, a pressing forward unsettles their midfield,
     a target forward feeds on wide play. */
@@ -397,7 +398,10 @@ export function tick(lm: LiveMatch) {
         }
       }
     }
-    const hard = 1 + 0.06 * ((si === 0 ? H : A).sp.tacklers);
+    // closing a player down means more fouls; a shout can fire players up or calm them
+    const closing = Object.values(other.instrOn ?? {}).filter((x) => x === 'close').length;
+    const hard = (1 + 0.06 * ((si === 0 ? H : A).sp.tacklers)) * (s.shout ? s.shout.fouls : 1) * (1 + closing * 0.08);
+    if (s.shout && m >= s.shout.until) { s.boost = Math.round((s.boost / s.shout.factor) * 10000) / 10000; delete s.shout; }
     if (rng.chance((lm.derby ? 15 : 11) * ef.fouls * hard * per)) lm.stats.fouls[si]++;
     // cards (derbies are hotter)
     if (rng.chance((lm.derby ? 2.4 : 1.7) * ef.fouls * hard * per)) {
@@ -575,4 +579,57 @@ export function teamTalk(lm: LiveMatch, key: SideKey, tone: TalkTone | 'skip') {
   us.boost = Math.round(us.boost * (1 + effect) * 10000) / 10000;
   const reaction = effect > 0.02 ? 'The players look fired up.' : effect > 0.005 ? 'The players respond well.' : effect > -0.005 ? 'The players seem unmoved.' : 'The message doesn’t land; heads drop in the dressing room.';
   push(lm, { minute: lm.minute, type: 'whistle', side: key, text: `${when === 'pre' ? 'Team talk' : 'Half-time team talk'} (${tone === 'encourage' ? 'encourage' : tone === 'demand' ? 'demand more' : 'keep calm'}): ${reaction}` });
+}
+
+/* ---------- touchline shouts and opposition instructions ---------- */
+export type ShoutKind = 'demand' | 'encourage' | 'fireup' | 'calm' | 'focus';
+export const SHOUTS: Array<{ kind: ShoutKind; label: string; desc: string }> = [
+  { kind: 'demand', label: 'Demand more', desc: 'Works when behind or level; irritates a side that is cruising.' },
+  { kind: 'encourage', label: 'Encourage', desc: 'A safe lift, a little more when things are going against you.' },
+  { kind: 'fireup', label: 'Fire up', desc: 'A real lift, but more fouls and cards.' },
+  { kind: 'calm', label: 'Calm down', desc: 'Protects a late lead and cools tempers; flat when chasing a game.' },
+  { kind: 'focus', label: 'Focus', desc: 'Concentration for the closing stages: best late on.' },
+];
+export type OppInstr = 'tight' | 'close' | 'foot';
+export const OPP_INSTR: Array<{ id: OppInstr; label: string; desc: string }> = [
+  { id: 'tight', label: 'Tight-mark', desc: 'Far fewer chances for him; one of ours is tied up (a small cost).' },
+  { id: 'close', label: 'Close down', desc: 'Fewer chances for him; more fouls from us.' },
+  { id: 'foot', label: 'Show onto weaker foot', desc: 'A smaller cut in his threat, at no cost.' },
+];
+export const SHOUT_EVERY = 10, SHOUT_LASTS = 10;
+
+/** Minutes until another shout is allowed (0 = now). */
+export const shoutCooldown = (lm: LiveMatch, key: SideKey) => { const l = lm[key].lastShout; return l === undefined ? 0 : Math.max(0, l + SHOUT_EVERY - lm.minute); };
+
+/** Gives a touchline shout. Its effect depends on the score and the minute; returns how it went. */
+export function shout(lm: LiveMatch, key: SideKey, kind: ShoutKind): string | null {
+  const s = lm[key];
+  if (lm.done || shoutCooldown(lm, key)) return null;
+  const si = key === 'home' ? 0 : 1, diff = lm.score[si] - lm.score[1 - si], m = lm.minute;
+  let f = 1, fouls = 1, text = '';
+  if (kind === 'demand') { f = diff < 0 ? 1.03 : diff === 0 ? 1.015 : diff >= 2 ? 0.985 : 1.005; text = diff >= 2 ? 'The players look irritated: they think they are doing fine.' : diff < 0 ? 'The players respond: they push for a way back.' : 'The players lift the tempo.'; }
+  if (kind === 'encourage') { f = diff < 0 ? 1.015 : 1.01; text = 'The players appreciate the support.'; }
+  if (kind === 'fireup') { f = 1.025; fouls = 1.3; text = 'The players are fired up, flying into tackles.'; }
+  if (kind === 'calm') { f = diff > 0 && m >= 70 ? 1.02 : diff < 0 ? 0.99 : 1.005; fouls = 0.8; text = diff > 0 && m >= 70 ? 'The players settle and manage the game.' : diff < 0 ? 'It takes the edge off just when you need it.' : 'The players settle down.'; }
+  if (kind === 'focus') { f = m >= 75 ? 1.02 : 1.005; text = m >= 75 ? 'Heads switched on for the closing stages.' : 'A reminder to concentrate.'; }
+  f = 1 + (f - 1) * (s.talk ?? 1);
+  if (s.shout) s.boost = s.boost / s.shout.factor; // replaces a shout still running
+  s.boost = Math.round(s.boost * f * 10000) / 10000;
+  s.shout = { kind, until: m + SHOUT_LASTS, factor: f, fouls };
+  s.lastShout = m;
+  push(lm, { minute: Math.max(1, m), type: 'chance', side: key, text: `${SHOUTS.find((x) => x.kind === kind)!.label} from the touchline: ${text.toLowerCase()}` });
+  return text;
+}
+
+/** Sets (or clears) an opposition instruction on one of their players (two at most). Tight-marking costs a little. */
+export function setOppInstr(lm: LiveMatch, key: SideKey, playerId: string, instr: OppInstr | null): string | null {
+  const us = lm[key], them = lm[key === 'home' ? 'away' : 'home'];
+  const cur = { ...(them.instrOn ?? {}) };
+  const had = cur[playerId];
+  if (instr && !had && Object.keys(cur).length >= 2) return 'Two opposition instructions at most.';
+  if (had === 'tight') us.boost = Math.round((us.boost / 0.995) * 10000) / 10000;
+  if (instr) cur[playerId] = instr; else delete cur[playerId];
+  if (instr === 'tight') us.boost = Math.round(us.boost * 0.995 * 10000) / 10000;
+  them.instrOn = cur;
+  return null;
 }

@@ -5,7 +5,7 @@ import { DEFAULT_INSTRUCTIONS } from '../engine/instructions';
 import { useEffect, useMemo, useState } from 'react';
 import { FD } from '../ds';
 import { compInfo } from '../engine/competitions';
-import { changeTactic, MAX_SUBS, ratingOf, substitute, tick, type LiveMatch, TALKS, talkDue, teamTalk } from '../engine/live';
+import { changeTactic, MAX_SUBS, OPP_INSTR, ratingOf, setOppInstr, shout, SHOUTS, shoutCooldown, substitute, tick, type LiveMatch, type OppInstr, TALKS, talkDue, teamTalk } from '../engine/live';
 import { tacticsOf } from '../engine/tactics';
 import { slotsOf } from '../engine/match';
 import type { GameState, MatchStats } from '../engine/types';
@@ -111,6 +111,7 @@ export default function Match({ g, id, live, setLive, go, onFinish }: {
           })} />
         </section>
       ) : null}
+      {isLive && lm && side && !lm.done ? <Touchline lm={lm} sideKey={view.key as 'home' | 'away'} setLive={setLive} /> : null}
       {isLive && lm ? (
         <div className="mp-wrap">
           <button type="button" className="pg-link mp-toggle" aria-pressed={pitch} onClick={() => setPitch(!pitch)}>{pitch ? 'Hide pitch view' : 'Show pitch view'}</button>
@@ -219,5 +220,42 @@ export function SubPanel({ lm, sideKey, onSub, onClose }: { lm: LiveMatch; sideK
         </div>
       </div>
     </div>
+  );
+}
+
+/** Touchline shouts (one every ten minutes) and instructions on up to two opposition players. */
+function Touchline({ lm, sideKey, setLive }: { lm: LiveMatch; sideKey: 'home' | 'away'; setLive: (fn: (prev: LiveState | null) => LiveState | null) => void }) {
+  const us = lm[sideKey], them = lm[sideKey === 'home' ? 'away' : 'home'];
+  const cd = shoutCooldown(lm, sideKey);
+  const change = (fn: (next: LiveMatch) => void) => setLive((prev) => { if (!prev) return prev; const next = structuredClone(prev.lm); fn(next); return { ...prev, lm: next }; });
+  const theirs = them.xi.filter((id): id is string => !!id).map((id) => lm.players[id]);
+  const on = them.instrOn ?? {};
+  return (
+    <section className="pg-card touch" aria-label="Touchline">
+      <div className="touch__row">
+        <span className="pg-h" style={{ margin: 0 }}>Shout</span>
+        <div className="touch__btns">
+          {SHOUTS.map((x) => <button key={x.kind} type="button" className={'fd-seg__opt touch__btn' + (us.shout?.kind === x.kind ? ' is-on' : '')} disabled={cd > 0} title={x.desc} onClick={() => change((n) => { shout(n, sideKey, x.kind); })}>{x.label}</button>)}
+        </div>
+        <span className="hm-note" style={{ margin: 0 }}>{us.shout ? `${SHOUTS.find((x) => x.kind === us.shout!.kind)!.label} until ${us.shout.until}′. ` : ''}{cd ? `Next shout in ${cd}′.` : 'Ready.'}</span>
+      </div>
+      <div className="touch__row">
+        <span className="pg-h" style={{ margin: 0 }}>Their players</span>
+        {Object.entries(on).map(([pid, k]) => (
+          <span key={pid} className="fd-chip">{lm.players[pid]?.name.split(' ').slice(-1)[0]} · {OPP_INSTR.find((x) => x.id === k)!.label}
+            <button type="button" className="tr-saved__x" aria-label={`Clear instruction on ${lm.players[pid]?.name}`} onClick={() => change((n) => { setOppInstr(n, sideKey, pid, null); })}>×</button></span>
+        ))}
+        {Object.keys(on).length < 2 ? (
+          <select className="fd-input touch__pick" value="" aria-label="Opposition instruction" onChange={(e) => { const [pid, k] = e.target.value.split('|'); if (pid) change((n) => { setOppInstr(n, sideKey, pid, k as OppInstr); }); }}>
+            <option value="">Add an instruction…</option>
+            {theirs.filter((p) => !on[p.id] && p.pos !== 'GK').map((p) => (
+              <optgroup key={p.id} label={`${p.name} (${p.pos})`}>
+                {OPP_INSTR.map((o) => <option key={o.id} value={`${p.id}|${o.id}`} title={o.desc}>{o.label}: {p.name.split(' ').slice(-1)[0]}</option>)}
+              </optgroup>
+            ))}
+          </select>
+        ) : null}
+      </div>
+    </section>
   );
 }

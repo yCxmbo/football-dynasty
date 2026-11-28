@@ -51,6 +51,17 @@ The sidebar is grouped into sections: Team (squad, tactics, training, academy, s
   - The **International** screen has the world ranking, your internationals, every tournament's groups and knockout rounds, and a roll of honour.
   - **National team job:** manage a nation alongside your club. Federations hire on your reputation (club reputation plus trophies): the top five nations want 88, the top twelve 78, the top 25 66. Pick your 26 and a formation on International → National team; the tournament uses them. Your record, results and trophies count toward your career, and a top-16 nation that fails to qualify or goes out in the group stage dismisses you. Each new season your inbox lists the nations that would appoint you.
   - **Live tournaments:** when the season ends and your nation has a tournament, *Go to the World Cup* (or Euro, Copa América…) opens it. Your matches are played live with team talks and substitutions (*Play match*), or *Sim my matches*; every other game is simulated around them. Your results are saved as you go, so a reload carries on where you left off. Start the new season once your nation is out or the final is played.
+- **Set-piece routines** (Tactics, under set pieces):
+  - **Corners:**
+    - mixed;
+    - near post, which rewards Heading;
+    - far post, which rewards Jumping Reach and Strength;
+    - short, which is safer but scores less;
+    - a cut-back to the edge of the box, which rewards Long Shots.
+  - **Free kicks:** mixed, always shoot, or always cross for a header.
+  - **Players forward:** fewer (safer), normal, or more (more goals, but a failed set piece can leave you caught on the break).
+  - **Estimate:** each corner routine shows the expected goals from ten corners with your current eleven.
+  - **Defaults:** they keep the old behaviour, and computer sides are unaffected.
 - **Touchline** during your live matches:
   - **Shouts**, one every ten minutes, each lasting ten:
     - Demand more: works when behind or level; irritates a side cruising two goals up.

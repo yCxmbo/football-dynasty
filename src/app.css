@@ -616,3 +616,6 @@ kbd { display: inline-block; padding: 1px 6px; border: 1px solid var(--line-stro
 .touch__btns { display: flex; flex-wrap: wrap; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-sunken); }
 .touch__btn:disabled { opacity: .45; cursor: not-allowed; }
 .touch__pick { width: auto; max-width: 280px; }
+.sp-routines { display: grid; gap: 12px; }
+.sp-est { font-size: 11px; margin-left: 2px; }
+.fd-seg__opt.is-on .sp-est { color: inherit; opacity: .8; }

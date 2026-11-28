@@ -311,8 +311,8 @@ function setupFor(state: GameState, f: Fixture) {
   const fam = uh || ua ? familiarityFactor(familiarity(state)) * atmosphereFactor(atmosphere(state)) : 1, aiFam = familiarityFactor(90);
   const mods: MatchMods = { derby, homeBoost: uh ? te.matchBoost * sharp * plan * fam : managerBoost(state, f.homeId) * aiFam, awayBoost: ua ? te.matchBoost * sharp * plan * fam : managerBoost(state, f.awayId) * aiFam, homeInjury: uh ? te.injury : 1, awayInjury: ua ? te.injury : 1, neutral: f.neutral, knockout: f.ko };
   return {
-    home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: hs.formation, roles: hr, name: H.name, user: uh, captain: captainOf(state, f.homeId)?.id, ...(ua && prep.marked ? { marked: prep.marked } : {}), ...(uh ? { tilt, takers: takersOf(state), instr: withDefaults(state.instructions), defFormation: state.defFormation } : {}) },
-    away: { xi: ax, bench: benchFor(state, f.awayId, ax), formation: aw.formation, roles: ar, name: A.name, user: ua, captain: captainOf(state, f.awayId)?.id, ...(uh && prep.marked ? { marked: prep.marked } : {}), ...(ua ? { tilt, takers: takersOf(state), instr: withDefaults(state.instructions), defFormation: state.defFormation } : {}) },
+    home: { xi: hx, bench: benchFor(state, f.homeId, hx), formation: hs.formation, roles: hr, name: H.name, user: uh, captain: captainOf(state, f.homeId)?.id, ...(ua && prep.marked ? { marked: prep.marked } : {}), ...(uh ? { tilt, takers: takersOf(state), instr: withDefaults(state.instructions), defFormation: state.defFormation, ...(state.routines ? { routines: state.routines } : {}) } : {}) },
+    away: { xi: ax, bench: benchFor(state, f.awayId, ax), formation: aw.formation, roles: ar, name: A.name, user: ua, captain: captainOf(state, f.awayId)?.id, ...(uh && prep.marked ? { marked: prep.marked } : {}), ...(ua ? { tilt, takers: takersOf(state), instr: withDefaults(state.instructions), defFormation: state.defFormation, ...(state.routines ? { routines: state.routines } : {}) } : {}) },
     venue: H.stadium, mods,
   };
 }

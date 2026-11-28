@@ -1,3 +1,4 @@
+import { aerial, cornerFactor, counterRisk, freeKickFactor, type Routines } from './routines';
 import { fixRoles, instrEffect, ROLE_BY_ID, roleFactor, roleStars, slotShape, type SlotRole } from './roles';
 import { aiInstructions, instructionEffects, type Instructions } from './instructions';
 /* Minute-by-minute match engine. Every match runs through it: the user's match is ticked live
@@ -39,7 +40,7 @@ export function starsFor(p: Snap, role: string) {
 interface Perf { base: number; goals: number; assists: number; saves: number; card?: 'yellow' | 'red'; onAt: number; offAt?: number; injured?: boolean }
 type SideKey = 'home' | 'away';
 export interface SetPieceTakers { pen?: string; fk?: string; corner?: string }
-export interface LiveSide { formation: Formation; xi: Array<string | null>; bench: string[]; subsUsed: number; boost: number; injury: number; user: boolean; name: string; /** Style tilt: attack and defence multipliers. */ atk?: number; def?: number; /** Team talks count this much more. */ talk?: number; /** The captain (else the best leader on the pitch) and chosen set-piece takers. */ captain?: string; takers?: SetPieceTakers; /** Team instructions (computer-run sides change theirs with the score). */ instr?: Instructions; /** Role and duty per slot. */ roles?: SlotRole[]; /** Shape without the ball, if different. */ defFormation?: Formation; /** Man-marked by the opponent: gets fewer chances. */ marked?: string; /** A touchline shout in effect, and the minute of the last one. */ shout?: { kind: ShoutKind; until: number; factor: number; fouls: number }; lastShout?: number; /** Opposition instructions the other side has put on this side's players. */ instrOn?: Record<string, OppInstr> }
+export interface LiveSide { formation: Formation; xi: Array<string | null>; bench: string[]; subsUsed: number; boost: number; injury: number; user: boolean; name: string; /** Style tilt: attack and defence multipliers. */ atk?: number; def?: number; /** Team talks count this much more. */ talk?: number; /** The captain (else the best leader on the pitch) and chosen set-piece takers. */ captain?: string; takers?: SetPieceTakers; /** Team instructions (computer-run sides change theirs with the score). */ instr?: Instructions; /** Role and duty per slot. */ roles?: SlotRole[]; /** Shape without the ball, if different. */ defFormation?: Formation; /** Man-marked by the opponent: gets fewer chances. */ marked?: string; /** Your set-piece routines. */ routines?: Routines; /** A touchline shout in effect, and the minute of the last one. */ shout?: { kind: ShoutKind; until: number; factor: number; fouls: number }; lastShout?: number; /** Opposition instructions the other side has put on this side's players. */ instrOn?: Record<string, OppInstr> }
 export interface LiveMatch {
   rng: number; minute: number; done: boolean; neutral: boolean; knockout: boolean; venue: string; derby?: string;
   home: LiveSide; away: LiveSide;
@@ -63,7 +64,7 @@ const surname = (n: string) => { const i = n.indexOf(' '); return i < 0 ? n : n.
 /** Tired players play worse: full strength above 85%, about −10% at 55%. */
 export const conditionFactor = (c: number) => (c >= 85 ? 1 : 0.7 + c * 0.0035);
 
-export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; formation: Formation; name: string; user?: boolean; tilt?: { atk: number; def: number; talk: number }; captain?: string; takers?: SetPieceTakers; instr?: Instructions; roles?: SlotRole[]; defFormation?: Formation; /** One of this side's players man-marked by the opponent. */ marked?: string }, away: typeof home, venue: string, mods: MatchMods = {}): LiveMatch {
+export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; formation: Formation; name: string; user?: boolean; tilt?: { atk: number; def: number; talk: number }; captain?: string; takers?: SetPieceTakers; instr?: Instructions; roles?: SlotRole[]; defFormation?: Formation; /** One of this side's players man-marked by the opponent. */ marked?: string; routines?: Routines }, away: typeof home, venue: string, mods: MatchMods = {}): LiveMatch {
   const rng = createRng(seed);
   const players: Record<string, Snap> = {}, perf: Record<string, Perf> = {};
   const sideOf: Record<string, SideKey> = {};
@@ -75,7 +76,7 @@ export function createLive(seed: number, home: { xi: Player[]; bench: Player[]; 
   for (const p of away.bench) { players[p.id] = withForm(p); sideOf[p.id] = 'away'; }
   for (const p of home.xi) perf[p.id] = { base: 6.3 + rng.normal(0, 0.3), goals: 0, assists: 0, saves: 0, onAt: 0 };
   for (const p of away.xi) perf[p.id] = { base: 6.3 + rng.normal(0, 0.3), goals: 0, assists: 0, saves: 0, onAt: 0 };
-  const side = (s: typeof home, boost = 1, injury = 1): LiveSide => ({ formation: s.formation, xi: s.xi.map((p) => p.id), bench: s.bench.map((p) => p.id), subsUsed: 0, boost, injury, user: !!s.user, name: s.name, ...(s.tilt ? { atk: s.tilt.atk, def: s.tilt.def, talk: s.tilt.talk } : {}), ...(s.captain ? { captain: s.captain } : {}), ...(s.takers ? { takers: s.takers } : {}), ...(s.instr ? { instr: { ...s.instr } } : {}), roles: fixRoles(s.formation, s.roles), ...(s.defFormation && s.defFormation !== s.formation ? { defFormation: s.defFormation } : {}), ...(s.marked ? { marked: s.marked } : {}) });
+  const side = (s: typeof home, boost = 1, injury = 1): LiveSide => ({ formation: s.formation, xi: s.xi.map((p) => p.id), bench: s.bench.map((p) => p.id), subsUsed: 0, boost, injury, user: !!s.user, name: s.name, ...(s.tilt ? { atk: s.tilt.atk, def: s.tilt.def, talk: s.tilt.talk } : {}), ...(s.captain ? { captain: s.captain } : {}), ...(s.takers ? { takers: s.takers } : {}), ...(s.instr ? { instr: { ...s.instr } } : {}), roles: fixRoles(s.formation, s.roles), ...(s.defFormation && s.defFormation !== s.formation ? { defFormation: s.defFormation } : {}), ...(s.marked ? { marked: s.marked } : {}), ...(s.routines ? { routines: s.routines } : {}) });
   return {
     rng: rng.state(), minute: 0, done: false, neutral: !!mods.neutral, knockout: !!mods.knockout, venue, ...(mods.derby ? { derby: mods.derby } : {}),
     home: side(home, mods.homeBoost, mods.homeInjury), away: side(away, mods.awayBoost, mods.awayInjury),
@@ -379,8 +380,17 @@ export function tick(lm: LiveMatch) {
     }
     if (rng.chance(0.6 * press[si] * per)) {
       const tk = setPieceTaker(lm, s, 'fk');
-      if (tk) {
-        const p = freeKickChance(tk);
+      const R = s.routines, ff = R ? freeKickFactor(R, aerialOf(lm, s)) : undefined;
+      if (tk && ff && ff.cross) {
+        // crossed in for a header, like a corner
+        const p = cornerChance(tk) * ff.cross;
+        lm.stats.xg[si] += p;
+        if (rng.chance(p)) {
+          const header = rng.weighted(pl.filter((x) => x !== tk && POS_GROUP[x.pos] !== 'GK'), (x) => x.attrs.Heading * (POS_GROUP[x.pos] === 'CB' || POS_GROUP[x.pos] === 'ST' ? 2 : 1));
+          if (header) { noteChance(lm, si as 0 | 1, 'free kick', true, surname(header.name)); scoreSetPiece(header, tk, 'goal', `${tk.name} swings the free kick in and ${header.name} heads home!`); }
+        } else breakAway(lm, rng, key, R!, m);
+      } else if (tk) {
+        const p = freeKickChance(tk) * (ff ? ff.direct : 1);
         lm.stats.xg[si] += p;
         if (rng.chance(p)) { noteChance(lm, si as 0 | 1, 'free kick', true, surname(tk.name)); scoreSetPiece(tk, undefined, 'goal', `Free kick, 25 yards out... ${tk.name} bends it over the wall and in!`); }
         else if (rng.chance(0.25)) { noteChance(lm, si as 0 | 1, 'free kick', false, surname(tk.name)); lm.stats.shots[si]++; push(lm, { minute: m, type: 'chance', side: key, text: `${tk.name}'s free kick clips the top of the wall.` }); }
@@ -389,10 +399,19 @@ export function tick(lm: LiveMatch) {
     if (rng.chance(5 * press[si] * ef.corners * per)) {
       lm.stats.corners[si]++;
       const tk = setPieceTaker(lm, s, 'corner');
-      if (tk) {
-        const p = cornerChance(tk);
+      const R = s.routines;
+      if (tk && R?.corner === 'edge') {
+        // cut back to the edge of the box for a shot
+        const p = cornerChance(tk) * cornerFactor(R, aerialOf(lm, s));
         lm.stats.xg[si] += p;
-        if (rng.chance(p)) {
+        const shooter = rng.weighted(pl.filter((x) => x !== tk && POS_GROUP[x.pos] !== 'GK'), (x) => (x.fa?.['Long Shots'] ?? 10) ** 2);
+        if (shooter && rng.chance(p)) { noteChance(lm, si as 0 | 1, 'corner', true, surname(shooter.name)); scoreSetPiece(shooter, tk, 'goal', `A short corner, cut back to ${shooter.name}, who drills it in from the edge of the box!`); }
+        else breakAway(lm, rng, key, R, m);
+      } else if (tk) {
+        const p = cornerChance(tk) * (R ? cornerFactor(R, aerialOf(lm, s)) : 1);
+        lm.stats.xg[si] += p;
+        if (!rng.chance(p)) { if (R) breakAway(lm, rng, key, R, m); }
+        else {
           const header = rng.weighted(pl.filter((x) => x !== tk && POS_GROUP[x.pos] !== 'GK'), (x) => x.attrs.Heading * (POS_GROUP[x.pos] === 'CB' || POS_GROUP[x.pos] === 'ST' ? 2 : 1) * (roleAt(s, x.id) === 'tf' ? 2 : 1));
           if (header) { noteChance(lm, si as 0 | 1, 'corner', true, surname(header.name)); scoreSetPiece(header, tk, 'goal', `${tk.name} whips in the corner and ${header.name} heads it home!`); }
         }
@@ -632,4 +651,21 @@ export function setOppInstr(lm: LiveMatch, key: SideKey, playerId: string, instr
   if (instr === 'tight') us.boost = Math.round(us.boost * 0.995 * 10000) / 10000;
   them.instrOn = cur;
   return null;
+}
+
+/* ---------- set-piece routines (your side) ---------- */
+function aerialOf(lm: LiveMatch, s: LiveSide) {
+  return aerial(onPitch(s).map((id) => lm.players[id]).filter((p) => POS_GROUP[p.pos] !== 'GK').map((p) => p.fa ?? (p.attrs as Record<string, number>)));
+}
+/** With many players forward, a failed set piece can leave you open: the other side may break and score. */
+function breakAway(lm: LiveMatch, rng: Rng, key: SideKey, r: Routines, m: number) {
+  const risk = counterRisk(r);
+  if (!risk || !rng.chance(risk)) return;
+  const ok: SideKey = key === 'home' ? 'away' : 'home', oi = ok === 'home' ? 0 : 1;
+  const runners = onPitch(lm[ok]).map((id) => lm.players[id]).filter((p) => POS_GROUP[p.pos] !== 'GK');
+  const sc = rng.weighted(runners, (p) => scorerWeight(lm[ok], p) + 0.1);
+  if (!sc) return;
+  lm.perf[sc.id].goals++; lm.score[oi]++; lm.stats.shots[oi]++; lm.stats.onTarget[oi]++; lm.stats.xg[oi] += 0.35;
+  push(lm, { minute: m, type: 'goal', side: ok, playerId: sc.id, player: surname(sc.name), score: [...lm.score] as [number, number], text: `Caught on the break from the set piece! ${sc.name} races clear and scores.` });
+  noteChance(lm, oi as 0 | 1, 'counter', true, surname(sc.name));
 }

@@ -219,6 +219,8 @@ export interface GameState {
   matchPrep?: { fixtureId: string; focus?: import('./opposition').Focus; mark?: string };
   /** Your supporters' mood and ticket prices. */
   fans?: import('./fans').Fans;
+  /** Your set-piece routines. */
+  routines?: import('./routines').Routines;
   /** Your feeder clubs and parent club. */
   affiliates?: import('./affiliates').Affiliate[];
   /** Scouting assignments and the players they recommended. */

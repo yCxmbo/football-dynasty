@@ -594,3 +594,11 @@ body { background: var(--surface); color: var(--ink); font-family: var(--font-sa
 .cmp-best { font-weight: 700; color: var(--ink); }
 .cmp-mark { color: var(--form-win); font-size: 10px; }
 .st-compare th { white-space: nowrap; }
+
+/* Keyboard shortcuts */
+.kb-help { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(5, 10, 20, .6); }
+.kb-help__box { width: min(460px, 100%); max-height: 85vh; overflow-y: auto; display: grid; gap: 12px; }
+.kb-help__list { margin: 0; display: grid; gap: 6px; }
+.kb-help__list div { display: grid; grid-template-columns: 110px 1fr; gap: 10px; align-items: baseline; font-size: 13px; }
+.kb-help__list dd { margin: 0; color: var(--ink); }
+kbd { display: inline-block; padding: 1px 6px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 4px; font: 600 11px/16px var(--font-sans); color: var(--ink); background: var(--surface-sunken); }

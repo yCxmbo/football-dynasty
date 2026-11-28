@@ -48,6 +48,7 @@ import Table from './screens/Table';
 import Tactics from './screens/Tactics';
 import Youth from './screens/Youth';
 import Frame from './screens/Frame';
+import { isTyping, shortcutAction, SHORTCUT_HELP } from './screens/shortcuts';
 /** Screens that don't depend on having a club, still open while you're out of work. */
 const OPEN_WHEN_OUT = new Set<string>(['career', 'inbox', 'table', 'stats', 'records', 'settings', 'review']);
 import { NAV, type Screen, NAV_LABEL } from './screens/shared';
@@ -64,6 +65,15 @@ export default function App() {
   // where you came from, for the Back button (and the browser's back)
   const [hist, setHist] = useState<Array<{ s: Screen; p?: string }>>([]);
   const backRef = useRef<() => void>(() => {});
+  // keyboard shortcuts: the listener calls the latest handler (set each render, below)
+  const keysRef = useRef<(e: KeyboardEvent) => void>(() => {});
+  const [help, setHelp] = useState(false);
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => keysRef.current(e);
+    window.addEventListener('keydown', on);
+    return () => window.removeEventListener('keydown', on);
+  }, []);
+  const pendingG = useRef(0);
   useEffect(() => {
     const onPop = () => backRef.current();
     window.addEventListener('popstate', onPop);
@@ -142,6 +152,23 @@ export default function App() {
   const over = seasonOver(g);
   const summerReq = g.summer ? summerStep(g)?.request : undefined;
   const hasMatch = !!todaysFixture(g);
+  keysRef.current = (e: KeyboardEvent) => {
+    if (help && e.key === 'Escape') { setHelp(false); e.preventDefault(); return; }
+    const a = shortcutAction(e.key, { pendingG: Date.now() - pendingG.current < 1500, typing: isTyping(e.target), modifier: e.ctrlKey || e.metaKey || e.altKey });
+    pendingG.current = 0;
+    if (!a || sim || document.querySelector('.sheet, .sim-overlay, [role=dialog][aria-modal=true]:not(.kb-help)')) return;
+    const playing = !!live && screen === 'match';
+    if (a.kind === 'goPending') { pendingG.current = Date.now(); return; }
+    if (a.kind === 'help') { setHelp((v) => !v); e.preventDefault(); return; }
+    if (playing && a.kind !== 'go') return; // the match screen has its own controls
+    e.preventDefault();
+    if (a.kind === 'go') { if (!outOfWork || OPEN_WHEN_OUT.has(a.screen)) go(a.screen); return; }
+    if (a.kind === 'back') { if (hist.length) window.history.back(); return; }
+    if (outOfWork) return;
+    if (a.kind === 'continue') { if (live) setScreen('match'); else if (!over) play(); return; }
+    if (a.kind === 'sim') { if (!live && !over) void simAhead(hasMatch ? 'through' : 'next'); return; }
+    if (a.kind === 'search') { go('transfers'); setTimeout(() => (document.querySelector('input[aria-label="Player name"]') as HTMLInputElement | null)?.focus(), 50); }
+  };
   const toMatch = daysToNextMatch(g);
   /** Full time: store the user's match (with their substitutions) and play the rest of the slot. */
   const finishLive = () => {
@@ -240,6 +267,15 @@ export default function App() {
         </button>
       ) : null}
       {body}
+      {help ? (
+        <div className="kb-help" role="dialog" aria-modal="true" aria-labelledby="kb-h" onClick={() => setHelp(false)}>
+          <div className="kb-help__box pg-card" onClick={(e) => e.stopPropagation()}>
+            <h2 className="pg-h" id="kb-h">Keyboard shortcuts</h2>
+            <dl className="kb-help__list">{SHORTCUT_HELP.map(([k, d]) => <div key={k}><dt><kbd>{k}</kbd></dt><dd>{d}</dd></div>)}</dl>
+            <FD.Button variant="secondary" onClick={() => setHelp(false)}>Close</FD.Button>
+          </div>
+        </div>
+      ) : null}
       {sim && (
         <div className="sim-overlay" role="status" aria-live="polite">
           <div className="sim-overlay__box pg-card">

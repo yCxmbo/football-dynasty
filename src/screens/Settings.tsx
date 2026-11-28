@@ -13,6 +13,7 @@ export default function Settings({ g, theme, setTheme, setCurrency, onNewCareer,
   return (
     <div className="st">
       <h1 className="pg-title">Settings</h1>
+      <p className="pg-sub">Keyboard: press <kbd>?</kbd> anywhere for the list of shortcuts (<kbd>Space</kbd> to continue, <kbd>S</kbd> to sim to your next match, <kbd>/</kbd> to search players, <kbd>G</kbd> then a letter to change screen).</p>
       <div className="st__row"><div><strong>Theme</strong><p>Night is the default; Day suits long sessions in bright rooms.</p></div>
         <div className="fd-seg" role="radiogroup" aria-label="Theme">
           {(['dark', 'light'] as Theme[]).map((t) => <button key={t} type="button" role="radio" aria-checked={theme === t} className={'fd-seg__opt' + (theme === t ? ' is-on' : '')} onClick={() => setTheme(t)}>{t === 'dark' ? 'Night' : 'Day'}</button>)}

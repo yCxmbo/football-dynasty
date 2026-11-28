@@ -1,3 +1,5 @@
+import { legendCandidates } from './legends';
+import { fansOf } from './fans';
 /* Your backroom staff. Each role is rated 1–20; 10 is neutral, better staff help, worse staff hurt.
    Coach: development. Fitness coach: recovery and training injuries. Physio: injury length.
    Chief scout: scouting speed. Youth coach: youth intake. Assistant: low morale recovers. */
@@ -16,7 +18,7 @@ export const ROLES: Array<{ role: StaffRole; title: string; effect: string }> = 
   { role: 'youth', title: 'Youth coach', effect: 'Better youngsters in the yearly intake.' },
 ];
 
-export interface StaffMember { id: string; name: string; nationality: string; age: number; role: StaffRole; rating: number; wage: number }
+export interface StaffMember { id: string; name: string; nationality: string; age: number; role: StaffRole; rating: number; wage: number; /** One of your club's legends, back on the staff. */ legend?: boolean }
 
 export const staffWage = (rating: number) => Math.round((rating * rating * 140 + 800) / 100) * 100;
 /** The best a club can attract: smaller clubs can't sign top staff. */
@@ -42,6 +44,7 @@ export function refreshPool(s: GameState, rng: Rng) {
   s.staffPool = [];
   for (const { role } of ROLES) for (let i = 0; i < 4; i++) s.staffPool.push(person(rng, s, role, Math.max(2, Math.min(20, Math.round(rng.normal(11, 4.5)))), rng.chance(0.5) ? c.country : undefined));
   s.staffPool.sort((a, b) => b.rating - a.rating);
+  s.staffPool.unshift(...legendCandidates(s, staffWage)); // club legends first
 }
 
 /** Effect multipliers from your staff (1 = neutral). */
@@ -68,6 +71,7 @@ export function hire(s: GameState, id: string): string | null {
   c.balance -= payoff;
   if (payoff && s.ledger) s.ledger.expenses.staff += payoff;
   (s.staff ??= {})[m.role] = m;
+  if (m.legend) { const f = fansOf(s); f.mood = Math.min(100, f.mood + 4); f.notes = [`${m.name} returns to the club as ${ROLES.find((r) => r.role === m.role)!.title.toLowerCase()}`, ...f.notes].slice(0, 6); }
   s.staffPool = s.staffPool!.filter((x) => x.id !== id);
   return null;
 }

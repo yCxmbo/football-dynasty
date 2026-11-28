@@ -4,6 +4,7 @@ import { prepFor } from './opposition';
 import { fansAfterMatch, fansNewSeason, homeLift } from './fans';
 import { recordInjury, relapses } from './medical';
 import { payAddOns } from './deals';
+import { farewell, managerMaterial } from './legends';
 import { AUTO_SIGN, makeCandidates, MAX_SIGN, regionFee, signIntake } from './youth';
 import { affiliateSummer, feederDevelopment } from './affiliates';
 import { checkContractPromises, summerWages } from './negotiation';
@@ -17,7 +18,7 @@ import { withDefaults, type Instructions } from './instructions';
 import { makePredictions, predictedPos, previewMessage } from './preview';
 import { bestRoles, fixRoles, type SlotRole } from './roles';
 import { ensureFamiliarity, familiarity, familiarityFactor, learnFromMatch, loadPreset, saveActive, switchTactic, weeklyFamiliarity } from './tactics';
-import { aiFormation, managerBoost, managerOf, managers, managersAfterSeason, midSeasonSackings, weeklyAppointments } from './managers';
+import { addFormerPlayer, aiFormation, managerBoost, managerOf, managers, managersAfterSeason, midSeasonSackings, weeklyAppointments } from './managers';
 import { awardPremium, awardsMessage, seasonAwards } from './awards';
 import { formatDate } from './fixtures';
 import { available, fitFor, pickLineup, slotsOf, type Formation, type MatchMods } from './match';
@@ -258,14 +259,14 @@ function benchFor(state: GameState, clubId: string, xi: Player[]) {
 }
 
 /** Inbox news of sackings and appointments, for clubs in your league and the biggest clubs. */
-function managerNews(state: GameState, sacked: string[], appointed: Array<{ clubId: string; from?: string; mgr: { name: string; nation: string; rep: number } }>) {
+function managerNews(state: GameState, sacked: string[], appointed: Array<{ clubId: string; from?: string; mgr: { name: string; nation: string; rep: number; formerPlayer?: string; spells?: unknown[] } }>) {
   const us = state.clubs[state.userClubId];
   const near = (id: string) => state.clubs[id] && (state.clubs[id].league === us.league || state.clubs[id].reputation >= 82);
   for (const id of sacked.filter(near)) addMessage(state, { category: 'media', from: 'Football news', subject: `${state.clubs[id].name} sack their manager`, body: [
     `${state.clubs[id].name} have parted company with their manager after a poor run. The job is open: apply on the Career screen if you want it.`] });
   for (const { clubId, mgr, from } of appointed.filter((x) => near(x.clubId) || (x.from && near(x.from)))) addMessage(state, { category: 'media', from: 'Football news', subject: `${mgr.name} takes over at ${state.clubs[clubId].name}`, body: [
     from ? `${state.clubs[clubId].name} have lured ${mgr.name} (${nationName(mgr.nation)}) away from ${state.clubs[from]?.name}, who are now looking for a manager.`
-      : `${state.clubs[clubId].name} have appointed ${mgr.name} (${nationName(mgr.nation)}) as their new manager.`] });
+      : mgr.formerPlayer && (mgr.spells?.length ?? 0) <= 1 ? `${state.clubs[clubId].name} have handed ${mgr.name}, the former ${mgr.formerPlayer} player, his first job in management.` : `${state.clubs[clubId].name} have appointed ${mgr.name} (${nationName(mgr.nation)}) as their new manager.`] });
 }
 
 /** The rumour mill: the hottest links, those in your league, and any about your players. */
@@ -782,8 +783,12 @@ function rollover(state: GameState) {
   state.negotiations = {};
   for (const p of Object.values(state.players)) {
     if (p.age >= 36 || (p.age >= 33 && p.ability < 80) || (p.clubId === FREE_AGENT && p.age >= 34)) {
+      const bye = farewell(state, p);
+      if (bye) addMessage(state, { category: 'media', from: 'Club media', ...bye });
+      // a respected player may move into management
+      const mat = managerMaterial(p);
+      if (mat && rng.chance(0.5)) addFormerPlayer(state, p, p.career[0]?.club.replace(' (loan)', '') ?? state.clubs[p.clubId]?.name ?? 'his clubs', mat);
       delete state.players[p.id];
-      if (p.clubId === state.userClubId) addMessage(state, { category: 'media', from: 'Club media', subject: `${p.name} retires`, body: [`${p.name} has retired after ${p.career.reduce((s, c) => s + c.apps, 0)} appearances.`] });
     }
   }
   // promotion and relegation

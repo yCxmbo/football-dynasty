@@ -43,7 +43,7 @@ export default function Staff({ g, update }: { g: GameState; update: (fn: (d: Ga
             return (
               <tr key={r.role} className={r.role === role ? 'is-on' : undefined} onClick={() => { setRole(r.role); setNote(''); }} style={{ cursor: 'pointer' }}>
                 <td><strong>{r.title}</strong><div className="fd-muted" style={{ fontSize: 12 }}>{r.effect}</div></td>
-                <td>{m ? <>{m.name}<div className="fd-muted" style={{ fontSize: 12 }}>{nationName(m.nationality)} · {m.age}</div></> : <span className="fd-muted">Vacant</span>}</td>
+                <td>{m ? <>{m.name}{m.legend ? <span className="fd-tag fd-tag--gold" style={{ marginLeft: 6 }}>Club legend</span> : null}<div className="fd-muted" style={{ fontSize: 12 }}>{nationName(m.nationality)} · {m.age}</div></> : <span className="fd-muted">Vacant</span>}</td>
                 <td>{m ? <span title={`${m.rating}/20`}><FD.StarRating value={stars(m.rating)} size={13} /> <span className="fd-muted">{m.rating}</span></span> : '—'}</td>
                 <td className="fd-muted">{impact(g, r.role)}</td>
                 <td className="fd-num">{m ? money(m.wage) : '—'}</td>
@@ -63,7 +63,7 @@ export default function Staff({ g, update }: { g: GameState; update: (fn: (d: Ga
           <table className="fd-mini"><tbody>
             {pool.map((m) => (
               <tr key={m.id}>
-                <td>{m.name}<div className="fd-muted" style={{ fontSize: 12 }}>{nationName(m.nationality)} · {m.age}</div></td>
+                <td>{m.name}{m.legend ? <span className="fd-tag fd-tag--gold" style={{ marginLeft: 6 }} title="A club legend: the fans will love it">Club legend</span> : null}<div className="fd-muted" style={{ fontSize: 12 }}>{nationName(m.nationality)} · {m.age}</div></td>
                 <td><FD.StarRating value={stars(m.rating)} size={13} /> <span className="fd-muted">{m.rating}</span></td>
                 <td className="fd-num">{money(m.wage)}/wk</td>
                 <td style={{ textAlign: 'right' }}>

@@ -219,6 +219,8 @@ export interface GameState {
   matchPrep?: { fixtureId: string; focus?: import('./opposition').Focus; mark?: string };
   /** Your supporters' mood and ticket prices. */
   fans?: import('./fans').Fans;
+  /** Your club's legends: long-serving or decorated players who retired here. */
+  legends?: import('./legends').Legend[];
   /** Next season's youth candidates (once presented) and your youth scouting regions (nation codes). */
   youth?: import('./youth').YouthIntake;
   youthRegions?: string[];

@@ -12,6 +12,8 @@ import type { Formation } from './match';
 export interface ManagerSpell { clubId: string; club: string; from: number; to?: number; left?: 'sacked' | 'moved' | 'retired' }
 export interface AIManager {
   id: string; name: string; nation: string; age: number;
+  /** The club a former player made his name at, if he was one. */
+  formerPlayer?: string;
   /** Tactical and motivational quality, 1–20: a small edge in matches. */
   rating: number;
   /** 1–100: decides which jobs he gets. */
@@ -70,6 +72,14 @@ export function initManagers(s: GameState, rng: Rng) {
     mgr.spells[0].from = s.year - rng.int(0, 4);
   }
   topUpPool(s, rng);
+}
+
+/** A respected player retiring moves into management: he joins the pool of managers out of work. */
+export function addFormerPlayer(s: GameState, p: { name: string; nationality: string; age: number }, club: string, standing: { rep: number; rating: number }) {
+  const m = managers(s);
+  const mgr: AIManager = { id: `m${m.next++}`, name: p.name, nation: p.nationality, age: p.age + 1, rating: standing.rating, rep: standing.rep, w: 0, d: 0, l: 0, trophies: [], spells: [], formerPlayer: club };
+  m.all[mgr.id] = mgr;
+  return mgr;
 }
 
 /** Keeps about one manager out of work for every eight clubs, across all levels. */

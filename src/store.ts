@@ -3,6 +3,7 @@ import { compressToBase64, decompressFromBase64, decompressFromUTF16 } from 'lz-
 import { migrate } from './engine/game';
 import { seasonLabel, type Currency, type GameState } from './engine/types';
 import { idbDel, idbGet, idbPut } from './idb';
+import { autoBackup, deleteAllSlots } from './saves';
 
 /* Saves: several careers in IndexedDB, with a small list of them in localStorage.
    The old single save in localStorage is moved over on first start. */
@@ -78,6 +79,7 @@ export function useGame() {
     const sid = id;
     idbPut(sid, g).then(() => {
       saveFailed = false;
+      void autoBackup(sid, g).catch(() => undefined); // daily and season-start backups
       const list = [careerOf(sid, g), ...readCareers().filter((c) => c.id !== sid)];
       writeCareers(list); setCareers(list);
     }).catch(() => { saveFailed = true; });
@@ -121,6 +123,7 @@ export function useGame() {
 
   const deleteCareer = useCallback(async (id: string) => {
     await idbDel(id).catch(() => undefined);
+    await deleteAllSlots(id).catch(() => undefined);
     const list = readCareers().filter((c) => c.id !== id);
     writeCareers(list); setCareers(list);
     if (activeId.current === id) { activeId.current = null; setActive(null); setGameState(null); }
@@ -142,7 +145,10 @@ export function useGame() {
     } catch { return 'This file could not be read as a Football Dynasty save.'; }
   }, [save]);
 
-  return { game, setGame, update, loading, oldSave, careers, activeId: activeId.current, leave, loadCareer, deleteCareer, importSave };
+  /** Puts a saved slot or backup in place of the current game (the career's own save is overwritten next autosave). */
+  const restore = useCallback((s: GameState) => { if (s.version === VERSION) setGameState(migrate(s)); }, []);
+
+  return { game, setGame, update, loading, oldSave, careers, activeId: activeId.current, leave, loadCareer, deleteCareer, importSave, restore };
 }
 
 /** A save as a compact text file (lz-string, base64). */

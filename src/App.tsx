@@ -58,7 +58,7 @@ function liveFx0(g: NonNullable<ReturnType<typeof useGame>['game']>, live: LiveS
 }
 
 export default function App() {
-  const { game: g, setGame, update, loading, oldSave, careers, activeId, leave, loadCareer, deleteCareer, importSave } = useGame();
+  const { game: g, setGame, update, loading, oldSave, careers, activeId, leave, loadCareer, deleteCareer, importSave, restore } = useGame();
   const [theme, setTheme] = useTheme();
   const [screen, setScreen] = useState<Screen>('home');
   const [param, setParam] = useState<string | undefined>();
@@ -245,7 +245,7 @@ export default function App() {
     case 'youth': body = <Youth g={g} go={go} onPromote={(id) => update((d) => promote(d, id))} />; break;
     case 'history': body = <History g={g} />; break;
     case 'inbox': body = <InboxScreen g={g} selectedId={param} go={go} onOpen={(id) => { setParam(id); update((d) => markRead(d, id)); }} onBid={(bid, ok) => update((d) => respondToBid(d, bid, ok))} onAnswer={(mid, i) => update((d) => { answer(d, mid, i); })} />; break;
-    case 'settings': body = <Settings g={g} theme={theme} setTheme={setTheme} setCurrency={(c) => update((d) => { d.currency = c; })} onNewCareer={() => { leave(); setScreen('home'); }} careers={careers} activeId={activeId} onLoad={(id) => { void loadCareer(id); setScreen('home'); }} onDelete={(id) => void deleteCareer(id)} onImport={async (t) => { const e = await importSave(t); if (!e) go('home'); return e; }} />; break;
+    case 'settings': body = <Settings g={g} theme={theme} setTheme={setTheme} setCurrency={(c) => update((d) => { d.currency = c; })} onNewCareer={() => { leave(); setScreen('home'); }} careers={careers} activeId={activeId} onLoad={(id) => { void loadCareer(id); setScreen('home'); }} onDelete={(id) => void deleteCareer(id)} onImport={async (t) => { const e = await importSave(t); if (!e) go('home'); return e; }} onRestore={(s) => { restore(s); setLive(null); }} />; break;
     default: body = <Placeholder id={screen} />;
   }
   // a first-visit tip above each main screen
